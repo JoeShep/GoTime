@@ -2,26 +2,24 @@
 
 ## Goal
 
-Verify the GoTime bootstrap in Docker and establish the initial repository commit.
+Define GoTime's core domain language before designing a database or expanding
+application infrastructure.
 
 ## Tasks
 
-- [x] Create repository structure
-- [x] Add ADR process
-- [x] Create ADR-0001 (Monorepo)
-- [x] Scaffold React
-- [x] Scaffold FastAPI
-- [x] Add Docker Compose
-- [ ] Verify frontend ↔ backend communication in Docker
-- [ ] Commit and push
+- [ ] Define, in plain language, a Goal, Project, Task, Milestone, and
+  Dependency.
+- [ ] Establish the boundaries and relationships among those concepts.
+- [ ] Test the language against the California move scenario.
+- [ ] Document the agreed vocabulary before considering a database schema.
 
 ## Success Criteria
 
-Opening the browser displays "Hello, GoTime!" and `Backend status: ok` after
-the React frontend calls the FastAPI backend.
+A shared, understandable vocabulary explains the core GoTime concepts and how
+they help identify what should happen next.
 
 ## Notes
 
-No database.
-No authentication.
-Focus on validating the architecture.
+Do not begin with tasks as an implementation concern. Start with the language
+of the application. No database design is in scope until the domain concepts
+are understood.

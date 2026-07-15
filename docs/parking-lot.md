@@ -6,3 +6,10 @@ Session scripts.
 Prompt libraries.
 Automated project summaries.
 Architectural review prompts.
+
+Development environment
+
+As GoTime grows, split Docker Compose configuration into:
+
+- `docker-compose.yml`
+- `docker-compose.dev.yml`

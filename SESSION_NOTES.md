@@ -98,3 +98,43 @@ It's tiny, but it's real.
   Docker is not installed.
 - Make the initial commit after that verification.
 
+---
+
+## Session 3 -- Version 0.0.2 Concept Screen
+
+### Completed
+
+- Reframed the current milestone around proving GoTime's central question:
+  "What should I do next?"
+- Replaced the frontend health-check placeholder with a single static screen.
+- Presented a hard-coded relocation goal, one recommended next step, and two
+  upcoming steps.
+- Explicitly deferred persistence, authentication, editing, and task-management
+  workflows.
+- Kept the FastAPI health endpoint and Docker Compose foundation in place for
+  later iterations.
+
+### Next
+
+- Put the screen in front of its intended user and learn whether the recommended
+  next step feels immediately useful.
+
+---
+
+## Session 4 -- Frontend Development Workflow
+
+### Completed
+
+- Adopted React-Bootstrap, Bootstrap utilities, and SCSS as frontend
+  conventions, with the decision recorded in ADR-0003.
+- Refactored the concept screen to use React-Bootstrap components and
+  project-specific SCSS modules for shared variables and mixins.
+- Configured Docker Compose for frontend live reload using a source bind mount,
+  a container-managed `node_modules` volume, and file-watch polling.
+- Verified the running frontend container uses the source bind mount and runs
+  Vite in development mode.
+
+### Next
+
+- Define GoTime's domain language—Goal, Project, Task, Milestone, and
+  Dependency—before designing a database or additional infrastructure.

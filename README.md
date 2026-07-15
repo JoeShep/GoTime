@@ -36,8 +36,9 @@ Additional technologies will be introduced only when they solve a real problem.
 
 ## Current Status
 
-GoTime has an initial React and FastAPI architecture. The frontend calls the
-backend health endpoint and displays its status.
+Version 0.0.2 is a single, static screen that proves the core GoTime idea. It
+shows one goal, the recommended next step, and a short look ahead. There is no
+persistence, authentication, editing, or task-management workflow yet.
 
 ## Run locally
 
@@ -47,8 +48,9 @@ With Docker and Docker Compose installed:
 docker compose up --build
 ```
 
-Open http://localhost:5173. The page displays "Hello, GoTime!" and the status
-returned by `GET /api/health`.
+Open http://localhost:5173 to see the static GoTime experience. The backend
+health endpoint remains available at `GET /api/health` as part of the existing
+application foundation.
 
 ## Documentation
 

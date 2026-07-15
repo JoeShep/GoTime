@@ -18,6 +18,17 @@ Otherwise review the most recent five.
 * [ ] If any required document is missing, mention it before proposing a plan.
 * [ ] Confirm today's objective before making changes.
 
+## Frontend Conventions
+
+Unless a specific task requires otherwise:
+
+* Use React-Bootstrap components and Bootstrap utility classes for layout and styling.
+* Use SCSS for custom styling. Avoid plain CSS files.
+* Prefer Bootstrap utility classes over custom SCSS when they provide the desired result.
+* Create custom SCSS only when Bootstrap cannot achieve the design cleanly.
+* Keep styling consistent with the project's clean, functional aesthetic.
+* Favor reusable React components over duplicated markup.
+
 ## Working Style
 
 * Inspect before changing.

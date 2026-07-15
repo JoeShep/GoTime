@@ -1,0 +1,80 @@
+@use './styles/mixins';
+@use './styles/variables';
+
+body {
+  min-width: 320px;
+  color: variables.$ink;
+  background: variables.$page;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.next-step-card {
+  width: min(100%, 38rem);
+  background: variables.$card;
+  box-shadow: 0 1.5rem 4rem rgb(42 61 52 / 8%) !important;
+}
+
+.eyebrow,
+.section-label {
+  color: variables.$muted-ink;
+  @include mixins.uppercase-label;
+}
+
+.eyebrow {
+  color: variables.$accent;
+}
+
+.page-title,
+.goal-name {
+  color: variables.$forest;
+  @include mixins.display-serif;
+}
+
+.page-title {
+  max-width: 11ch;
+  font-size: clamp(2.25rem, 6vw, 3.75rem);
+  font-weight: 500;
+  line-height: 1.03;
+}
+
+.goal-name {
+  font-size: clamp(1.6rem, 4vw, 2.15rem);
+}
+
+.next-step {
+  background: #e5f0e6;
+}
+
+.step-name {
+  color: variables.$ink;
+  font-size: clamp(1.25rem, 3vw, 1.6rem);
+  font-weight: 650;
+}
+
+.next-step-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid variables.$accent;
+  border-radius: 0.25rem;
+  background: variables.$card;
+}
+
+.upcoming-list .list-group-item {
+  color: #526159;
+  background: transparent;
+  font-size: 1.05rem;
+
+  &::before {
+    display: inline-block;
+    width: 0.35rem;
+    height: 0.35rem;
+    margin-right: 0.7rem;
+    border-radius: 50%;
+    background: #8da394;
+    content: '';
+    vertical-align: middle;
+  }
+}

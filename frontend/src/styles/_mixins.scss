@@ -1,0 +1,11 @@
+@mixin uppercase-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+@mixin display-serif {
+  font-family: Georgia, 'Times New Roman', serif;
+  letter-spacing: -0.04em;
+}
