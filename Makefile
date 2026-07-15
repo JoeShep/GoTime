@@ -1,0 +1,2 @@
+session:
+	./scripts/begin.sh
