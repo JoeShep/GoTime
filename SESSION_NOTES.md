@@ -268,3 +268,45 @@ I'm actually least confident about this one.
 The examples you gave—your spouse finding meaningful work and access to high-quality healthcare—could fit under "Definition of Success" instead of becoming a separate concept.
 
 I'd hold off on creating a new category until we see whether it recurs in other domains.
+
+---
+
+## Session 7 -- First In-Memory Reasoning Loop
+
+### Completed
+
+- Added minimal in-memory models for Goal, SuccessCriterion, Constraint,
+  Preference, Decision, Assumption, and Recommendation.
+- Represented one hard-coded Tennessee-to-Northern-California relocation
+  scenario.
+- Added one deterministic, relocation-specific rule that recommends clarifying
+  spouse employment requirements before selecting a final target location.
+- Included why, why now, relevant dependencies, blocked downstream work, and
+  the related employment Assumption in the Recommendation.
+- Exposed the primary Recommendation at
+  `GET /api/recommendations/primary`.
+- Added focused reasoning and endpoint tests.
+
+### Modeling Decisions
+
+- Explanation remains embedded in Recommendation, as anticipated by the domain
+  model.
+- Decision readiness and Assumption status use only the states needed by this
+  scenario.
+- Downstream work and dependencies remain descriptive values. No generic rule
+  engine, dependency graph, persistence layer, or Action model was introduced.
+- No ADR was needed because these choices follow the existing MVP and domain
+  documentation.
+
+### Verification
+
+- Backend tests: 3 passed.
+- Python compilation: passed.
+- Whitespace validation with `git diff --check`: passed.
+- Docker verification passed: `GET /api/health` returned `{"status":"ok"}` and
+  `GET /api/recommendations/primary` returned the expected updated contract.
+
+### Next
+
+- Review the first recommendation payload and decide whether it is the right
+  contract for the first frontend-backed reasoning experience.
