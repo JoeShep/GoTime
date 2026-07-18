@@ -1,6 +1,5 @@
 # GoTime
-
-GoTime is a personal and family productivity application. It succeeds when it helps people make progress on real goals, not when it helps them manage bigger task lists.
+GoTime helps people make better decisions while pursuing complex goals by combining strategic reasoning with operational sequencing.
 
 It began with a simple question:
 
@@ -52,5 +51,12 @@ Additional technologies will be introduced only when they solve a real problem.
 
 ## Documentation
 
-* `docs/product-vision.md` - The long-term vision for GoTime.
 * `docs/adr/` - Architecture Decision Records documenting significant technical decisions.
+* `docs/product-vision.md` - The long-term vision for GoTime.
+* `docs/reasoning-engine.md` - Defines how GoTime thinks
+* `docs/capability-roadmap.md` - Defines what the reasoning engine can be expected to do, and where the dividing lines are between the AI and the app (For lack of a better way to put it)
+
+Vision tells us why.
+Reasoning Engine tells us what the engine must be capable of thinking about.
+Capability Roadmap tells us what we build next to realize that vision.
+The code implements those capabilities.

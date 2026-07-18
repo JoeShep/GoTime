@@ -1,25 +1,37 @@
-# Next Session
+# NEXT_SESSION
 
 ## Goal
 
-Define GoTime's core domain language before designing a database or expanding
-application infrastructure.
+Design the first version of GoTime's reasoning engine by observing how an experienced project manager plans a real relocation.
+
+The objective is not to create a task hierarchy. The objective is to discover how GoTime should think.
 
 ## Tasks
 
-- [ ] Define, in plain language, a Goal, Project, Task, Milestone, and
-  Dependency.
-- [ ] Establish the boundaries and relationships among those concepts.
-- [ ] Test the language against the California move scenario.
-- [ ] Document the agreed vocabulary before considering a database schema.
+* [ ] Role-play a relocation planning session.
+* [ ] Capture every question the project manager asks.
+* [ ] Record every recommendation and the reasoning behind it.
+* [ ] Identify facts, rules, and inferences revealed during the conversation.
+* [ ] Note any new domain concepts that emerge naturally.
+* [ ] Update `docs/reasoning-engine.md` with the results.
 
 ## Success Criteria
 
-A shared, understandable vocabulary explains the core GoTime concepts and how
-they help identify what should happen next.
+By the end of the session we should understand:
+
+* What information the reasoning engine requires.
+* How it reaches recommendations.
+* How it explains its recommendations.
+* Which domain concepts naturally emerge from the planning conversation.
+
+Domain terms such as Goal, Project, Phase, Task, Milestone, and Dependency should be refined only after the reasoning process is better understood.
 
 ## Notes
 
-Do not begin with tasks as an implementation concern. Start with the language
-of the application. No database design is in scope until the domain concepts
-are understood.
+Treat the conversation as requirements discovery.
+
+Do not design the database.
+
+Do not design user interfaces.
+
+Focus entirely on understanding how GoTime should reason about a complex goal.

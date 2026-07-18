@@ -138,3 +138,133 @@ It's tiny, but it's real.
 
 - Define GoTime's domain language—Goal, Project, Task, Milestone, and
   Dependency—before designing a database or additional infrastructure.
+
+## Session 5 -- 'Whiteboarding', or how I went from a todo app to a reasoning engine
+(this is copied straight from CGPT's response to my attempt to explain what I wanted to app to do for us)
+
+I think we need to define the engine's responsibilities
+If I were writing them today, they'd be:
++ Understand -- What is the user trying to accomplish?
++ Model -- Build a representation of the plan.
++ Predict -- Estimate durations, dependencies, and risks.
++ Monitor -- Watch for changes.
++ Adapt -- Recalculate when something changes.
++ Recommend -- Answer: What should I do next?
++ Explain -- Perhaps the most important responsibility. Never just say: "Do this." Always answer: Why?
+
+This leads to an important realization
+
+I don't think "AI" belongs everywhere.
+
+I think AI belongs primarily in these places:
+
++ building an initial plan,
++ estimating timelines,
++ identifying missing work,
++ explaining recommendations,
++ summarizing progress,
++ answering questions.
+
+Everything else should be deterministic. For example: Task assignments. Permissions. Notes. Attachments. Those don't need AI.
+
+If we can define how GoTime reasons, then every subsequent decision becomes easier:
+
++ The domain model exists to support the reasoning engine.
++ The database exists to persist the domain model.
++ The UI exists to expose the reasoning engine.
++ AI exists to enhance the reasoning engine.
+
+I think GoTime has three kinds of knowledge.
+
+1. Facts
+Things the user tells us.
+
+Examples:
++ Move date
++ Family members
++ Budget
++ House under contract
+
+2. Rules
+Things GoTime knows.
+
+Examples:
++ Movers should usually be booked 8–12 weeks in advance.
++ Utility transfers should occur shortly before occupancy.
++ Vehicle registration deadlines vary by state.
+
+3. Inference
+What GoTime concludes.
+
+Examples:
+You should schedule movers this week.
+or
+This task is blocked because closing has not occurred.
+
+That separation is powerful because it means we can improve the reasoning engine without changing the user's data.
+
+We decided to design the reasoning engine by role-playing real planning conversations rather than starting with a database schema. The conversation itself will be treated as a source of requirements for the engine.
+
+Session 6 -- The API acted as a project mgr and asked me questions about our move. It resulted in some changed ideas about how this app will behave
+
+Here's the complete list of ideas I think we generated today
+New concepts
+Strategic Reasoning
+Operational Reasoning
+Decision Filters
+Decision Readiness
+Backward Planning
+Sequencing Engine
+Continuous Re-evaluation
+Recommendation Transparency
+Conversation Engine
+Plan Invalidation
+Waiting for Information
+Refined concepts
+Constraints → Decision Filters
+Tasks → Outputs of reasoning
+Projects → Vehicles toward goals
+Recommendations → Explained recommendations
+Risks → Inputs into reasoning rather than standalone objects
+Important distinctions
+
+### Action
+> Something someone does.
+
+### Decision
+>Something someone chooses.
+
+### Event
+>Something that happens.
+
+Those three affect sequencing differently.
+
+### Waiting vs Blocked
+Another subtle distinction.
+
+Blocked: Can't continue because prerequisite work isn't complete.
+
+Waiting: Can't continue because external information hasn't arrived.
+
+Very different reasoning.
+
+### Assumptions
+
+These became first-class citizens.
+
+Examples:
++ house sells
++ spouse finds employment
++ destination remains unchanged
+
+The engine should know these are assumptions rather than facts.
+
+### Plan Invalidation
+We distinguished ordinary risks from events that should cause the engine to stop optimizing the current plan and instead reconsider it from the ground up.
+
+### Success Factors
+I'm actually least confident about this one.
+
+The examples you gave—your spouse finding meaningful work and access to high-quality healthcare—could fit under "Definition of Success" instead of becoming a separate concept.
+
+I'd hold off on creating a new category until we see whether it recurs in other domains.
