@@ -247,3 +247,24 @@ The temporary API proof supports:
 ## Later Slice
 
 After state change and re-reasoning are proven, connect the existing frontend concept screen to the Recommendation endpoint.
+
+# Frontend Recommendation Integration
+
+## Status
+
+Implementation is complete, reviewed, and verified.
+
+The existing concept screen now:
+
+* Loads the original Recommendation from the backend by default.
+* Displays the complete human-readable explanation, dependencies, blocked
+  work, and related employment Assumption.
+* Uses a temporary scenario control to request either the unclear or clarified
+  employment-requirements snapshot.
+* Handles loading, failed requests, and obsolete responses.
+
+## Next
+
+Review the live recommendation experience with its intended user and select
+the next milestone based on whether the explanation and state change feel
+useful and trustworthy.

@@ -36,9 +36,11 @@ Additional technologies will be introduced only when they solve a real problem.
 
 ## Current Status
 
-Version 0.0.2 is a single, static screen that proves the core GoTime idea. It
-shows one goal, the recommended next step, and a short look ahead. There is no
-persistence, authentication, editing, or task-management workflow yet.
+The current MVP slice connects the concept screen to the in-memory reasoning
+API. It shows one explained Recommendation and includes a temporary scenario
+control that demonstrates the Recommendation changing when spouse employment
+requirements move from unclear to clarified. There is no persistence,
+authentication, general editing, or task-management workflow yet.
 
 ## Run locally
 
@@ -48,9 +50,8 @@ With Docker and Docker Compose installed:
 docker compose up --build
 ```
 
-Open http://localhost:5173 to see the static GoTime experience. The backend
-health endpoint remains available at `GET /api/health` as part of the existing
-application foundation.
+Open http://localhost:5173 to see the GoTime recommendation experience. The
+backend health endpoint remains available at `GET /api/health`.
 
 ## Documentation
 

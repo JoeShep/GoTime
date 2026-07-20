@@ -357,3 +357,50 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 ### Next
 
 - Review the two-state reasoning flow and API proof before committing.
+
+---
+
+## Session 9 -- Frontend Recommendation Integration
+
+### Completed
+
+- Replaced the static recommendation and upcoming-step content with the live
+  primary Recommendation returned by the backend.
+- Added endpoint-specific TypeScript models and one focused fetch function.
+- Displayed what is recommended, why, why now, relevant dependencies, blocked
+  downstream work, and the related employment Assumption.
+- Added a visually secondary temporary scenario control for unclear and
+  clarified spouse employment requirements.
+- Added loading and error states.
+- Prevented obsolete requests from replacing the result for the latest selected
+  state through request cancellation and a current-request guard.
+- Kept `related_decision_id` and other implementation identifiers out of the
+  rendered interface.
+- Added focused frontend component tests and development-only test tooling.
+
+### Modeling and UI Boundaries
+
+- The scenario selector demonstrates state change; it is not a proposed
+  production editing workflow and does not persist anything.
+- Clarified employment requirements remain distinct from the unconfirmed
+  Assumption that suitable employment exists.
+- No routing, global state manager, forms infrastructure, generalized API
+  client, or backend change was introduced.
+- No ADR was needed because the integration follows the established frontend
+  conventions and uses a temporary proof control.
+
+### Verification
+
+- Frontend tests: 5 passed.
+- Frontend production build: passed.
+- Backend tests: 10 passed.
+- Backend Python compilation: passed.
+- Docker Compose rebuild passed; the backend was healthy and the frontend was
+  running.
+- The frontend proxy returned the expected unclear and clarified contracts.
+- Whitespace validation with `git diff --check`: passed.
+
+### Next
+
+- Review the live experience with its intended user before selecting the next
+  milestone.

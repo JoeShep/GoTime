@@ -12,7 +12,7 @@ body {
 }
 
 .next-step-card {
-  width: min(100%, 38rem);
+  width: min(100%, 52rem);
   background: variables.$card;
   box-shadow: 0 1.5rem 4rem rgb(42 61 52 / 8%) !important;
 }
@@ -48,21 +48,31 @@ body {
   background: #e5f0e6;
 }
 
+.scenario-control {
+  max-width: 28rem;
+  border: 1px solid #dfe3dc;
+  background: #f8f8f4;
+}
+
+.scenario-help,
+.loading-state {
+  color: variables.$muted-ink;
+  font-size: 0.9rem;
+}
+
 .step-name {
   color: variables.$ink;
   font-size: clamp(1.25rem, 3vw, 1.6rem);
   font-weight: 650;
 }
 
-.next-step-checkbox {
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 2px solid variables.$accent;
-  border-radius: 0.25rem;
-  background: variables.$card;
+.detail-heading {
+  color: variables.$forest;
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
-.upcoming-list .list-group-item {
+.detail-list .list-group-item {
   color: #526159;
   background: transparent;
   font-size: 1.05rem;
@@ -77,4 +87,15 @@ body {
     content: '';
     vertical-align: middle;
   }
+}
+
+.why-now,
+.assumption-card {
+  background: #f3eee2;
+}
+
+.assumption-description {
+  color: variables.$ink;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
