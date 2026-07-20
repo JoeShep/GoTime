@@ -310,3 +310,50 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 
 - Review the first recommendation payload and decide whether it is the right
   contract for the first frontend-backed reasoning experience.
+
+---
+
+## Session 8 -- State Change and Re-Reasoning
+
+### Completed
+
+- Added the minimum relocation-specific state needed to distinguish unclear
+  from clarified spouse employment requirements.
+- Derived the clarified Goal snapshot from the original with `model_copy`
+  without mutating the original snapshot.
+- Preserved the original Recommendation for unclear requirements.
+- Added a second deterministic Recommendation to evaluate candidate locations
+  against clarified employment requirements.
+- Preserved the unconfirmed suitable-employment Assumption and the structured
+  relationship to the `target-location` Decision in both Recommendations.
+- Added the temporary `employment_requirements` query parameter; omitted and
+  `unclear` values are equivalent, while `clarified` selects the second proof
+  snapshot.
+- Added explained HTTP 422 responses for unsupported query values and
+  recognized states without an applicable reasoning path.
+
+### Modeling Decisions
+
+- `EmploymentRequirementsStatus` and
+  `Goal.relocation_employment_requirements_status` are relocation-specific
+  scenario state for this proof, not finalized universal Goal fields.
+- A broader CurrentState model, generic fact system, persistence layer, state
+  manager, rule engine, and dependency graph remain deferred.
+- Clarifying requirements does not validate the separate Assumption that
+  suitable employment exists in a viable candidate region.
+- No ADR was needed because the temporary query contract and scenario state do
+  not establish durable production architecture.
+
+### Verification
+
+- Backend tests: 10 passed.
+- Python compilation: passed.
+- Whitespace validation with `git diff --check`: passed.
+- Docker Compose rebuilt successfully; the backend was healthy and the
+  frontend started.
+- Docker endpoint checks passed for health, default, unclear, clarified, and
+  unsupported-query behavior.
+
+### Next
+
+- Review the two-state reasoning flow and API proof before committing.

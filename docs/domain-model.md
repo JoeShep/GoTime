@@ -170,6 +170,11 @@ Should **Current State** remain part of the Goal, or should it eventually become
 
 For the MVP, Current State can remain associated with the Goal until the first reasoning loop demonstrates that it needs to be modeled independently.
 
+The state-change proof temporarily records `relocation_employment_requirements_status`
+on the in-memory Goal snapshot. This is relocation-specific scenario state, not
+a finalized general property of every Goal. A broader CurrentState or fact model
+remains intentionally deferred.
+
 
 # SuccessCriterion
 
