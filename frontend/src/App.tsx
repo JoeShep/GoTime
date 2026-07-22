@@ -101,7 +101,9 @@ function App() {
                   <h2 className="step-name mb-0">{recommendation.what}</h2>
                   {!hasConfirmedEmploymentRequirements && (
                     <div className="recommendation-action mt-4 pt-4">
-                      <p className="mb-3">Have you clarified what employment would need to provide?</p>
+                      <p className="mb-3">
+                        Do you know what kind of job would make the move workable for your spouse?
+                      </p>
                       <Button
                         variant="outline-success"
                         onClick={() => {
@@ -109,7 +111,7 @@ function App() {
                           setEmploymentRequirements('clarified')
                         }}
                       >
-                        Yes, we’ve clarified the requirements
+                        Yes, we know what to look for
                       </Button>
                     </div>
                   )}

@@ -73,10 +73,12 @@ describe('recommendation screen', () => {
     expect(screen.getByText('unconfirmed')).toBeVisible()
     expect(screen.queryByText('target-location')).not.toBeInTheDocument()
     expect(
-      screen.getByText('Have you clarified what employment would need to provide?'),
+      screen.getByText(
+        'Do you know what kind of job would make the move workable for your spouse?',
+      ),
     ).toBeVisible()
     expect(
-      screen.getByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+      screen.getByRole('button', { name: 'Yes, we know what to look for' }),
     ).toBeVisible()
   })
 
@@ -91,7 +93,7 @@ describe('recommendation screen', () => {
     await screen.findByRole('heading', { name: unclearRecommendation.what })
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+      screen.getByRole('button', { name: 'Yes, we know what to look for' }),
     )
 
     expect(
@@ -105,10 +107,12 @@ describe('recommendation screen', () => {
     expect(screen.getByText('unconfirmed')).toBeVisible()
     expect(screen.getByText('Employment requirements marked as clarified.')).toBeVisible()
     expect(
-      screen.queryByText('Have you clarified what employment would need to provide?'),
+      screen.queryByText(
+        'Do you know what kind of job would make the move workable for your spouse?',
+      ),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+      screen.queryByRole('button', { name: 'Yes, we know what to look for' }),
     ).not.toBeInTheDocument()
   })
 
@@ -132,7 +136,7 @@ describe('recommendation screen', () => {
     await screen.findByRole('heading', { name: unclearRecommendation.what })
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+      screen.getByRole('button', { name: 'Yes, we know what to look for' }),
     )
 
     expect(
@@ -163,7 +167,7 @@ describe('recommendation screen', () => {
     await screen.findByRole('heading', { name: unclearRecommendation.what })
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+      screen.getByRole('button', { name: 'Yes, we know what to look for' }),
     )
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Recommendation unavailable')
@@ -172,7 +176,7 @@ describe('recommendation screen', () => {
     )
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+      screen.queryByRole('button', { name: 'Yes, we know what to look for' }),
     ).not.toBeInTheDocument()
   })
 })
