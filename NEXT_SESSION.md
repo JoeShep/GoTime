@@ -263,8 +263,107 @@ The existing concept screen now:
   employment-requirements snapshot.
 * Handles loading, failed requests, and obsolete responses.
 
-## Next
+## Intended-User Feedback
 
-Review the live recommendation experience with its intended user and select
-the next milestone based on whether the explanation and state change feel
-useful and trustworthy.
+The current frontend is acceptable for this stage and successfully demonstrates
+the end-to-end reasoning loop.
+
+The interface is still too early to evaluate meaningfully for layout or visual
+refinement. Do not begin a redesign yet.
+
+The current language feels clinical and dry because it exposes internal
+reasoning vocabulary too directly, including phrases such as:
+
+* Partially ready
+* Relevant dependencies
+* Blocked downstream work
+* Unconfirmed assumption
+
+This language is acceptable for the current proof. Future user-facing copy
+should translate internal reasoning concepts into warmer, more natural
+guidance. For example:
+
+> **What to focus on now**
+>
+> Clarify what kind of work would be acceptable for your spouse before
+> narrowing the location search.
+
+## Deferred Language and UI Concerns
+
+Treat the clinical language and early visual design as documented product
+concerns, not immediate polishing tasks. Revisit them after the interaction and
+reasoning model are more mature, when user feedback can evaluate the experience
+in a more meaningful context.
+
+# Meaningful State Input
+
+## Status
+
+Implementation is complete, reviewed, and verified.
+
+* The temporary scenario selector has been replaced with a realistic
+  confirmation action attached to the current Recommendation.
+* The user can confirm that spouse employment requirements have been clarified.
+* That confirmation triggers re-reasoning and produces a new Recommendation.
+* The suitable-employment Assumption remains unconfirmed.
+* The interaction remains intentionally local and non-persistent.
+* Frontend, backend, Docker, and integration verification all pass.
+
+# Next Milestone — Capture One Concrete Employment Requirement
+
+## Objective
+
+Capture one real employment requirement from the user and use it as an actual
+input to reasoning about candidate locations.
+
+Use **acceptable work arrangement** as the first requirement.
+
+Possible values may include:
+
+* Remote
+* Hybrid
+* On-site
+* Flexible or unknown
+
+## Behavior to Prove
+
+The user provides an acceptable work arrangement.
+
+The engine then uses that value when producing the next Recommendation about
+evaluating candidate locations.
+
+The Recommendation and explanation should reflect the supplied requirement
+rather than merely knowing that requirements were clarified.
+
+## Scope
+
+* Capture one concrete employment requirement.
+* Pass it through the existing frontend-to-backend flow.
+* Represent it in the Goal snapshot or narrowly scoped relocation state.
+* Use it in one deterministic reasoning path.
+* Show it in the Recommendation explanation where relevant.
+* Preserve the suitable-employment Assumption as unconfirmed.
+* Add focused frontend and backend tests.
+
+## Out of Scope
+
+* Persistence
+* Authentication
+* Complete employment profiles
+* Salary modeling
+* Employer or job searches
+* Multiple detailed requirements
+* Generic forms infrastructure
+* Generic fact or state systems
+* Candidate-location scoring
+* Visual redesign
+* Broad copy refinement
+
+## Key Design Question
+
+Determine the smallest honest interaction for collecting the work-arrangement
+requirement without implying that GoTime already supports a complete
+employment-planning workflow.
+
+Keep the empty `docs/adr/ADR-0001-monorepo.md` issue separate from this
+milestone.

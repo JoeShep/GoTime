@@ -48,16 +48,17 @@ body {
   background: #e5f0e6;
 }
 
-.scenario-control {
-  max-width: 28rem;
-  border: 1px solid #dfe3dc;
-  background: #f8f8f4;
-}
-
-.scenario-help,
 .loading-state {
   color: variables.$muted-ink;
   font-size: 0.9rem;
+}
+
+.recommendation-action {
+  border-top: 1px solid rgb(42 61 52 / 15%);
+}
+
+.state-update {
+  font-size: 0.95rem;
 }
 
 .step-name {

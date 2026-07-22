@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Alert, Badge, Card, Col, Container, Form, ListGroup, Row, Spinner } from 'react-bootstrap'
+import { Alert, Badge, Button, Card, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap'
 import {
   fetchPrimaryRecommendation,
   type EmploymentRequirementsState,
   type Recommendation,
 } from './api/recommendations'
 
-function isEmploymentRequirementsState(value: string): value is EmploymentRequirementsState {
-  return value === 'unclear' || value === 'clarified'
-}
-
 function App() {
   const [employmentRequirements, setEmploymentRequirements] =
     useState<EmploymentRequirementsState>('unclear')
+  const [hasConfirmedEmploymentRequirements, setHasConfirmedEmploymentRequirements] =
+    useState(false)
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,28 +69,6 @@ function App() {
               <p className="goal-name mb-0">Relocate to Northern California</p>
             </section>
 
-            <section className="scenario-control mt-4 p-3 rounded-3" aria-labelledby="scenario-heading">
-              <p className="section-label mb-1" id="scenario-heading">
-                Temporary scenario control
-              </p>
-              <p className="scenario-help mb-2">
-                Demonstrates how the recommendation changes when known information changes.
-              </p>
-              <Form.Select
-                aria-label="Employment requirements scenario"
-                size="sm"
-                value={employmentRequirements}
-                onChange={(event) => {
-                  if (isEmploymentRequirementsState(event.target.value)) {
-                    setEmploymentRequirements(event.target.value)
-                  }
-                }}
-              >
-                <option value="unclear">Employment requirements unclear</option>
-                <option value="clarified">Employment requirements clarified</option>
-              </Form.Select>
-            </section>
-
             {isLoading && (
               <div className="loading-state mt-5 py-5 text-center" role="status">
                 <Spinner animation="border" className="mb-3" />
@@ -109,6 +85,12 @@ function App() {
 
             {recommendation && (
               <>
+                {hasConfirmedEmploymentRequirements && (
+                  <Alert className="state-update mt-5 mb-0" variant="success">
+                    Employment requirements marked as clarified.
+                  </Alert>
+                )}
+
                 <section
                   className="next-step mt-5 p-4 rounded-4"
                   aria-labelledby="next-step-heading"
@@ -117,6 +99,20 @@ function App() {
                     Primary recommendation
                   </p>
                   <h2 className="step-name mb-0">{recommendation.what}</h2>
+                  {!hasConfirmedEmploymentRequirements && (
+                    <div className="recommendation-action mt-4 pt-4">
+                      <p className="mb-3">Have you clarified what employment would need to provide?</p>
+                      <Button
+                        variant="outline-success"
+                        onClick={() => {
+                          setHasConfirmedEmploymentRequirements(true)
+                          setEmploymentRequirements('clarified')
+                        }}
+                      >
+                        Yes, we’ve clarified the requirements
+                      </Button>
+                    </div>
+                  )}
                 </section>
 
                 <section className="pt-5" aria-labelledby="why-heading">

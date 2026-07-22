@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -71,9 +72,15 @@ describe('recommendation screen', () => {
     expect(screen.getByText(assumption.description)).toBeVisible()
     expect(screen.getByText('unconfirmed')).toBeVisible()
     expect(screen.queryByText('target-location')).not.toBeInTheDocument()
+    expect(
+      screen.getByText('Have you clarified what employment would need to provide?'),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+    ).toBeVisible()
   })
 
-  it('fetches and renders the clarified recommendation when the scenario changes', async () => {
+  it('confirms the state update and renders the clarified recommendation', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(responseWith(unclearRecommendation))
@@ -83,9 +90,9 @@ describe('recommendation screen', () => {
     render(<App />)
     await screen.findByRole('heading', { name: unclearRecommendation.what })
 
-    fireEvent.change(screen.getByLabelText('Employment requirements scenario'), {
-      target: { value: 'clarified' },
-    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+    )
 
     expect(
       await screen.findByRole('heading', { name: clarifiedRecommendation.what }),
@@ -96,50 +103,76 @@ describe('recommendation screen', () => {
     )
     expect(screen.getByText('The suitable-employment assumption remains unconfirmed.')).toBeVisible()
     expect(screen.getByText('unconfirmed')).toBeVisible()
+    expect(screen.getByText('Employment requirements marked as clarified.')).toBeVisible()
+    expect(
+      screen.queryByText('Have you clarified what employment would need to provide?'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+    ).not.toBeInTheDocument()
   })
 
-  it('does not let an obsolete request overwrite the latest recommendation', async () => {
-    let resolveUnclear: ((response: Response) => void) | undefined
-    const pendingUnclear = new Promise<Response>((resolve) => {
-      resolveUnclear = resolve
+  it('does not let an obsolete response overwrite the clarified recommendation', async () => {
+    let resolveObsolete: ((response: Response) => void) | undefined
+    const obsoleteRequest = new Promise<Response>((resolve) => {
+      resolveObsolete = resolve
     })
     const fetchMock = vi
       .fn()
-      .mockReturnValueOnce(pendingUnclear)
+      .mockReturnValueOnce(obsoleteRequest)
+      .mockResolvedValueOnce(responseWith(unclearRecommendation))
       .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<App />)
-    fireEvent.change(screen.getByLabelText('Employment requirements scenario'), {
-      target: { value: 'clarified' },
-    })
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    )
+    await screen.findByRole('heading', { name: unclearRecommendation.what })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+    )
 
     expect(
       await screen.findByRole('heading', { name: clarifiedRecommendation.what }),
     ).toBeVisible()
 
     await act(async () => {
-      resolveUnclear?.(responseWith(unclearRecommendation))
-      await pendingUnclear
+      resolveObsolete?.(responseWith(unclearRecommendation))
+      await obsoleteRequest
     })
 
     expect(screen.getByRole('heading', { name: clarifiedRecommendation.what })).toBeVisible()
     expect(
       screen.queryByRole('heading', { name: unclearRecommendation.what }),
     ).not.toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert', { name: 'Recommendation unavailable' })).not.toBeInTheDocument()
   })
 
-  it('renders an error when the recommendation request fails', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({ ok: false, status: 503 } as Response),
-    )
+  it('renders an error when the clarified recommendation request fails', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(responseWith(unclearRecommendation))
+      .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
+    vi.stubGlobal('fetch', fetchMock)
 
     render(<App />)
+    await screen.findByRole('heading', { name: unclearRecommendation.what })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+    )
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Recommendation unavailable')
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Unable to load the recommendation (503).',
     )
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Yes, we’ve clarified the requirements' }),
+    ).not.toBeInTheDocument()
   })
 })
