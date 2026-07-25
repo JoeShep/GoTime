@@ -44,12 +44,19 @@ evaluate candidate locations. For hybrid and on-site work, the user can also
 record a maximum acceptable one-way commute in minutes. The engine treats that
 value as a hard evaluation boundary, not as an observed or calculated commute.
 The user can then provide one free-form likely workplace area, which advances
-the Recommendation to gathering credible travel-time evidence. GoTime treats
-that area as unverified planning context: it does not normalize or geocode it,
-calculate a route, or score candidate locations. Work arrangement, commute
-tolerance, and workplace area are only inputs to employment planning; suitable
-employment remains an unconfirmed Assumption. All state remains in memory, with
-no persistence, authentication, general editing, or task-management workflow.
+the Recommendation toward gathering credible travel-time evidence. Finally,
+the user can select an intended commute mode: driving, public transit, or
+either. `either` means both modes are acceptable and evidence should be
+gathered for both, not that the mode is unknown. The submitted mode makes the
+manual evidence-gathering Recommendation mode-specific.
+
+GoTime treats the workplace area and travel mode as unverified planning
+context. It does not normalize or geocode the area, calculate a route or travel
+time, verify a workplace, or score candidate locations. Work arrangement,
+commute tolerance, workplace area, and intended mode are only inputs to
+employment planning; suitable employment remains an unconfirmed Assumption.
+All state remains in memory, with no persistence, authentication, general
+editing, or task-management workflow.
 
 ## Run locally
 

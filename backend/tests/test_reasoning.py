@@ -1,6 +1,6 @@
 import pytest
 
-from app.models import WorkArrangement
+from app.models import CommuteTravelMode, WorkArrangement
 from app.reasoning import recommend_next_step
 from app.scenarios import (
     build_relocation_scenario,
@@ -113,20 +113,14 @@ def test_commuting_arrangement_without_limit_recommends_defining_boundary(
 
 
 @pytest.mark.parametrize(
-    ("work_arrangement", "arrangement_text", "frequency_text"),
+    "work_arrangement",
     (
-        (WorkArrangement.HYBRID, "hybrid-work", "Hybrid work frequency remains unknown"),
-        (
-            WorkArrangement.ON_SITE,
-            "on-site-work",
-            "likely on-site workplace location remains unknown",
-        ),
+        WorkArrangement.HYBRID,
+        WorkArrangement.ON_SITE,
     ),
 )
-def test_commute_limit_guides_reasoning_without_evaluating_candidates(
+def test_commute_limit_requests_likely_workplace_area(
     work_arrangement: WorkArrangement,
-    arrangement_text: str,
-    frequency_text: str,
 ) -> None:
     goal = build_work_arrangement_scenario(
         build_relocation_scenario(), work_arrangement, 45
@@ -135,15 +129,13 @@ def test_commute_limit_guides_reasoning_without_evaluating_candidates(
     recommendation = recommend_next_step(goal)
 
     assert recommendation.what == (
-        f"Evaluate candidate locations against the {arrangement_text} requirement "
-        "and a maximum 45-minute one-way commute."
+        "Gather a likely workplace area before collecting commute evidence."
     )
     assert "longer than 45 minutes would not be acceptable" in recommendation.why[0]
-    assert "likely workplace location is still needed" in recommendation.why[1]
-    assert "user-provided boundary, not an observed commute time" in recommendation.why[2]
-    assert frequency_text in recommendation.why[3]
-    assert "No candidate location currently passes or fails" in recommendation.why[4]
-    assert "suitable-employment assumption remains unconfirmed" in recommendation.why[5]
+    assert "likely workplace area is needed" in recommendation.why[1]
+    assert "No route or travel time has been calculated." in recommendation.why
+    assert "No candidate location currently passes or fails" in recommendation.why[-2]
+    assert "suitable-employment assumption remains unconfirmed" in recommendation.why[-1]
     assert recommendation.related_assumptions[0].status == "unconfirmed"
 
 
@@ -154,7 +146,7 @@ def test_commute_limit_guides_reasoning_without_evaluating_candidates(
         WorkArrangement.ON_SITE,
     ),
 )
-def test_likely_workplace_area_advances_reasoning_to_evidence_gathering(
+def test_likely_workplace_area_requests_travel_mode(
     work_arrangement: WorkArrangement,
 ) -> None:
     goal = build_work_arrangement_scenario(
@@ -168,18 +160,74 @@ def test_likely_workplace_area_advances_reasoning_to_evidence_gathering(
 
     assert goal.likely_workplace_area == "San Jose or the surrounding area"
     assert recommendation.what == (
-        "Gather credible one-way travel-time evidence between candidate locations "
-        "and the likely San Jose or the surrounding area workplace area."
+        "Clarify the most likely commute travel mode before gathering "
+        "travel-time evidence."
     )
     assert "user-provided likely workplace area" in recommendation.why[0]
     assert "not a confirmed employer location or verified workplace" in (
         recommendation.why[0]
     )
     assert "maximum 45-minute one-way commute" in recommendation.why[1]
-    assert recommendation.why[2] == "No route or travel time has been calculated."
-    assert "Typical traffic conditions and travel mode remain unresolved." in (
-        recommendation.why
+    assert "different credible evidence" in recommendation.why[2]
+    assert "No route or travel time has been calculated." in recommendation.why
+    assert "No candidate location currently passes or fails" in recommendation.why[-2]
+    assert "suitable-employment assumption remains unconfirmed" in (
+        recommendation.why[-1]
     )
+    assert recommendation.related_assumptions[0].status == "unconfirmed"
+
+
+@pytest.mark.parametrize(
+    ("travel_mode", "evidence_text", "mode_reason"),
+    (
+        (
+            CommuteTravelMode.DRIVE,
+            "one-way driving-time evidence",
+            "traffic conditions remain unresolved",
+        ),
+        (
+            CommuteTravelMode.PUBLIC_TRANSIT,
+            "one-way public-transit travel-time evidence",
+            "schedules, transfers, and station access remain unresolved",
+        ),
+        (
+            CommuteTravelMode.EITHER,
+            "one-way driving and public-transit evidence",
+            "Both modes are acceptable",
+        ),
+    ),
+)
+@pytest.mark.parametrize(
+    "work_arrangement",
+    (WorkArrangement.HYBRID, WorkArrangement.ON_SITE),
+)
+def test_travel_mode_guides_mode_specific_evidence_gathering(
+    work_arrangement: WorkArrangement,
+    travel_mode: CommuteTravelMode,
+    evidence_text: str,
+    mode_reason: str,
+) -> None:
+    goal = build_work_arrangement_scenario(
+        build_relocation_scenario(),
+        work_arrangement,
+        45,
+        "San Jose",
+        travel_mode,
+    )
+
+    recommendation = recommend_next_step(goal)
+
+    assert evidence_text in recommendation.what
+    assert "likely San Jose workplace area" in recommendation.what
+    assert "not a confirmed employer location or verified workplace" in (
+        recommendation.why[0]
+    )
+    assert "hard evaluation boundary" in recommendation.why[1]
+    assert "user-provided planning context, not observed travel behavior" in (
+        recommendation.why[2]
+    )
+    assert recommendation.why[3] == "No route or travel time has been calculated."
+    assert mode_reason in recommendation.why[4]
     if work_arrangement is WorkArrangement.HYBRID:
         assert any(
             "Hybrid work frequency remains unresolved" in reason
@@ -202,9 +250,11 @@ def test_work_arrangement_snapshot_does_not_mutate_original_goal() -> None:
     assert original.acceptable_work_arrangement is None
     assert original.acceptable_commute_minutes is None
     assert original.likely_workplace_area is None
+    assert original.intended_commute_travel_mode is None
     assert clarified.acceptable_work_arrangement is WorkArrangement.HYBRID
     assert clarified.acceptable_commute_minutes == 45
     assert clarified.likely_workplace_area is None
+    assert clarified.intended_commute_travel_mode is None
     assert "remain unclear" in original.current_state
     assert "acceptable hybrid work arrangement" in clarified.current_state
     assert "maximum acceptable one-way commute is 45 minutes" in clarified.current_state

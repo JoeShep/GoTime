@@ -15,6 +15,7 @@ import {
 import {
   fetchPrimaryRecommendation,
   LIKELY_WORKPLACE_AREA_MAX_LENGTH,
+  type CommuteTravelMode,
   type Recommendation,
   type WorkArrangement,
 } from './api/recommendations'
@@ -26,12 +27,22 @@ const workArrangementLabels: Record<WorkArrangement, string> = {
   flexible: 'Flexible',
 }
 
+const commuteTravelModeLabels: Record<CommuteTravelMode, string> = {
+  drive: 'Drive',
+  public_transit: 'Public transit',
+  either: 'Either driving or public transit',
+}
+
 function isWorkArrangement(value: string): value is WorkArrangement {
   return value in workArrangementLabels
 }
 
 function requiresCommuteLimit(workArrangement: WorkArrangement | null): boolean {
   return workArrangement === 'hybrid' || workArrangement === 'on_site'
+}
+
+function isCommuteTravelMode(value: string): value is CommuteTravelMode {
+  return value in commuteTravelModeLabels
 }
 
 function App() {
@@ -44,6 +55,9 @@ function App() {
   const [draftWorkplaceArea, setDraftWorkplaceArea] = useState('')
   const [submittedWorkplaceArea, setSubmittedWorkplaceArea] =
     useState<string | null>(null)
+  const [draftTravelMode, setDraftTravelMode] = useState<CommuteTravelMode | ''>('')
+  const [submittedTravelMode, setSubmittedTravelMode] =
+    useState<CommuteTravelMode | null>(null)
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +74,7 @@ function App() {
       submittedWorkArrangement ?? undefined,
       submittedCommuteMinutes ?? undefined,
       submittedWorkplaceArea ?? undefined,
+      submittedTravelMode ?? undefined,
       controller.signal,
     )
       .then((nextRecommendation) => {
@@ -86,7 +101,12 @@ function App() {
       isCurrentRequest = false
       controller.abort()
     }
-  }, [submittedCommuteMinutes, submittedWorkArrangement, submittedWorkplaceArea])
+  }, [
+    submittedCommuteMinutes,
+    submittedTravelMode,
+    submittedWorkArrangement,
+    submittedWorkplaceArea,
+  ])
 
   const commuteDraftIsValid = /^[1-9]\d*$/.test(draftCommuteMinutes)
   const trimmedWorkplaceArea = draftWorkplaceArea.trim()
@@ -143,6 +163,12 @@ function App() {
                     {submittedWorkplaceArea && (
                       <p className="mb-0">
                         Likely workplace area recorded: {submittedWorkplaceArea}.
+                      </p>
+                    )}
+                    {submittedTravelMode && (
+                      <p className="mb-0">
+                        Intended commute mode recorded:{' '}
+                        {commuteTravelModeLabels[submittedTravelMode]}.
                       </p>
                     )}
                   </Alert>
@@ -267,6 +293,49 @@ function App() {
                           variant="outline-success"
                         >
                           Use this workplace area
+                        </Button>
+                      </Form>
+                    )}
+                  {submittedWorkplaceArea !== null &&
+                    submittedTravelMode === null && (
+                      <Form
+                        className="recommendation-action mt-4 pt-4"
+                        onSubmit={(event) => {
+                          event.preventDefault()
+                          if (draftTravelMode) {
+                            setSubmittedTravelMode(draftTravelMode)
+                          }
+                        }}
+                      >
+                        <Form.Label htmlFor="commute-travel-mode">
+                          How would your spouse most likely commute?
+                        </Form.Label>
+                        <Form.Select
+                          className="mb-3"
+                          id="commute-travel-mode"
+                          onChange={(event) => {
+                            if (
+                              event.target.value === '' ||
+                              isCommuteTravelMode(event.target.value)
+                            ) {
+                              setDraftTravelMode(event.target.value)
+                            }
+                          }}
+                          value={draftTravelMode}
+                        >
+                          <option value="">Select a travel mode</option>
+                          <option value="drive">Drive</option>
+                          <option value="public_transit">Public transit</option>
+                          <option value="either">
+                            Either driving or public transit
+                          </option>
+                        </Form.Select>
+                        <Button
+                          disabled={!draftTravelMode}
+                          type="submit"
+                          variant="outline-success"
+                        >
+                          Use this travel mode
                         </Button>
                       </Form>
                     )}

@@ -1,6 +1,7 @@
 from app.models import (
     Assumption,
     AssumptionStatus,
+    CommuteTravelMode,
     Constraint,
     Decision,
     DecisionReadiness,
@@ -27,6 +28,7 @@ def build_relocation_scenario() -> Goal:
         acceptable_work_arrangement=None,
         acceptable_commute_minutes=None,
         likely_workplace_area=None,
+        intended_commute_travel_mode=None,
         success_criteria=(
             SuccessCriterion(
                 id="affordable-move",
@@ -92,6 +94,7 @@ def build_work_arrangement_scenario(
     work_arrangement: WorkArrangement,
     acceptable_commute_minutes: int | None = None,
     likely_workplace_area: str | None = None,
+    intended_commute_travel_mode: CommuteTravelMode | None = None,
 ) -> Goal:
     """Derive a relocation snapshot with one concrete employment requirement."""
     arrangement_label = work_arrangement.value.replace("_", "-")
@@ -106,6 +109,12 @@ def build_work_arrangement_scenario(
         if likely_workplace_area is not None
         else ""
     )
+    travel_mode_state = (
+        " The intended commute travel mode is "
+        f"{intended_commute_travel_mode.value.replace('_', ' ')}."
+        if intended_commute_travel_mode is not None
+        else ""
+    )
     return Goal.model_validate(
         {
             **goal.model_dump(),
@@ -113,10 +122,11 @@ def build_work_arrangement_scenario(
                 "The family lives in Tennessee. A target location in Northern "
                 "California has not been selected, and the spouse's employment "
                 f"requirements include an acceptable {arrangement_label} work "
-                f"arrangement.{commute_state}{workplace_state}"
+                f"arrangement.{commute_state}{workplace_state}{travel_mode_state}"
             ),
             "acceptable_work_arrangement": work_arrangement,
             "acceptable_commute_minutes": acceptable_commute_minutes,
             "likely_workplace_area": likely_workplace_area,
+            "intended_commute_travel_mode": intended_commute_travel_mode,
         }
     )

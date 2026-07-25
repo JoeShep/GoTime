@@ -36,8 +36,7 @@ const commuteLimitRecommendation: Recommendation = {
 
 const clarifiedRecommendation: Recommendation = {
   ...commuteLimitRecommendation,
-  what:
-    'Evaluate candidate locations against the hybrid-work requirement and a maximum 45-minute one-way commute.',
+  what: 'Gather a likely workplace area before collecting commute evidence.',
   why: [
     'A one-way commute longer than 45 minutes would not be acceptable to the user.',
     'The suitable-employment assumption remains unconfirmed.',
@@ -49,7 +48,7 @@ const clarifiedRecommendation: Recommendation = {
 const evidenceRecommendation: Recommendation = {
   ...clarifiedRecommendation,
   what:
-    'Gather credible one-way travel-time evidence between candidate locations and the likely San Jose workplace area.',
+    'Clarify the most likely commute travel mode before gathering travel-time evidence.',
   why: [
     'San Jose is a user-provided likely workplace area, not a confirmed workplace.',
     'No route or travel time has been calculated.',
@@ -57,6 +56,19 @@ const evidenceRecommendation: Recommendation = {
     'The suitable-employment assumption remains unconfirmed.',
   ],
   why_now: 'The next step is to gather credible travel-time evidence.',
+}
+
+const travelModeRecommendation: Recommendation = {
+  ...evidenceRecommendation,
+  what:
+    'Gather credible one-way public-transit travel-time evidence between candidate locations and the likely San Jose workplace area.',
+  why: [
+    'Public transit is user-provided planning context.',
+    'Transit evidence must account for schedules, transfers, and station access.',
+    'No route or travel time has been calculated.',
+    'No candidate location currently passes or fails.',
+    'The suitable-employment assumption remains unconfirmed.',
+  ],
 }
 
 function responseWith(recommendation: Recommendation): Response {
@@ -93,6 +105,14 @@ function submitWorkplaceArea(value = 'San Jose') {
     { target: { value } },
   )
   fireEvent.click(screen.getByRole('button', { name: 'Use this workplace area' }))
+}
+
+function submitTravelMode(value = 'public_transit') {
+  fireEvent.change(
+    screen.getByLabelText('How would your spouse most likely commute?'),
+    { target: { value } },
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Use this travel mode' }))
 }
 
 afterEach(() => {
@@ -275,9 +295,60 @@ describe('recommendation screen', () => {
     expect(
       screen.queryByRole('button', { name: 'Use this workplace area' }),
     ).not.toBeInTheDocument()
+    expect(
+      screen.getByLabelText('How would your spouse most likely commute?'),
+    ).toHaveValue('')
+    expect(screen.getByText('Drive')).toBeVisible()
+    expect(screen.getByText('Public transit')).toBeVisible()
+    expect(screen.getByText('Either driving or public transit')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Use this travel mode' })).toBeDisabled()
   })
 
-  it('does not let an obsolete response overwrite the workplace-area recommendation', async () => {
+  it('keeps travel-mode draft local and submits a mode-specific request', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(responseWith(unclearRecommendation))
+      .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
+      .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
+      .mockResolvedValueOnce(responseWith(evidenceRecommendation))
+      .mockResolvedValueOnce(responseWith(travelModeRecommendation))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByRole('heading', { name: unclearRecommendation.what })
+    submitHybridWorkArrangement()
+    await screen.findByRole('heading', { name: commuteLimitRecommendation.what })
+    submitCommuteLimit()
+    await screen.findByRole('heading', { name: clarifiedRecommendation.what })
+    submitWorkplaceArea()
+    await screen.findByRole('heading', { name: evidenceRecommendation.what })
+
+    fireEvent.change(
+      screen.getByLabelText('How would your spouse most likely commute?'),
+      { target: { value: 'public_transit' } },
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+    expect(screen.getByRole('button', { name: 'Use this travel mode' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Use this travel mode' }))
+
+    expect(
+      await screen.findByRole('heading', { name: travelModeRecommendation.what }),
+    ).toBeVisible()
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      '/api/recommendations/primary?work_arrangement=hybrid&acceptable_commute_minutes=45&likely_workplace_area=San+Jose&travel_mode=public_transit',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+    expect(
+      screen.getByText('Intended commute mode recorded: Public transit.'),
+    ).toBeVisible()
+    expect(screen.queryByText('public_transit')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Use this travel mode' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('does not let an obsolete response overwrite the travel-mode recommendation', async () => {
     let resolveObsolete: ((response: Response) => void) | undefined
     const obsoleteRequest = new Promise<Response>((resolve) => {
       resolveObsolete = resolve
@@ -289,6 +360,7 @@ describe('recommendation screen', () => {
       .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
       .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
       .mockResolvedValueOnce(responseWith(evidenceRecommendation))
+      .mockResolvedValueOnce(responseWith(travelModeRecommendation))
     vi.stubGlobal('fetch', fetchMock)
 
     render(
@@ -303,9 +375,11 @@ describe('recommendation screen', () => {
     submitCommuteLimit()
     await screen.findByRole('heading', { name: clarifiedRecommendation.what })
     submitWorkplaceArea()
+    await screen.findByRole('heading', { name: evidenceRecommendation.what })
+    submitTravelMode()
 
     expect(
-      await screen.findByRole('heading', { name: evidenceRecommendation.what }),
+      await screen.findByRole('heading', { name: travelModeRecommendation.what }),
     ).toBeVisible()
 
     await act(async () => {
@@ -313,7 +387,9 @@ describe('recommendation screen', () => {
       await obsoleteRequest
     })
 
-    expect(screen.getByRole('heading', { name: evidenceRecommendation.what })).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: travelModeRecommendation.what }),
+    ).toBeVisible()
     expect(
       screen.queryByRole('heading', { name: unclearRecommendation.what }),
     ).not.toBeInTheDocument()
@@ -323,12 +399,13 @@ describe('recommendation screen', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('renders an error when the workplace-area recommendation request fails', async () => {
+  it('renders an error when the travel-mode recommendation request fails', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(responseWith(unclearRecommendation))
       .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
       .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
+      .mockResolvedValueOnce(responseWith(evidenceRecommendation))
       .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
     vi.stubGlobal('fetch', fetchMock)
 
@@ -340,6 +417,8 @@ describe('recommendation screen', () => {
     submitCommuteLimit()
     await screen.findByRole('heading', { name: clarifiedRecommendation.what })
     submitWorkplaceArea()
+    await screen.findByRole('heading', { name: evidenceRecommendation.what })
+    submitTravelMode()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Recommendation unavailable')
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -354,6 +433,9 @@ describe('recommendation screen', () => {
     ).not.toBeInTheDocument()
     expect(
       screen.queryByText('Likely workplace area recorded: San Jose.'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Intended commute mode recorded: Public transit.'),
     ).not.toBeInTheDocument()
   })
 })

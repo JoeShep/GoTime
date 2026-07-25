@@ -375,46 +375,63 @@ Implementation is complete and verified.
 
 # Next Milestone — Capture an Intended Commute Travel Mode
 
+## Status
+
+Implementation is complete and verified.
+
+* `intended_commute_travel_mode` records user-provided relocation planning
+  context as `drive`, `public_transit`, or `either`.
+* `either` means driving and public transit are both acceptable and evidence
+  should be gathered for both; it does not mean unknown.
+* A mode is accepted only after hybrid or on-site work, a maximum one-way
+  commute, and a likely workplace area have been supplied.
+* A supplied mode changes the Recommendation by identifying which manual
+  travel-time evidence should be gathered.
+* Mode-specific explanations preserve unresolved driving traffic, transit
+  schedules, transfers, station access, and hybrid frequency where applicable.
+* No route, travel time, workplace, candidate viability, or suitable
+  employment has been verified.
+* State remains intentionally local and non-persistent.
+* Frontend, backend, Docker, integration, compilation, and whitespace
+  verification pass.
+
+# Next Session — Decide Where AI Assistance Should Enter GoTime
+
 ## Objective
 
-Capture one intended commute travel mode so the evidence-gathering
-Recommendation can identify what kind of travel-time evidence the user should
-collect.
+Review the deterministic reasoning prototype and decide where AI-assisted
+interpretation or suggestion should first enter GoTime.
 
-## Behavior to Prove
+## Questions to Examine
 
-After recording a likely workplace area, the user provides an intended commute
-mode. The Recommendation should use the mode, workplace area, and maximum
-one-way commute to direct manual evidence gathering without calculating a
-route or evaluating candidate locations.
+* What does the deterministic engine already prove?
+* Which current Recommendations, explanations, and scenario inputs are still
+  scripted?
+* Which responsibilities should remain deterministic?
+* Which narrow capability would genuinely benefit from AI?
+* How would AI-generated suggestions remain grounded in known state,
+  transparent to the user, and covered by repeatable tests?
+* Is another deterministic input necessary before introducing AI assistance?
 
-## Scope
+## Expected Outcome
 
-* Capture one intended travel mode for hybrid or on-site work.
-* Allow it only after a commute limit and likely workplace area are present.
-* Pass it through the existing frontend-to-backend flow.
-* Represent it as narrowly scoped, in-memory relocation state.
-* Use it in one deterministic reasoning path and explanation.
-* Preserve suitable employment as an unconfirmed Assumption.
-* Add focused frontend and backend tests.
+Select one narrow, evidence-backed capability for a future milestone, or decide
+that the deterministic prototype needs one more input first. Do not begin AI
+integration merely because the current scripted flow has reached a natural
+review point.
+
+Hybrid commute frequency remains a possible future deterministic input, but it
+is not the committed next implementation milestone.
 
 ## Out of Scope
 
+* Implementing an AI model call
+* Selecting broad AI infrastructure
+* Replacing deterministic validation or state transitions
 * Persistence or authentication
-* Generic transportation or location models
-* Employer or job searches
-* Candidate-location models or scoring
-* Geocoding, mapping, route, traffic, or travel-time APIs
-* Calculated or observed commute times
-* Hybrid-frequency inputs
-* Generic forms, facts, constraints, or state infrastructure
-* Visual redesign
-
-## Key Design Question
-
-Choose the smallest honest set of travel-mode values that guides evidence
-gathering without implying that GoTime understands route availability or
-quality.
+* Mapping, routing, geocoding, or transit integrations
+* Candidate-location scoring
+* Broad frontend redesign
 
 Keep the empty `docs/adr/ADR-0001-monorepo.md` issue separate from this
-milestone.
+session.

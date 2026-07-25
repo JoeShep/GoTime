@@ -1,4 +1,5 @@
 export type WorkArrangement = 'remote' | 'hybrid' | 'on_site' | 'flexible'
+export type CommuteTravelMode = 'drive' | 'public_transit' | 'either'
 export const LIKELY_WORKPLACE_AREA_MAX_LENGTH = 120
 
 export interface Assumption {
@@ -23,6 +24,7 @@ export async function fetchPrimaryRecommendation(
   workArrangement?: WorkArrangement,
   acceptableCommuteMinutes?: number,
   likelyWorkplaceArea?: string,
+  travelMode?: CommuteTravelMode,
   signal?: AbortSignal,
 ): Promise<Recommendation> {
   const parameters = new URLSearchParams()
@@ -34,6 +36,9 @@ export async function fetchPrimaryRecommendation(
   }
   if (likelyWorkplaceArea !== undefined) {
     parameters.set('likely_workplace_area', likelyWorkplaceArea)
+  }
+  if (travelMode !== undefined) {
+    parameters.set('travel_mode', travelMode)
   }
   const query = parameters.size > 0 ? `?${parameters}` : ''
   const response = await fetch(

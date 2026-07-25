@@ -1,5 +1,6 @@
 from app.models import (
     AssumptionStatus,
+    CommuteTravelMode,
     DecisionReadiness,
     Goal,
     Recommendation,
@@ -127,6 +128,80 @@ def recommend_next_step(goal: Goal) -> Recommendation:
         commute_minutes = goal.acceptable_commute_minutes
         if goal.likely_workplace_area is not None:
             workplace_area = goal.likely_workplace_area
+            if goal.intended_commute_travel_mode is None:
+                return Recommendation(
+                    what=(
+                        "Clarify the most likely commute travel mode before gathering "
+                        "travel-time evidence."
+                    ),
+                    why=(
+                        (
+                            f"{workplace_area} is a user-provided likely workplace area, "
+                            "not a confirmed employer location or verified workplace."
+                        ),
+                        (
+                            f"The maximum {commute_minutes}-minute one-way commute is "
+                            "the user's hard evaluation boundary."
+                        ),
+                        "Driving and public transit require different credible evidence.",
+                        "No route or travel time has been calculated.",
+                        "No candidate location currently passes or fails this requirement.",
+                        "The suitable-employment assumption remains unconfirmed.",
+                    ),
+                    why_now=(
+                        "The likely workplace area and commute boundary are known, but "
+                        "the intended travel mode is still needed to define what evidence "
+                        "to gather."
+                    ),
+                    related_decision_id=target_location.id,
+                    relevant_dependencies=(
+                        "Intended commute travel mode",
+                        "Credible travel-time evidence",
+                        "Hybrid work frequency"
+                        if goal.acceptable_work_arrangement is WorkArrangement.HYBRID
+                        else "Suitable employment availability",
+                    ),
+                    blocked_downstream_work=target_location.downstream_work,
+                    related_assumptions=(employment,),
+                )
+
+            travel_mode = goal.intended_commute_travel_mode
+            if travel_mode is CommuteTravelMode.DRIVE:
+                evidence_description = "one-way driving-time evidence"
+                travel_mode_description = "driving"
+                mode_reason = (
+                    "Typical traffic conditions remain unresolved, so credible "
+                    "driving evidence must account for them."
+                )
+                mode_dependencies = ("Typical traffic conditions",)
+            elif travel_mode is CommuteTravelMode.PUBLIC_TRANSIT:
+                evidence_description = "one-way public-transit travel-time evidence"
+                travel_mode_description = "public transit"
+                mode_reason = (
+                    "Transit schedules, transfers, and station access remain "
+                    "unresolved, so credible public-transit evidence must account "
+                    "for them."
+                )
+                mode_dependencies = (
+                    "Transit schedules",
+                    "Transfers and station access",
+                )
+            else:
+                evidence_description = (
+                    "one-way driving and public-transit evidence"
+                )
+                travel_mode_description = "driving or public transit"
+                mode_reason = (
+                    "Both modes are acceptable, so credible evidence must cover "
+                    "typical driving traffic as well as transit schedules, transfers, "
+                    "and station access; those conditions remain unresolved."
+                )
+                mode_dependencies = (
+                    "Typical traffic conditions",
+                    "Transit schedules",
+                    "Transfers and station access",
+                )
+
             arrangement_uncertainties = (
                 (
                     "Hybrid work frequency remains unresolved and may affect which "
@@ -137,7 +212,7 @@ def recommend_next_step(goal: Goal) -> Recommendation:
             )
             return Recommendation(
                 what=(
-                    "Gather credible one-way travel-time evidence between candidate "
+                    f"Gather credible {evidence_description} between candidate "
                     f"locations and the likely {workplace_area} workplace area."
                 ),
                 why=(
@@ -149,8 +224,12 @@ def recommend_next_step(goal: Goal) -> Recommendation:
                         f"The maximum {commute_minutes}-minute one-way commute is the "
                         "user's hard evaluation boundary."
                     ),
+                    (
+                        f"The intended travel mode ({travel_mode_description}) "
+                        "is user-provided planning context, not observed travel behavior."
+                    ),
                     "No route or travel time has been calculated.",
-                    "Typical traffic conditions and travel mode remain unresolved.",
+                    mode_reason,
                     *arrangement_uncertainties,
                     "No candidate location currently passes or fails this requirement.",
                     "The suitable-employment assumption remains unconfirmed.",
@@ -163,8 +242,7 @@ def recommend_next_step(goal: Goal) -> Recommendation:
                 related_decision_id=target_location.id,
                 relevant_dependencies=(
                     "Credible travel-time evidence",
-                    "Typical traffic conditions",
-                    "Travel mode",
+                    *mode_dependencies,
                     "Hybrid work frequency"
                     if goal.acceptable_work_arrangement is WorkArrangement.HYBRID
                     else "Suitable employment availability",
@@ -173,46 +251,31 @@ def recommend_next_step(goal: Goal) -> Recommendation:
                 related_assumptions=(employment,),
             )
 
-        frequency_reason = (
-            "Hybrid work frequency remains unknown and may affect how the commute "
-            "boundary is applied."
-            if goal.acceptable_work_arrangement is WorkArrangement.HYBRID
-            else (
-                "The likely on-site workplace location remains unknown, so the commute "
-                "boundary cannot yet be tested."
-            )
-        )
         return Recommendation(
-            what=(
-                f"Evaluate candidate locations against the {arrangement_label}-work "
-                f"requirement and a maximum {commute_minutes}-minute one-way commute."
-            ),
+            what="Gather a likely workplace area before collecting commute evidence.",
             why=(
                 (
                     f"A one-way commute longer than {commute_minutes} minutes would "
                     "not be acceptable to the user."
                 ),
-                "A likely workplace location is still needed before any candidate can "
-                "be evaluated.",
-                "Credible travel-time evidence is still needed; the submitted limit is "
-                "a user-provided boundary, not an observed commute time.",
-                frequency_reason,
+                "A likely workplace area is needed to orient later travel-time research.",
+                "The workplace and suitable employment remain unconfirmed.",
+                "No route or travel time has been calculated.",
                 "No candidate location currently passes or fails this requirement.",
                 "The suitable-employment assumption remains unconfirmed.",
             ),
             why_now=(
-                "The work arrangement and maximum acceptable one-way commute are now "
-                "known, so candidate-location research can use both requirements while "
-                "waiting for workplace and travel-time evidence."
+                "The work arrangement and commute boundary are known, so the next "
+                "missing planning input is the likely workplace area."
             ),
             related_decision_id=target_location.id,
             relevant_dependencies=(
-                "Likely workplace location",
+                "Likely workplace area",
+                "Intended commute travel mode",
                 "Credible travel-time evidence",
                 "Hybrid work frequency"
                 if goal.acceptable_work_arrangement is WorkArrangement.HYBRID
-                else "Suitable on-site employment location",
-                "Suitable employment availability",
+                else "Suitable employment availability",
             ),
             blocked_downstream_work=target_location.downstream_work,
             related_assumptions=(employment,),

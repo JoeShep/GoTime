@@ -27,6 +27,14 @@ class WorkArrangement(StrEnum):
     FLEXIBLE = "flexible"
 
 
+class CommuteTravelMode(StrEnum):
+    """User-provided intended commute modes for the relocation proof."""
+
+    DRIVE = "drive"
+    PUBLIC_TRANSIT = "public_transit"
+    EITHER = "either"
+
+
 class SuccessCriterion(DomainModel):
     id: str
     description: str
@@ -67,6 +75,7 @@ class Goal(DomainModel):
     likely_workplace_area: str | None = Field(
         default=None, max_length=LIKELY_WORKPLACE_AREA_MAX_LENGTH
     )
+    intended_commute_travel_mode: CommuteTravelMode | None = None
     success_criteria: tuple[SuccessCriterion, ...]
     constraints: tuple[Constraint, ...]
     preferences: tuple[Preference, ...]
@@ -102,6 +111,17 @@ class Goal(DomainModel):
             raise ValueError(
                 "A likely workplace area requires a hybrid or on-site work "
                 "arrangement and an acceptable commute limit."
+            )
+        if self.intended_commute_travel_mode is not None and (
+            self.acceptable_work_arrangement
+            not in (WorkArrangement.HYBRID, WorkArrangement.ON_SITE)
+            or self.acceptable_commute_minutes is None
+            or self.likely_workplace_area is None
+        ):
+            raise ValueError(
+                "An intended commute travel mode requires a hybrid or on-site "
+                "work arrangement, an acceptable commute limit, and a likely "
+                "workplace area."
             )
         return self
 

@@ -108,11 +108,11 @@ def test_commuting_arrangement_without_limit_requests_boundary(
 
 
 @pytest.mark.parametrize(
-    ("value", "label"),
-    (("hybrid", "hybrid-work"), ("on_site", "on-site-work")),
+    "value",
+    ("hybrid", "on_site"),
 )
 def test_valid_commute_limit_is_used_as_an_evaluation_boundary(
-    value: str, label: str
+    value: str,
 ) -> None:
     response = asyncio.run(
         get_primary_recommendation(
@@ -123,16 +123,16 @@ def test_valid_commute_limit_is_used_as_an_evaluation_boundary(
     assert response.status_code == 200
     recommendation = response.json()
     assert recommendation["what"] == (
-        f"Evaluate candidate locations against the {label} requirement and a "
-        "maximum 45-minute one-way commute."
+        "Gather a likely workplace area before collecting commute evidence."
     )
-    assert "not an observed commute time" in recommendation["why"][2]
-    assert "No candidate location currently passes or fails" in recommendation["why"][4]
+    assert "longer than 45 minutes would not be acceptable" in recommendation["why"][0]
+    assert "No route or travel time has been calculated." in recommendation["why"]
+    assert "No candidate location currently passes or fails" in recommendation["why"][-2]
     assert recommendation["related_assumptions"][0]["status"] == "unconfirmed"
 
 
 @pytest.mark.parametrize("value", ("hybrid", "on_site"))
-def test_valid_likely_workplace_area_advances_to_evidence_gathering(
+def test_valid_likely_workplace_area_requests_travel_mode(
     value: str,
 ) -> None:
     response = asyncio.run(
@@ -145,11 +145,59 @@ def test_valid_likely_workplace_area_advances_to_evidence_gathering(
     assert response.status_code == 200
     recommendation = response.json()
     assert recommendation["what"] == (
-        "Gather credible one-way travel-time evidence between candidate locations "
-        "and the likely San Jose workplace area."
+        "Clarify the most likely commute travel mode before gathering "
+        "travel-time evidence."
     )
     assert "user-provided likely workplace area" in recommendation["why"][0]
     assert "No route or travel time has been calculated." in recommendation["why"]
+    assert "No candidate location currently passes or fails" in recommendation["why"][-2]
+    assert recommendation["related_assumptions"][0]["status"] == "unconfirmed"
+
+
+@pytest.mark.parametrize("work_arrangement", ("hybrid", "on_site"))
+@pytest.mark.parametrize(
+    ("travel_mode", "evidence_text", "mode_reason"),
+    (
+        (
+            "drive",
+            "one-way driving-time evidence",
+            "traffic conditions remain unresolved",
+        ),
+        (
+            "public_transit",
+            "one-way public-transit travel-time evidence",
+            "schedules, transfers, and station access remain unresolved",
+        ),
+        (
+            "either",
+            "one-way driving and public-transit evidence",
+            "Both modes are acceptable",
+        ),
+    ),
+)
+def test_valid_travel_mode_produces_mode_specific_evidence_recommendation(
+    work_arrangement: str,
+    travel_mode: str,
+    evidence_text: str,
+    mode_reason: str,
+) -> None:
+    response = asyncio.run(
+        get_primary_recommendation(
+            f"?work_arrangement={work_arrangement}"
+            "&acceptable_commute_minutes=45"
+            "&likely_workplace_area=San%20Jose"
+            f"&travel_mode={travel_mode}"
+        )
+    )
+
+    assert response.status_code == 200
+    recommendation = response.json()
+    assert evidence_text in recommendation["what"]
+    assert "likely San Jose workplace area" in recommendation["what"]
+    assert "user-provided planning context" in recommendation["why"][2]
+    assert "public_transit" not in " ".join(recommendation["why"])
+    assert "No route or travel time has been calculated." in recommendation["why"]
+    assert mode_reason in recommendation["why"][4]
     assert "No candidate location currently passes or fails" in recommendation["why"][-2]
     assert recommendation["related_assumptions"][0]["status"] == "unconfirmed"
 
@@ -247,6 +295,39 @@ def test_over_length_likely_workplace_area_returns_422() -> None:
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["query", "likely_workplace_area"]
+
+
+def test_unsupported_travel_mode_returns_422() -> None:
+    response = asyncio.run(
+        get_primary_recommendation(
+            "?work_arrangement=hybrid&acceptable_commute_minutes=45"
+            "&likely_workplace_area=San%20Jose&travel_mode=walk"
+        )
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", "travel_mode"]
+    assert "public_transit" in response.json()["detail"][0]["msg"]
+
+
+@pytest.mark.parametrize(
+    "query",
+    (
+        "?travel_mode=drive",
+        "?work_arrangement=remote&acceptable_commute_minutes=45"
+        "&likely_workplace_area=San%20Jose&travel_mode=drive",
+        "?work_arrangement=flexible&acceptable_commute_minutes=45"
+        "&likely_workplace_area=San%20Jose&travel_mode=drive",
+        "?work_arrangement=hybrid&likely_workplace_area=San%20Jose"
+        "&travel_mode=drive",
+        "?work_arrangement=hybrid&acceptable_commute_minutes=45"
+        "&travel_mode=drive",
+    ),
+)
+def test_incompatible_travel_mode_returns_422(query: str) -> None:
+    response = asyncio.run(get_primary_recommendation(query))
+
+    assert response.status_code == 422
 
 
 @pytest.mark.parametrize(

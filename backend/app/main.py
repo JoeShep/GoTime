@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Query, Request, status
 
 from app.models import (
     LIKELY_WORKPLACE_AREA_MAX_LENGTH,
+    CommuteTravelMode,
     Recommendation,
     WorkArrangement,
 )
@@ -27,11 +28,13 @@ async def primary_recommendation(
     likely_workplace_area: str | None = Query(
         default=None, max_length=LIKELY_WORKPLACE_AREA_MAX_LENGTH
     ),
+    travel_mode: CommuteTravelMode | None = None,
 ) -> Recommendation:
     unexpected_parameters = set(request.query_params) - {
         "work_arrangement",
         "acceptable_commute_minutes",
         "likely_workplace_area",
+        "travel_mode",
     }
     if unexpected_parameters:
         names = ", ".join(sorted(unexpected_parameters))
@@ -72,6 +75,20 @@ async def primary_recommendation(
                 ),
             )
 
+    if travel_mode is not None and (
+        work_arrangement not in (WorkArrangement.HYBRID, WorkArrangement.ON_SITE)
+        or acceptable_commute_minutes is None
+        or likely_workplace_area is None
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "travel_mode requires work_arrangement=hybrid or "
+                "work_arrangement=on_site, acceptable_commute_minutes, and "
+                "likely_workplace_area."
+            ),
+        )
+
     goal = build_relocation_scenario()
     if work_arrangement is not None:
         goal = build_work_arrangement_scenario(
@@ -79,6 +96,7 @@ async def primary_recommendation(
             work_arrangement,
             acceptable_commute_minutes,
             likely_workplace_area,
+            travel_mode,
         )
 
     try:

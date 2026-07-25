@@ -216,6 +216,30 @@ travel mode remain unresolved; hybrid frequency also remains unresolved for
 hybrid work. No route is calculated and no candidate location is scored or
 classified as passing or failing.
 
+After the workplace area is known, the proof may record
+`intended_commute_travel_mode` as user-provided relocation planning context.
+Supported values are:
+
+* `drive`
+* `public_transit`
+* `either`
+
+`either` means driving and public transit are both acceptable and credible
+evidence should be gathered for both. It is not an unknown or unselected state.
+An absent value means the intended travel mode still needs clarification.
+
+The field is valid only after hybrid or on-site work, a positive maximum
+one-way commute, and a nonblank likely workplace area have been supplied. Its
+presence changes the Recommendation by specifying whether the user should
+gather driving evidence, public-transit evidence, or both.
+
+The intended mode is not observed travel behavior. Driving traffic conditions,
+transit schedules, transfers, station access, and hybrid frequency remain
+unresolved where applicable. No route or travel time is calculated, no
+workplace or candidate viability is verified, and the suitable-employment
+Assumption remains unconfirmed. The field remains narrowly scoped, in-memory
+relocation state rather than a generic transportation or evidence model.
+
 
 # SuccessCriterion
 

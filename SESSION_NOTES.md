@@ -560,3 +560,57 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Capture one intended commute travel mode and use it to make the manual
   evidence-gathering Recommendation more specific without calculating routes
   or scoring candidate locations.
+
+---
+
+## Session 13 -- Intended Commute Travel Mode
+
+### Completed
+
+- Added `intended_commute_travel_mode` as user-provided relocation planning
+  context with `drive`, `public_transit`, and `either` values.
+- Defined `either` to mean that driving and public transit are both acceptable
+  and evidence should be gathered for both, not that the mode is unknown.
+- Accepted a mode only after hybrid or on-site work, a maximum one-way commute,
+  and a likely workplace area were supplied.
+- Added deterministic progression from gathering a workplace area, to
+  clarifying travel mode, to gathering mode-specific manual evidence.
+- Added a focused travel-mode select after successful workplace-area
+  submission.
+- Kept draft selection local and re-reasoned only after explicit submission.
+- Preserved loading, cancellation, stale-response, and error behavior.
+
+### Modeling and Product Boundaries
+
+- Travel mode represents intended planning context, not observed travel
+  behavior.
+- Driving recommendations retain unresolved typical traffic conditions.
+- Public-transit recommendations retain unresolved schedules, transfers, and
+  station access.
+- Hybrid frequency remains unresolved for hybrid work.
+- No route, travel time, workplace, candidate viability, or suitable
+  employment has been verified.
+- State remains local and in memory. No persistence, route or transit APIs,
+  candidate scoring, generic evidence model, or AI call was introduced.
+
+### Verification
+
+- Frontend tests: 8 passed.
+- Frontend production build: passed.
+- Backend tests: 57 passed.
+- Backend Python compilation: passed.
+- Docker Compose rebuilt successfully; backend health and frontend startup
+  passed.
+- All three travel modes passed through the frontend proxy for hybrid and
+  on-site work.
+- Unsupported, contradictory, and unexpected query contracts returned HTTP
+  422.
+- Whitespace validation with `git diff --check`: passed.
+
+### Next
+
+- Review what the deterministic prototype already proves and decide where
+  AI-assisted interpretation or suggestion would add genuine value while
+  remaining grounded, transparent, and testable.
+- Treat hybrid commute frequency as a possible future deterministic input, not
+  the committed next implementation milestone.
