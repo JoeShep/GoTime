@@ -20,9 +20,17 @@ export interface Recommendation {
 
 export async function fetchPrimaryRecommendation(
   workArrangement?: WorkArrangement,
+  acceptableCommuteMinutes?: number,
   signal?: AbortSignal,
 ): Promise<Recommendation> {
-  const query = workArrangement ? `?work_arrangement=${workArrangement}` : ''
+  const parameters = new URLSearchParams()
+  if (workArrangement) {
+    parameters.set('work_arrangement', workArrangement)
+  }
+  if (acceptableCommuteMinutes !== undefined) {
+    parameters.set('acceptable_commute_minutes', String(acceptableCommuteMinutes))
+  }
+  const query = parameters.size > 0 ? `?${parameters}` : ''
   const response = await fetch(
     `/api/recommendations/primary${query}`,
     { signal },

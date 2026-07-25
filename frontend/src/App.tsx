@@ -7,6 +7,7 @@ import {
   Col,
   Container,
   Form,
+  InputGroup,
   ListGroup,
   Row,
   Spinner,
@@ -28,10 +29,17 @@ function isWorkArrangement(value: string): value is WorkArrangement {
   return value in workArrangementLabels
 }
 
+function requiresCommuteLimit(workArrangement: WorkArrangement | null): boolean {
+  return workArrangement === 'hybrid' || workArrangement === 'on_site'
+}
+
 function App() {
   const [draftWorkArrangement, setDraftWorkArrangement] = useState<WorkArrangement | ''>('')
   const [submittedWorkArrangement, setSubmittedWorkArrangement] =
     useState<WorkArrangement | null>(null)
+  const [draftCommuteMinutes, setDraftCommuteMinutes] = useState('')
+  const [submittedCommuteMinutes, setSubmittedCommuteMinutes] =
+    useState<number | null>(null)
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -44,7 +52,11 @@ function App() {
     setError(null)
     setIsLoading(true)
 
-    fetchPrimaryRecommendation(submittedWorkArrangement ?? undefined, controller.signal)
+    fetchPrimaryRecommendation(
+      submittedWorkArrangement ?? undefined,
+      submittedCommuteMinutes ?? undefined,
+      controller.signal,
+    )
       .then((nextRecommendation) => {
         if (isCurrentRequest) {
           setRecommendation(nextRecommendation)
@@ -69,7 +81,9 @@ function App() {
       isCurrentRequest = false
       controller.abort()
     }
-  }, [submittedWorkArrangement])
+  }, [submittedCommuteMinutes, submittedWorkArrangement])
+
+  const commuteDraftIsValid = /^[1-9]\d*$/.test(draftCommuteMinutes)
 
   return (
     <main className="app-shell py-5">
@@ -108,7 +122,15 @@ function App() {
               <>
                 {submittedWorkArrangement && (
                   <Alert className="state-update mt-5 mb-0" variant="success">
-                    Work arrangement recorded: {workArrangementLabels[submittedWorkArrangement]}.
+                    <p className="mb-0">
+                      Work arrangement recorded: {workArrangementLabels[submittedWorkArrangement]}.
+                    </p>
+                    {submittedCommuteMinutes && (
+                      <p className="mb-0">
+                        Maximum workable one-way commute recorded: {submittedCommuteMinutes}{' '}
+                        minutes.
+                      </p>
+                    )}
                   </Alert>
                 )}
 
@@ -161,6 +183,44 @@ function App() {
                       </Button>
                     </Form>
                   )}
+                  {requiresCommuteLimit(submittedWorkArrangement) &&
+                    submittedCommuteMinutes === null && (
+                      <Form
+                        className="recommendation-action mt-4 pt-4"
+                        onSubmit={(event) => {
+                          event.preventDefault()
+                          if (commuteDraftIsValid) {
+                            setSubmittedCommuteMinutes(Number(draftCommuteMinutes))
+                          }
+                        }}
+                      >
+                        <Form.Label htmlFor="commute-limit">
+                          What is the longest one-way commute that would still make the
+                          move workable?
+                        </Form.Label>
+                        <InputGroup className="mb-3">
+                          <Form.Control
+                            id="commute-limit"
+                            inputMode="numeric"
+                            min="1"
+                            onChange={(event) => {
+                              setDraftCommuteMinutes(event.target.value)
+                            }}
+                            step="1"
+                            type="number"
+                            value={draftCommuteMinutes}
+                          />
+                          <InputGroup.Text>minutes</InputGroup.Text>
+                        </InputGroup>
+                        <Button
+                          disabled={!commuteDraftIsValid}
+                          type="submit"
+                          variant="outline-success"
+                        >
+                          Use this commute limit
+                        </Button>
+                      </Form>
+                    )}
                 </section>
 
                 <section className="pt-5" aria-labelledby="why-heading">

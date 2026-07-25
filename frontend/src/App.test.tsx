@@ -23,15 +23,27 @@ const unclearRecommendation: Recommendation = {
   related_assumptions: [assumption],
 }
 
-const clarifiedRecommendation: Recommendation = {
+const commuteLimitRecommendation: Recommendation = {
   ...unclearRecommendation,
-  what: 'Evaluate candidate locations against the clarified employment requirements.',
+  what: 'Define the longest workable one-way commute before evaluating candidate locations.',
   why: [
-    'Hybrid work requires candidate locations to support a viable recurring commute.',
+    'Hybrid work makes commute viability relevant to the location decision.',
     'The suitable-employment assumption remains unconfirmed.',
   ],
-  why_now: 'Candidate regions can now be evaluated without choosing a final location.',
-  relevant_dependencies: ['Suitable employment availability'],
+  why_now: 'The longest workable one-way commute is still unclear.',
+  relevant_dependencies: ['Maximum acceptable one-way commute'],
+}
+
+const clarifiedRecommendation: Recommendation = {
+  ...commuteLimitRecommendation,
+  what:
+    'Evaluate candidate locations against the hybrid-work requirement and a maximum 45-minute one-way commute.',
+  why: [
+    'A one-way commute longer than 45 minutes would not be acceptable to the user.',
+    'The suitable-employment assumption remains unconfirmed.',
+  ],
+  why_now: 'Candidate research can now use the submitted commute boundary.',
+  relevant_dependencies: ['Likely workplace location', 'Credible travel-time evidence'],
 }
 
 function responseWith(recommendation: Recommendation): Response {
@@ -40,6 +52,26 @@ function responseWith(recommendation: Recommendation): Response {
     status: 200,
     json: async () => recommendation,
   } as Response
+}
+
+function submitHybridWorkArrangement() {
+  fireEvent.change(
+    screen.getByLabelText(
+      'What kind of work arrangement would make the move workable for your spouse?',
+    ),
+    { target: { value: 'hybrid' } },
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Use this requirement' }))
+}
+
+function submitCommuteLimit(value = '45') {
+  fireEvent.change(
+    screen.getByLabelText(
+      'What is the longest one-way commute that would still make the move workable?',
+    ),
+    { target: { value } },
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Use this commute limit' }))
 }
 
 afterEach(() => {
@@ -85,11 +117,11 @@ describe('recommendation screen', () => {
     expect(screen.getByRole('button', { name: 'Use this requirement' })).toBeDisabled()
   })
 
-  it('submits a drafted work arrangement and renders its clarified recommendation', async () => {
+  it('submits hybrid work and requests a commute boundary without submitting its draft', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(responseWith(unclearRecommendation))
-      .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
+      .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
     vi.stubGlobal('fetch', fetchMock)
 
     render(<App />)
@@ -106,14 +138,11 @@ describe('recommendation screen', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Use this requirement' }))
 
-    expect(
-      await screen.findByRole('heading', { name: clarifiedRecommendation.what }),
-    ).toBeVisible()
+    expect(await screen.findByRole('heading', { name: commuteLimitRecommendation.what })).toBeVisible()
     expect(fetchMock).toHaveBeenLastCalledWith(
       '/api/recommendations/primary?work_arrangement=hybrid',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
-    expect(screen.getByText('The suitable-employment assumption remains unconfirmed.')).toBeVisible()
     expect(screen.getByText('unconfirmed')).toBeVisible()
     expect(screen.getByText('Work arrangement recorded: Hybrid.')).toBeVisible()
     expect(
@@ -123,6 +152,53 @@ describe('recommendation screen', () => {
     ).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Use this requirement' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByLabelText(
+        'What is the longest one-way commute that would still make the move workable?',
+      ),
+    ).toHaveValue(null)
+    expect(screen.getByText('minutes')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Use this commute limit' })).toBeDisabled()
+
+    fireEvent.change(
+      screen.getByLabelText(
+        'What is the longest one-way commute that would still make the move workable?',
+      ),
+      { target: { value: '45' } },
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(screen.getByRole('button', { name: 'Use this commute limit' })).toBeEnabled()
+  })
+
+  it('submits a valid commute limit and renders the value-aware recommendation', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(responseWith(unclearRecommendation))
+      .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
+      .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByRole('heading', { name: unclearRecommendation.what })
+    submitHybridWorkArrangement()
+    await screen.findByRole('heading', { name: commuteLimitRecommendation.what })
+
+    submitCommuteLimit()
+
+    expect(
+      await screen.findByRole('heading', { name: clarifiedRecommendation.what }),
+    ).toBeVisible()
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      '/api/recommendations/primary?work_arrangement=hybrid&acceptable_commute_minutes=45',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+    expect(
+      screen.getByText('Maximum workable one-way commute recorded: 45 minutes.'),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Use this commute limit' }),
     ).not.toBeInTheDocument()
   })
 
@@ -135,6 +211,7 @@ describe('recommendation screen', () => {
       .fn()
       .mockReturnValueOnce(obsoleteRequest)
       .mockResolvedValueOnce(responseWith(unclearRecommendation))
+      .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
       .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -145,13 +222,9 @@ describe('recommendation screen', () => {
     )
     await screen.findByRole('heading', { name: unclearRecommendation.what })
 
-    fireEvent.change(
-      screen.getByLabelText(
-        'What kind of work arrangement would make the move workable for your spouse?',
-      ),
-      { target: { value: 'hybrid' } },
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Use this requirement' }))
+    submitHybridWorkArrangement()
+    await screen.findByRole('heading', { name: commuteLimitRecommendation.what })
+    submitCommuteLimit()
 
     expect(
       await screen.findByRole('heading', { name: clarifiedRecommendation.what }),
@@ -167,26 +240,25 @@ describe('recommendation screen', () => {
       screen.queryByRole('heading', { name: unclearRecommendation.what }),
     ).not.toBeInTheDocument()
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.queryByRole('alert', { name: 'Recommendation unavailable' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('alert', { name: 'Recommendation unavailable' }),
+    ).not.toBeInTheDocument()
   })
 
-  it('renders an error when the clarified recommendation request fails', async () => {
+  it('renders an error when the commute-limit recommendation request fails', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(responseWith(unclearRecommendation))
+      .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
       .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
     vi.stubGlobal('fetch', fetchMock)
 
     render(<App />)
     await screen.findByRole('heading', { name: unclearRecommendation.what })
 
-    fireEvent.change(
-      screen.getByLabelText(
-        'What kind of work arrangement would make the move workable for your spouse?',
-      ),
-      { target: { value: 'hybrid' } },
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Use this requirement' }))
+    submitHybridWorkArrangement()
+    await screen.findByRole('heading', { name: commuteLimitRecommendation.what })
+    submitCommuteLimit()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Recommendation unavailable')
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -194,7 +266,10 @@ describe('recommendation screen', () => {
     )
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Use this requirement' }),
+      screen.queryByRole('button', { name: 'Use this commute limit' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Maximum workable one-way commute recorded: 45 minutes.'),
     ).not.toBeInTheDocument()
   })
 })

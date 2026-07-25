@@ -21,21 +21,16 @@ WORK_ARRANGEMENT_REASONING = {
         "need to support a routine workplace commute.",
         "Reliable remote-work feasibility",
     ),
-    WorkArrangement.HYBRID: (
-        "Hybrid work requires candidate locations to support a viable recurring "
-        "commute to likely employment centers.",
-        "Recurring commute viability",
-    ),
-    WorkArrangement.ON_SITE: (
-        "On-site work makes local employment availability and daily commute viability "
-        "central to comparing candidate locations.",
-        "Local employment and daily commute viability",
-    ),
     WorkArrangement.FLEXIBLE: (
         "Accepting several work arrangements keeps more candidate regions viable, but "
         "each region still needs suitable employment opportunities.",
         "Suitable employment across acceptable arrangements",
     ),
+}
+
+COMMUTING_ARRANGEMENT_LABELS = {
+    WorkArrangement.HYBRID: "hybrid",
+    WorkArrangement.ON_SITE: "on-site",
 }
 
 
@@ -88,6 +83,88 @@ def recommend_next_step(goal: Goal) -> Recommendation:
                 "Expected employment income",
                 "Commute expectations",
                 "Acceptable work arrangement",
+            ),
+            blocked_downstream_work=target_location.downstream_work,
+            related_assumptions=(employment,),
+        )
+
+    if goal.acceptable_work_arrangement in COMMUTING_ARRANGEMENT_LABELS:
+        arrangement_label = COMMUTING_ARRANGEMENT_LABELS[
+            goal.acceptable_work_arrangement
+        ]
+        if goal.acceptable_commute_minutes is None:
+            return Recommendation(
+                what=(
+                    "Define the longest workable one-way commute before evaluating "
+                    "candidate locations."
+                ),
+                why=(
+                    f"{arrangement_label.capitalize()} work makes commute viability "
+                    "relevant to the location decision.",
+                    "A user-defined maximum is needed before candidate locations can "
+                    "eventually be evaluated against this requirement.",
+                    "A likely workplace location and credible travel-time evidence "
+                    "will still be needed.",
+                    "The suitable-employment assumption remains unconfirmed.",
+                ),
+                why_now=(
+                    "The acceptable work arrangement is known, but the longest workable "
+                    "one-way commute is still unclear. Defining that boundary provides "
+                    "the next concrete requirement without prematurely choosing a "
+                    "location."
+                ),
+                related_decision_id=target_location.id,
+                relevant_dependencies=(
+                    "Maximum acceptable one-way commute",
+                    "Likely workplace location",
+                    "Credible travel-time evidence",
+                    "Suitable employment availability",
+                ),
+                blocked_downstream_work=target_location.downstream_work,
+                related_assumptions=(employment,),
+            )
+
+        commute_minutes = goal.acceptable_commute_minutes
+        frequency_reason = (
+            "Hybrid work frequency remains unknown and may affect how the commute "
+            "boundary is applied."
+            if goal.acceptable_work_arrangement is WorkArrangement.HYBRID
+            else (
+                "The likely on-site workplace location remains unknown, so the commute "
+                "boundary cannot yet be tested."
+            )
+        )
+        return Recommendation(
+            what=(
+                f"Evaluate candidate locations against the {arrangement_label}-work "
+                f"requirement and a maximum {commute_minutes}-minute one-way commute."
+            ),
+            why=(
+                (
+                    f"A one-way commute longer than {commute_minutes} minutes would "
+                    "not be acceptable to the user."
+                ),
+                "A likely workplace location is still needed before any candidate can "
+                "be evaluated.",
+                "Credible travel-time evidence is still needed; the submitted limit is "
+                "a user-provided boundary, not an observed commute time.",
+                frequency_reason,
+                "No candidate location currently passes or fails this requirement.",
+                "The suitable-employment assumption remains unconfirmed.",
+            ),
+            why_now=(
+                "The work arrangement and maximum acceptable one-way commute are now "
+                "known, so candidate-location research can use both requirements while "
+                "waiting for workplace and travel-time evidence."
+            ),
+            related_decision_id=target_location.id,
+            relevant_dependencies=(
+                "Likely workplace location",
+                "Credible travel-time evidence",
+                "Hybrid work frequency"
+                if goal.acceptable_work_arrangement is WorkArrangement.HYBRID
+                else "Suitable on-site employment location",
+                "Suitable employment availability",
             ),
             blocked_downstream_work=target_location.downstream_work,
             related_assumptions=(employment,),

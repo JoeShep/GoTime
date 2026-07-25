@@ -70,8 +70,6 @@ def test_primary_recommendation_endpoint() -> None:
     ("value", "expected_reason"),
     (
         ("remote", "routine workplace commute"),
-        ("hybrid", "viable recurring commute"),
-        ("on_site", "local employment availability"),
         ("flexible", "keeps more candidate regions viable"),
     ),
 )
@@ -93,6 +91,46 @@ def test_work_arrangement_recommendation_endpoint(
     assert "The suitable-employment assumption remains unconfirmed." in recommendation["why"]
 
 
+@pytest.mark.parametrize(("value", "label"), (("hybrid", "Hybrid"), ("on_site", "On-site")))
+def test_commuting_arrangement_without_limit_requests_boundary(
+    value: str, label: str
+) -> None:
+    response = asyncio.run(get_primary_recommendation(f"?work_arrangement={value}"))
+
+    assert response.status_code == 200
+    recommendation = response.json()
+    assert recommendation["what"] == (
+        "Define the longest workable one-way commute before evaluating "
+        "candidate locations."
+    )
+    assert label in recommendation["why"][0]
+    assert recommendation["related_assumptions"][0]["status"] == "unconfirmed"
+
+
+@pytest.mark.parametrize(
+    ("value", "label"),
+    (("hybrid", "hybrid-work"), ("on_site", "on-site-work")),
+)
+def test_valid_commute_limit_is_used_as_an_evaluation_boundary(
+    value: str, label: str
+) -> None:
+    response = asyncio.run(
+        get_primary_recommendation(
+            f"?work_arrangement={value}&acceptable_commute_minutes=45"
+        )
+    )
+
+    assert response.status_code == 200
+    recommendation = response.json()
+    assert recommendation["what"] == (
+        f"Evaluate candidate locations against the {label} requirement and a "
+        "maximum 45-minute one-way commute."
+    )
+    assert "not an observed commute time" in recommendation["why"][2]
+    assert "No candidate location currently passes or fails" in recommendation["why"][4]
+    assert recommendation["related_assumptions"][0]["status"] == "unconfirmed"
+
+
 def test_unsupported_work_arrangement_value_returns_422() -> None:
     response = asyncio.run(get_primary_recommendation("?work_arrangement=unknown"))
 
@@ -100,6 +138,45 @@ def test_unsupported_work_arrangement_value_returns_422() -> None:
     assert response.json()["detail"][0]["loc"] == ["query", "work_arrangement"]
     assert "remote" in response.json()["detail"][0]["msg"]
     assert "flexible" in response.json()["detail"][0]["msg"]
+
+
+@pytest.mark.parametrize(
+    "query",
+    (
+        "?work_arrangement=hybrid&acceptable_commute_minutes=0",
+        "?work_arrangement=hybrid&acceptable_commute_minutes=-1",
+        "?work_arrangement=hybrid&acceptable_commute_minutes=45.5",
+        "?work_arrangement=hybrid&acceptable_commute_minutes=invalid",
+    ),
+)
+def test_invalid_commute_limit_returns_422(query: str) -> None:
+    response = asyncio.run(get_primary_recommendation(query))
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == [
+        "query",
+        "acceptable_commute_minutes",
+    ]
+
+
+@pytest.mark.parametrize(
+    "query",
+    (
+        "?acceptable_commute_minutes=45",
+        "?work_arrangement=remote&acceptable_commute_minutes=45",
+        "?work_arrangement=flexible&acceptable_commute_minutes=45",
+    ),
+)
+def test_incompatible_commute_limit_returns_422(query: str) -> None:
+    response = asyncio.run(get_primary_recommendation(query))
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": (
+            "acceptable_commute_minutes requires work_arrangement=hybrid "
+            "or work_arrangement=on_site."
+        )
+    }
 
 
 @pytest.mark.parametrize(

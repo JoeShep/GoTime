@@ -1,6 +1,6 @@
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class DomainModel(BaseModel):
@@ -60,11 +60,25 @@ class Goal(DomainModel):
     title: str
     current_state: str
     acceptable_work_arrangement: WorkArrangement | None = None
+    acceptable_commute_minutes: int | None = Field(default=None, gt=0)
     success_criteria: tuple[SuccessCriterion, ...]
     constraints: tuple[Constraint, ...]
     preferences: tuple[Preference, ...]
     decisions: tuple[Decision, ...]
     assumptions: tuple[Assumption, ...]
+
+    @model_validator(mode="after")
+    def validate_commute_requirement(self) -> "Goal":
+        if (
+            self.acceptable_commute_minutes is not None
+            and self.acceptable_work_arrangement
+            not in (WorkArrangement.HYBRID, WorkArrangement.ON_SITE)
+        ):
+            raise ValueError(
+                "An acceptable commute limit requires a hybrid or on-site "
+                "work arrangement."
+            )
+        return self
 
 
 class Recommendation(DomainModel):

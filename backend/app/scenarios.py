@@ -25,6 +25,7 @@ def build_relocation_scenario() -> Goal:
             "requirements remain unclear."
         ),
         acceptable_work_arrangement=None,
+        acceptable_commute_minutes=None,
         success_criteria=(
             SuccessCriterion(
                 id="affordable-move",
@@ -86,17 +87,28 @@ def build_relocation_scenario() -> Goal:
 
 
 def build_work_arrangement_scenario(
-    goal: Goal, work_arrangement: WorkArrangement
+    goal: Goal,
+    work_arrangement: WorkArrangement,
+    acceptable_commute_minutes: int | None = None,
 ) -> Goal:
     """Derive a relocation snapshot with one concrete employment requirement."""
     arrangement_label = work_arrangement.value.replace("_", "-")
-    return goal.model_copy(
-        update={
+    commute_state = (
+        f" The maximum acceptable one-way commute is "
+        f"{acceptable_commute_minutes} minutes."
+        if acceptable_commute_minutes is not None
+        else ""
+    )
+    return Goal.model_validate(
+        {
+            **goal.model_dump(),
             "current_state": (
                 "The family lives in Tennessee. A target location in Northern "
                 "California has not been selected, and the spouse's employment "
-                f"requirements include an acceptable {arrangement_label} work arrangement."
+                f"requirements include an acceptable {arrangement_label} work "
+                f"arrangement.{commute_state}"
             ),
             "acceptable_work_arrangement": work_arrangement,
+            "acceptable_commute_minutes": acceptable_commute_minutes,
         }
     )

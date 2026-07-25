@@ -331,45 +331,66 @@ Implementation is complete, reviewed, and verified.
 
 # Next Milestone — Capture One Concrete Commute Requirement
 
+## Status
+
+Implementation is complete and verified.
+
+* Hybrid and on-site paths ask for the longest acceptable one-way commute.
+* The user can submit a positive whole-number limit in minutes.
+* `acceptable_commute_minutes` is represented as a hard, user-provided
+  evaluation boundary in the in-memory Goal snapshot.
+* Contradictory arrangements and invalid limits return HTTP 422.
+* The Recommendation uses the limit when explaining how candidate locations
+  should be evaluated.
+* The engine does not treat the limit as an observed commute, calculate travel
+  time, or claim that any candidate location passes or fails.
+* A likely workplace location and credible travel-time evidence are still
+  required. Hybrid frequency also remains unknown.
+* Suitable employment remains an unconfirmed Assumption.
+* State remains intentionally local and non-persistent.
+* Frontend, backend, Docker, integration, compilation, and whitespace
+  verification pass.
+
+# Next Milestone — Capture a Likely Workplace Area
+
 ## Objective
 
-Capture one acceptable commute limit for the hybrid or on-site path and use it
-as another concrete input to reasoning about candidate locations.
+Capture one likely workplace area for hybrid or on-site work so the engine can
+identify the next evidence-gathering step for commute evaluation.
 
 ## Behavior to Prove
 
-When the submitted work arrangement makes commuting relevant, the user can
-provide an acceptable commute limit. The Recommendation should explain how that
-limit narrows location evaluation without claiming to score or select a
-candidate location.
+The user provides a likely workplace area after recording a maximum one-way
+commute. The Recommendation should use the workplace area and commute boundary
+to direct travel-time research, while making clear that GoTime has not measured
+a route and no candidate location currently passes or fails.
 
 ## Scope
 
-* Define the smallest useful commute-limit value.
-* Collect it only where commuting is relevant.
+* Capture one user-provided likely workplace area.
+* Allow it only for hybrid or on-site work with a commute limit.
 * Pass it through the existing frontend-to-backend flow.
-* Represent it in narrowly scoped relocation state.
+* Represent it as narrowly scoped, in-memory relocation state.
 * Use it in one deterministic reasoning path and explanation.
-* Preserve the suitable-employment Assumption as unconfirmed.
+* Preserve suitable employment as an unconfirmed Assumption.
 * Add focused frontend and backend tests.
 
 ## Out of Scope
 
-* Persistence
-* Authentication
-* Complete employment profiles
+* Persistence or authentication
 * Employer or job searches
-* Candidate-location data or scoring
-* Route or traffic integrations
-* Generic forms or state infrastructure
+* Candidate-location models or scoring
+* Geocoding, mapping, route, traffic, or travel-time APIs
+* Calculated or observed commute times
+* Hybrid-frequency inputs
+* Generic forms, facts, constraints, or state infrastructure
 * Visual redesign
-* Broad copy refinement
 
 ## Key Design Question
 
-Determine the smallest honest commute-limit input without implying that GoTime
-already knows employer locations, routes, traffic conditions, or candidate
-scores.
+Determine the smallest honest workplace-area input that is specific enough to
+guide later travel-time research without implying that an employer, job, or
+worksite has been confirmed.
 
 Keep the empty `docs/adr/ADR-0001-monorepo.md` issue separate from this
 milestone.

@@ -40,10 +40,14 @@ The current MVP slice connects the concept screen to the in-memory reasoning
 API. It shows one explained Recommendation and lets the user provide one actual
 employment requirement: an acceptable remote, hybrid, on-site, or flexible work
 arrangement. That in-memory value changes the engine's reasoning about how to
-evaluate candidate locations. Work arrangement is only one part of employment
-suitability; suitable employment remains an unconfirmed Assumption, and GoTime
-does not yet score or compare candidate locations. There is no persistence,
-authentication, general editing, or task-management workflow yet.
+evaluate candidate locations. For hybrid and on-site work, the user can also
+record a maximum acceptable one-way commute in minutes. The engine treats that
+value as a hard evaluation boundary, not as an observed or calculated commute.
+It still needs a likely workplace location and credible travel-time evidence,
+and it does not yet score or compare candidate locations. Work arrangement and
+commute tolerance are only parts of employment suitability; suitable employment
+remains an unconfirmed Assumption. All state remains in memory, with no
+persistence, authentication, general editing, or task-management workflow.
 
 ## Run locally
 

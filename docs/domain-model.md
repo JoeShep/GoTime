@@ -184,6 +184,21 @@ This field remains relocation-specific scenario state rather than a finalized
 general property of every Goal. A broader CurrentState or fact model remains
 intentionally deferred.
 
+For hybrid and on-site arrangements, the relocation proof may also record
+`acceptable_commute_minutes`. This positive whole-number value is the user's
+maximum acceptable **one-way** commute and acts as a hard evaluation boundary.
+It is allowed only when an acceptable hybrid or on-site arrangement is present,
+preventing snapshots that attach a commute requirement to remote, flexible, or
+still-unclear work arrangements.
+
+The limit is not a measured or calculated commute. Evaluating a candidate
+location still requires a likely workplace location and credible travel-time
+evidence; hybrid frequency also remains unknown. No candidate location is
+currently scored or classified as passing or failing, and suitable employment
+remains an unconfirmed Assumption. Like work arrangement, the commute limit is
+narrowly scoped in-memory relocation state rather than an expansion of the
+generic `Constraint` model.
+
 
 # SuccessCriterion
 

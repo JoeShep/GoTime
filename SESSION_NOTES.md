@@ -454,3 +454,56 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 
 - Capture one acceptable commute limit for the hybrid or on-site path and use
   it as another concrete input to candidate-location reasoning.
+
+---
+
+## Session 11 -- One Concrete Commute Requirement
+
+### Completed
+
+- Added `acceptable_commute_minutes` as a maximum acceptable one-way commute
+  for hybrid and on-site arrangements.
+- Treated the submitted positive whole-number value as a hard user-provided
+  evaluation boundary, not an observed or calculated commute.
+- Changed hybrid and on-site reasoning without a limit to recommend defining
+  the longest workable one-way commute.
+- Changed reasoning with a limit to recommend evaluating candidate locations
+  against both the arrangement and the submitted boundary.
+- Added a focused commute-limit input after a successful hybrid or on-site
+  work-arrangement submission.
+- Kept the draft value local and re-reasoned only after explicit submission.
+- Added endpoint validation for zero, negative, decimal, invalid, and
+  arrangement-incompatible values.
+- Preserved loading, cancellation, stale-response, and error behavior.
+
+### Modeling and Product Boundaries
+
+- The commute limit is narrowly scoped relocation state and does not expand the
+  generic `Constraint` model.
+- A likely workplace location and credible travel-time evidence are still
+  required before a candidate can be evaluated. Hybrid frequency also remains
+  unknown.
+- The engine does not calculate travel time or claim that a candidate location
+  passes or fails.
+- Suitable employment remains an unconfirmed Assumption.
+- State remains local and in memory. No persistence, location scoring, mapping
+  integration, or generalized state infrastructure was introduced.
+
+### Verification
+
+- Frontend tests: 6 passed.
+- Frontend production build: passed.
+- Backend tests: 28 passed.
+- Backend Python compilation: passed.
+- Docker Compose rebuilt successfully; backend health and frontend startup
+  passed.
+- Supported default, arrangement-only, hybrid-with-limit, and
+  on-site-with-limit contracts returned HTTP 200.
+- Invalid and contradictory commute-limit contracts returned HTTP 422.
+- Whitespace validation with `git diff --check`: passed.
+
+### Next
+
+- Capture one likely workplace area for hybrid or on-site work and use it to
+  recommend gathering credible travel-time evidence without calculating routes
+  or scoring candidate locations.

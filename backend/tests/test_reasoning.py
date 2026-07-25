@@ -59,16 +59,6 @@ def test_recommendation_exposes_dependencies_blocked_work_and_assumption() -> No
             "Reliable remote-work feasibility",
         ),
         (
-            WorkArrangement.HYBRID,
-            "support a viable recurring commute",
-            "Recurring commute viability",
-        ),
-        (
-            WorkArrangement.ON_SITE,
-            "local employment availability and daily commute viability",
-            "Local employment and daily commute viability",
-        ),
-        (
             WorkArrangement.FLEXIBLE,
             "keeps more candidate regions viable",
             "Suitable employment across acceptable arrangements",
@@ -97,15 +87,78 @@ def test_work_arrangement_produces_meaningful_clarified_reasoning(
     assert expected_dependency in clarified.relevant_dependencies
 
 
+@pytest.mark.parametrize(
+    ("work_arrangement", "arrangement_text"),
+    (
+        (WorkArrangement.HYBRID, "Hybrid work"),
+        (WorkArrangement.ON_SITE, "On-site work"),
+    ),
+)
+def test_commuting_arrangement_without_limit_recommends_defining_boundary(
+    work_arrangement: WorkArrangement, arrangement_text: str
+) -> None:
+    goal = build_work_arrangement_scenario(
+        build_relocation_scenario(), work_arrangement
+    )
+
+    recommendation = recommend_next_step(goal)
+
+    assert recommendation.what == (
+        "Define the longest workable one-way commute before evaluating "
+        "candidate locations."
+    )
+    assert arrangement_text in recommendation.why[0]
+    assert "Maximum acceptable one-way commute" in recommendation.relevant_dependencies
+    assert recommendation.related_assumptions[0].status == "unconfirmed"
+
+
+@pytest.mark.parametrize(
+    ("work_arrangement", "arrangement_text", "frequency_text"),
+    (
+        (WorkArrangement.HYBRID, "hybrid-work", "Hybrid work frequency remains unknown"),
+        (
+            WorkArrangement.ON_SITE,
+            "on-site-work",
+            "likely on-site workplace location remains unknown",
+        ),
+    ),
+)
+def test_commute_limit_guides_reasoning_without_evaluating_candidates(
+    work_arrangement: WorkArrangement,
+    arrangement_text: str,
+    frequency_text: str,
+) -> None:
+    goal = build_work_arrangement_scenario(
+        build_relocation_scenario(), work_arrangement, 45
+    )
+
+    recommendation = recommend_next_step(goal)
+
+    assert recommendation.what == (
+        f"Evaluate candidate locations against the {arrangement_text} requirement "
+        "and a maximum 45-minute one-way commute."
+    )
+    assert "longer than 45 minutes would not be acceptable" in recommendation.why[0]
+    assert "likely workplace location is still needed" in recommendation.why[1]
+    assert "user-provided boundary, not an observed commute time" in recommendation.why[2]
+    assert frequency_text in recommendation.why[3]
+    assert "No candidate location currently passes or fails" in recommendation.why[4]
+    assert "suitable-employment assumption remains unconfirmed" in recommendation.why[5]
+    assert recommendation.related_assumptions[0].status == "unconfirmed"
+
+
 def test_work_arrangement_snapshot_does_not_mutate_original_goal() -> None:
     original = build_relocation_scenario()
 
-    clarified = build_work_arrangement_scenario(original, WorkArrangement.HYBRID)
+    clarified = build_work_arrangement_scenario(original, WorkArrangement.HYBRID, 45)
 
     assert original.acceptable_work_arrangement is None
+    assert original.acceptable_commute_minutes is None
     assert clarified.acceptable_work_arrangement is WorkArrangement.HYBRID
+    assert clarified.acceptable_commute_minutes == 45
     assert "remain unclear" in original.current_state
     assert "acceptable hybrid work arrangement" in clarified.current_state
+    assert "maximum acceptable one-way commute is 45 minutes" in clarified.current_state
     assert original.assumptions[0].status == clarified.assumptions[0].status == "unconfirmed"
 
 
