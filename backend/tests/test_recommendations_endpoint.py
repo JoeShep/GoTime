@@ -1,5 +1,6 @@
 import asyncio
 
+import pytest
 from httpx import ASGITransport, AsyncClient, Response
 
 from app.main import app
@@ -65,77 +66,56 @@ def test_primary_recommendation_endpoint() -> None:
     }
 
 
-def test_unclear_query_preserves_default_recommendation() -> None:
-    default_response = asyncio.run(get_primary_recommendation())
-    unclear_response = asyncio.run(
-        get_primary_recommendation("?employment_requirements=unclear")
-    )
-
-    assert unclear_response.status_code == 200
-    assert unclear_response.json() == default_response.json()
-
-
-def test_clarified_requirements_recommendation_endpoint() -> None:
-    response = asyncio.run(
-        get_primary_recommendation("?employment_requirements=clarified")
-    )
+@pytest.mark.parametrize(
+    ("value", "expected_reason"),
+    (
+        ("remote", "routine workplace commute"),
+        ("hybrid", "viable recurring commute"),
+        ("on_site", "local employment availability"),
+        ("flexible", "keeps more candidate regions viable"),
+    ),
+)
+def test_work_arrangement_recommendation_endpoint(
+    value: str, expected_reason: str
+) -> None:
+    response = asyncio.run(get_primary_recommendation(f"?work_arrangement={value}"))
 
     assert response.status_code == 200
-    assert response.json() == {
-        "what": (
-            "Evaluate candidate locations against the clarified employment requirements."
-        ),
-        "why": [
-            "Clarified employment requirements provide criteria for comparing locations.",
-            "Candidate evaluation can test where suitable employment may exist.",
-            "The suitable-employment assumption remains unconfirmed.",
-            "The target-location decision is still only partially ready.",
-        ],
-        "why_now": (
-            "The requirements are now known, so candidate regions can be evaluated "
-            "without prematurely choosing a final location."
-        ),
-        "related_decision_id": "target-location",
-        "relevant_dependencies": [
-            "Housing affordability",
-            "Commute viability",
-            "Healthcare access",
-            "Suitable employment availability",
-        ],
-        "blocked_downstream_work": [
-            "Housing affordability analysis",
-            "Commute viability analysis",
-            "Healthcare access research",
-            "Neighborhood research",
-            "Move sequencing",
-        ],
-        "related_assumptions": [
-            {
-                "id": "spouse-employment",
-                "description": (
-                    "Suitable employment for the spouse exists within one or more "
-                    "viable Northern California candidate regions."
-                ),
-                "status": "unconfirmed",
-                "related_decision_ids": ["target-location"],
-                "validation_method": (
-                    "Evaluate regional employment opportunities through market research, "
-                    "employer conversations, interviews, or job offers."
-                ),
-            }
-        ],
-    }
-
-
-def test_unsupported_employment_requirements_value_returns_422() -> None:
-    response = asyncio.run(
-        get_primary_recommendation("?employment_requirements=unsupported")
+    recommendation = response.json()
+    assert recommendation["what"] == (
+        "Evaluate candidate locations against the clarified employment requirements."
     )
+    assert expected_reason in recommendation["why"][0]
+    assert recommendation["why_now"].startswith(
+        "The acceptable work arrangement is now known"
+    )
+    assert recommendation["related_assumptions"][0]["status"] == "unconfirmed"
+    assert "The suitable-employment assumption remains unconfirmed." in recommendation["why"]
+
+
+def test_unsupported_work_arrangement_value_returns_422() -> None:
+    response = asyncio.run(get_primary_recommendation("?work_arrangement=unknown"))
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["query", "employment_requirements"]
-    assert "unclear" in response.json()["detail"][0]["msg"]
-    assert "clarified" in response.json()["detail"][0]["msg"]
+    assert response.json()["detail"][0]["loc"] == ["query", "work_arrangement"]
+    assert "remote" in response.json()["detail"][0]["msg"]
+    assert "flexible" in response.json()["detail"][0]["msg"]
+
+
+@pytest.mark.parametrize(
+    ("query", "parameter"),
+    (
+        ("?employment_requirements=clarified", "employment_requirements"),
+        ("?unexpected=value", "unexpected"),
+    ),
+)
+def test_unexpected_query_parameter_returns_422(query: str, parameter: str) -> None:
+    response = asyncio.run(get_primary_recommendation(query))
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": f"Unsupported query parameter(s): {parameter}."
+    }
 
 
 def test_recognized_state_without_reasoning_path_returns_explained_422(
@@ -149,9 +129,7 @@ def test_recognized_state_without_reasoning_path_returns_explained_422(
         lambda: goal_without_target_decision,
     )
 
-    response = asyncio.run(
-        get_primary_recommendation("?employment_requirements=unclear")
-    )
+    response = asyncio.run(get_primary_recommendation())
 
     assert response.status_code == 422
     assert response.json() == {

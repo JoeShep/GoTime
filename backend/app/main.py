@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
 
-from app.models import EmploymentRequirementsStatus, Recommendation
+from app.models import Recommendation, WorkArrangement
 from app.reasoning import UnsupportedReasoningStateError, recommend_next_step
 from app.scenarios import (
-    build_clarified_employment_requirements_scenario,
     build_relocation_scenario,
+    build_work_arrangement_scenario,
 )
 
 app = FastAPI(title="GoTime API")
@@ -17,11 +17,20 @@ async def health() -> dict[str, str]:
 
 @app.get("/api/recommendations/primary", response_model=Recommendation)
 async def primary_recommendation(
-    employment_requirements: EmploymentRequirementsStatus = EmploymentRequirementsStatus.UNCLEAR,
+    request: Request,
+    work_arrangement: WorkArrangement | None = None,
 ) -> Recommendation:
+    unexpected_parameters = set(request.query_params) - {"work_arrangement"}
+    if unexpected_parameters:
+        names = ", ".join(sorted(unexpected_parameters))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unsupported query parameter(s): {names}.",
+        )
+
     goal = build_relocation_scenario()
-    if employment_requirements is EmploymentRequirementsStatus.CLARIFIED:
-        goal = build_clarified_employment_requirements_scenario(goal)
+    if work_arrangement is not None:
+        goal = build_work_arrangement_scenario(goal, work_arrangement)
 
     try:
         return recommend_next_step(goal)

@@ -170,10 +170,19 @@ Should **Current State** remain part of the Goal, or should it eventually become
 
 For the MVP, Current State can remain associated with the Goal until the first reasoning loop demonstrates that it needs to be modeled independently.
 
-The state-change proof temporarily records `relocation_employment_requirements_status`
-on the in-memory Goal snapshot. This is relocation-specific scenario state, not
-a finalized general property of every Goal. A broader CurrentState or fact model
-remains intentionally deferred.
+The current relocation proof temporarily records `acceptable_work_arrangement`
+on the in-memory Goal snapshot. Its absence means this requirement remains
+unclear. A submitted `remote`, `hybrid`, `on_site`, or `flexible` value is the
+authoritative evidence that the user has clarified which work arrangements are
+acceptable. No separate status is stored, so the snapshot cannot claim that the
+requirement is clarified without containing the requirement itself.
+
+Work arrangement is only one part of employment suitability. Knowing it does
+not confirm that suitable employment exists in a candidate region; that remains
+an unconfirmed Assumption. Candidate locations are not yet scored or compared.
+This field remains relocation-specific scenario state rather than a finalized
+general property of every Goal. A broader CurrentState or fact model remains
+intentionally deferred.
 
 
 # SuccessCriterion

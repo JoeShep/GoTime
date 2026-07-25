@@ -311,37 +311,45 @@ Implementation is complete, reviewed, and verified.
 
 # Next Milestone — Capture One Concrete Employment Requirement
 
+## Status
+
+Implementation is complete, reviewed, and verified.
+
+* The user can submit one actual requirement: an acceptable remote, hybrid,
+  on-site, or flexible work arrangement.
+* No submitted value preserves the original Recommendation and means the
+  requirement remains unclear.
+* The submitted value is represented on the in-memory Goal snapshot and is the
+  only source of truth for whether this requirement has been clarified.
+* Each accepted value produces meaningful, deterministic reasoning about how
+  to evaluate candidate locations.
+* The suitable-employment Assumption remains unconfirmed for every value.
+* Work arrangement remains only one part of employment suitability.
+* Candidate locations are not yet scored or compared.
+* State remains intentionally local and non-persistent.
+* Frontend, backend, Docker, integration, and query-validation checks pass.
+
+# Next Milestone — Capture One Concrete Commute Requirement
+
 ## Objective
 
-Capture one real employment requirement from the user and use it as an actual
-input to reasoning about candidate locations.
-
-Use **acceptable work arrangement** as the first requirement.
-
-Possible values may include:
-
-* Remote
-* Hybrid
-* On-site
-* Flexible or unknown
+Capture one acceptable commute limit for the hybrid or on-site path and use it
+as another concrete input to reasoning about candidate locations.
 
 ## Behavior to Prove
 
-The user provides an acceptable work arrangement.
-
-The engine then uses that value when producing the next Recommendation about
-evaluating candidate locations.
-
-The Recommendation and explanation should reflect the supplied requirement
-rather than merely knowing that requirements were clarified.
+When the submitted work arrangement makes commuting relevant, the user can
+provide an acceptable commute limit. The Recommendation should explain how that
+limit narrows location evaluation without claiming to score or select a
+candidate location.
 
 ## Scope
 
-* Capture one concrete employment requirement.
+* Define the smallest useful commute-limit value.
+* Collect it only where commuting is relevant.
 * Pass it through the existing frontend-to-backend flow.
-* Represent it in the Goal snapshot or narrowly scoped relocation state.
-* Use it in one deterministic reasoning path.
-* Show it in the Recommendation explanation where relevant.
+* Represent it in narrowly scoped relocation state.
+* Use it in one deterministic reasoning path and explanation.
 * Preserve the suitable-employment Assumption as unconfirmed.
 * Add focused frontend and backend tests.
 
@@ -350,20 +358,18 @@ rather than merely knowing that requirements were clarified.
 * Persistence
 * Authentication
 * Complete employment profiles
-* Salary modeling
 * Employer or job searches
-* Multiple detailed requirements
-* Generic forms infrastructure
-* Generic fact or state systems
-* Candidate-location scoring
+* Candidate-location data or scoring
+* Route or traffic integrations
+* Generic forms or state infrastructure
 * Visual redesign
 * Broad copy refinement
 
 ## Key Design Question
 
-Determine the smallest honest interaction for collecting the work-arrangement
-requirement without implying that GoTime already supports a complete
-employment-planning workflow.
+Determine the smallest honest commute-limit input without implying that GoTime
+already knows employer locations, routes, traffic conditions, or candidate
+scores.
 
 Keep the empty `docs/adr/ADR-0001-monorepo.md` issue separate from this
 milestone.

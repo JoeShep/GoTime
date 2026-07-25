@@ -404,3 +404,53 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 
 - Review the live experience with its intended user before selecting the next
   milestone.
+
+---
+
+## Session 10 -- One Concrete Employment Requirement
+
+### Completed
+
+- Replaced the temporary clarified/unclear scenario state with one authoritative
+  optional `acceptable_work_arrangement` value on the in-memory Goal snapshot.
+- Added supported remote, hybrid, on-site, and flexible work arrangements.
+- Replaced the confirmation-only frontend interaction with a focused select and
+  submit action attached to the initial Recommendation.
+- Kept draft selection local so re-reasoning begins only when the user submits.
+- Added deterministic, value-specific reasoning about how each arrangement
+  affects candidate-location evaluation.
+- Replaced the temporary `employment_requirements` query with the optional
+  `work_arrangement` query and rejected unexpected query parameters.
+- Preserved loading, cancellation, stale-response, and error behavior.
+
+### Modeling and Product Boundaries
+
+- No work-arrangement value means the requirement remains unclear and preserves
+  the original Recommendation.
+- A submitted value is the sole evidence that this requirement is clarified;
+  no separate status can contradict it.
+- Work arrangement is only one part of employment suitability.
+- Suitable employment in a viable candidate region remains an unconfirmed
+  Assumption for every work arrangement.
+- State remains local and in memory. No persistence or general state system was
+  introduced.
+- Candidate locations are not yet scored or compared.
+
+### Verification
+
+- Frontend tests: 5 passed.
+- Frontend production build: passed.
+- Backend tests: 17 passed.
+- Backend Python compilation: passed.
+- Docker Compose rebuilt successfully; backend health and frontend startup
+  passed.
+- Frontend proxy checks passed for the default request and all four supported
+  work arrangements.
+- Unsupported work arrangements, the retired parameter, and arbitrary unknown
+  query parameters returned HTTP 422.
+- Whitespace validation with `git diff --check`: passed.
+
+### Next
+
+- Capture one acceptable commute limit for the hybrid or on-site path and use
+  it as another concrete input to candidate-location reasoning.

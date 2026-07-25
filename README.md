@@ -37,9 +37,12 @@ Additional technologies will be introduced only when they solve a real problem.
 ## Current Status
 
 The current MVP slice connects the concept screen to the in-memory reasoning
-API. It shows one explained Recommendation and includes a temporary scenario
-control that demonstrates the Recommendation changing when spouse employment
-requirements move from unclear to clarified. There is no persistence,
+API. It shows one explained Recommendation and lets the user provide one actual
+employment requirement: an acceptable remote, hybrid, on-site, or flexible work
+arrangement. That in-memory value changes the engine's reasoning about how to
+evaluate candidate locations. Work arrangement is only one part of employment
+suitability; suitable employment remains an unconfirmed Assumption, and GoTime
+does not yet score or compare candidate locations. There is no persistence,
 authentication, general editing, or task-management workflow yet.
 
 ## Run locally

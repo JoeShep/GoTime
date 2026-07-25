@@ -1,4 +1,4 @@
-export type EmploymentRequirementsState = 'unclear' | 'clarified'
+export type WorkArrangement = 'remote' | 'hybrid' | 'on_site' | 'flexible'
 
 export interface Assumption {
   id: string
@@ -19,11 +19,12 @@ export interface Recommendation {
 }
 
 export async function fetchPrimaryRecommendation(
-  employmentRequirements: EmploymentRequirementsState,
+  workArrangement?: WorkArrangement,
   signal?: AbortSignal,
 ): Promise<Recommendation> {
+  const query = workArrangement ? `?work_arrangement=${workArrangement}` : ''
   const response = await fetch(
-    `/api/recommendations/primary?employment_requirements=${employmentRequirements}`,
+    `/api/recommendations/primary${query}`,
     { signal },
   )
 

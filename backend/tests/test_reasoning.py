@@ -1,10 +1,10 @@
 import pytest
 
-from app.models import EmploymentRequirementsStatus
+from app.models import WorkArrangement
 from app.reasoning import recommend_next_step
 from app.scenarios import (
-    build_clarified_employment_requirements_scenario,
     build_relocation_scenario,
+    build_work_arrangement_scenario,
 )
 
 
@@ -50,9 +50,38 @@ def test_recommendation_exposes_dependencies_blocked_work_and_assumption() -> No
     )
 
 
-def test_clarified_requirements_produce_a_different_recommendation() -> None:
+@pytest.mark.parametrize(
+    ("work_arrangement", "expected_reason", "expected_dependency"),
+    (
+        (
+            WorkArrangement.REMOTE,
+            "do not need to support a routine workplace commute",
+            "Reliable remote-work feasibility",
+        ),
+        (
+            WorkArrangement.HYBRID,
+            "support a viable recurring commute",
+            "Recurring commute viability",
+        ),
+        (
+            WorkArrangement.ON_SITE,
+            "local employment availability and daily commute viability",
+            "Local employment and daily commute viability",
+        ),
+        (
+            WorkArrangement.FLEXIBLE,
+            "keeps more candidate regions viable",
+            "Suitable employment across acceptable arrangements",
+        ),
+    ),
+)
+def test_work_arrangement_produces_meaningful_clarified_reasoning(
+    work_arrangement: WorkArrangement,
+    expected_reason: str,
+    expected_dependency: str,
+) -> None:
     original_goal = build_relocation_scenario()
-    clarified_goal = build_clarified_employment_requirements_scenario(original_goal)
+    clarified_goal = build_work_arrangement_scenario(original_goal, work_arrangement)
 
     original = recommend_next_step(original_goal)
     clarified = recommend_next_step(clarified_goal)
@@ -64,23 +93,19 @@ def test_clarified_requirements_produce_a_different_recommendation() -> None:
     assert clarified.related_decision_id == "target-location"
     assert clarified.related_assumptions[0].status == "unconfirmed"
     assert "The suitable-employment assumption remains unconfirmed." in clarified.why
+    assert expected_reason in clarified.why[0]
+    assert expected_dependency in clarified.relevant_dependencies
 
 
-def test_clarified_snapshot_does_not_mutate_original_goal() -> None:
+def test_work_arrangement_snapshot_does_not_mutate_original_goal() -> None:
     original = build_relocation_scenario()
 
-    clarified = build_clarified_employment_requirements_scenario(original)
+    clarified = build_work_arrangement_scenario(original, WorkArrangement.HYBRID)
 
-    assert (
-        original.relocation_employment_requirements_status
-        is EmploymentRequirementsStatus.UNCLEAR
-    )
-    assert (
-        clarified.relocation_employment_requirements_status
-        is EmploymentRequirementsStatus.CLARIFIED
-    )
+    assert original.acceptable_work_arrangement is None
+    assert clarified.acceptable_work_arrangement is WorkArrangement.HYBRID
     assert "remain unclear" in original.current_state
-    assert "have been clarified" in clarified.current_state
+    assert "acceptable hybrid work arrangement" in clarified.current_state
     assert original.assumptions[0].status == clarified.assumptions[0].status == "unconfirmed"
 
 

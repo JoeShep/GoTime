@@ -27,7 +27,7 @@ const clarifiedRecommendation: Recommendation = {
   ...unclearRecommendation,
   what: 'Evaluate candidate locations against the clarified employment requirements.',
   why: [
-    'Clarified employment requirements provide criteria for comparing locations.',
+    'Hybrid work requires candidate locations to support a viable recurring commute.',
     'The suitable-employment assumption remains unconfirmed.',
   ],
   why_now: 'Candidate regions can now be evaluated without choosing a final location.',
@@ -54,7 +54,7 @@ describe('recommendation screen', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Loading recommendation')
     expect(fetch).toHaveBeenCalledWith(
-      '/api/recommendations/primary?employment_requirements=unclear',
+      '/api/recommendations/primary',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
   })
@@ -74,15 +74,18 @@ describe('recommendation screen', () => {
     expect(screen.queryByText('target-location')).not.toBeInTheDocument()
     expect(
       screen.getByText(
-        'Do you know what kind of job would make the move workable for your spouse?',
+        'What kind of work arrangement would make the move workable for your spouse?',
       ),
     ).toBeVisible()
     expect(
-      screen.getByRole('button', { name: 'Yes, we know what to look for' }),
-    ).toBeVisible()
+      screen.getByLabelText(
+        'What kind of work arrangement would make the move workable for your spouse?',
+      ),
+    ).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Use this requirement' })).toBeDisabled()
   })
 
-  it('confirms the state update and renders the clarified recommendation', async () => {
+  it('submits a drafted work arrangement and renders its clarified recommendation', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(responseWith(unclearRecommendation))
@@ -92,27 +95,34 @@ describe('recommendation screen', () => {
     render(<App />)
     await screen.findByRole('heading', { name: unclearRecommendation.what })
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Yes, we know what to look for' }),
+    fireEvent.change(
+      screen.getByLabelText(
+        'What kind of work arrangement would make the move workable for your spouse?',
+      ),
+      { target: { value: 'hybrid' } },
     )
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use this requirement' }))
 
     expect(
       await screen.findByRole('heading', { name: clarifiedRecommendation.what }),
     ).toBeVisible()
     expect(fetchMock).toHaveBeenLastCalledWith(
-      '/api/recommendations/primary?employment_requirements=clarified',
+      '/api/recommendations/primary?work_arrangement=hybrid',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
     expect(screen.getByText('The suitable-employment assumption remains unconfirmed.')).toBeVisible()
     expect(screen.getByText('unconfirmed')).toBeVisible()
-    expect(screen.getByText('Employment requirements marked as clarified.')).toBeVisible()
+    expect(screen.getByText('Work arrangement recorded: Hybrid.')).toBeVisible()
     expect(
       screen.queryByText(
-        'Do you know what kind of job would make the move workable for your spouse?',
+        'What kind of work arrangement would make the move workable for your spouse?',
       ),
     ).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Yes, we know what to look for' }),
+      screen.queryByRole('button', { name: 'Use this requirement' }),
     ).not.toBeInTheDocument()
   })
 
@@ -135,9 +145,13 @@ describe('recommendation screen', () => {
     )
     await screen.findByRole('heading', { name: unclearRecommendation.what })
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Yes, we know what to look for' }),
+    fireEvent.change(
+      screen.getByLabelText(
+        'What kind of work arrangement would make the move workable for your spouse?',
+      ),
+      { target: { value: 'hybrid' } },
     )
+    fireEvent.click(screen.getByRole('button', { name: 'Use this requirement' }))
 
     expect(
       await screen.findByRole('heading', { name: clarifiedRecommendation.what }),
@@ -166,9 +180,13 @@ describe('recommendation screen', () => {
     render(<App />)
     await screen.findByRole('heading', { name: unclearRecommendation.what })
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Yes, we know what to look for' }),
+    fireEvent.change(
+      screen.getByLabelText(
+        'What kind of work arrangement would make the move workable for your spouse?',
+      ),
+      { target: { value: 'hybrid' } },
     )
+    fireEvent.click(screen.getByRole('button', { name: 'Use this requirement' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Recommendation unavailable')
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -176,7 +194,7 @@ describe('recommendation screen', () => {
     )
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(
-      screen.queryByRole('button', { name: 'Yes, we know what to look for' }),
+      screen.queryByRole('button', { name: 'Use this requirement' }),
     ).not.toBeInTheDocument()
   })
 })

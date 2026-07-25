@@ -15,11 +15,13 @@ class AssumptionStatus(StrEnum):
     UNCONFIRMED = "unconfirmed"
 
 
-class EmploymentRequirementsStatus(StrEnum):
-    """Relocation-specific scenario state for the current MVP proof."""
+class WorkArrangement(StrEnum):
+    """Acceptable spouse work arrangements for the relocation proof."""
 
-    UNCLEAR = "unclear"
-    CLARIFIED = "clarified"
+    REMOTE = "remote"
+    HYBRID = "hybrid"
+    ON_SITE = "on_site"
+    FLEXIBLE = "flexible"
 
 
 class SuccessCriterion(DomainModel):
@@ -57,7 +59,7 @@ class Goal(DomainModel):
     id: str
     title: str
     current_state: str
-    relocation_employment_requirements_status: EmploymentRequirementsStatus
+    acceptable_work_arrangement: WorkArrangement | None = None
     success_criteria: tuple[SuccessCriterion, ...]
     constraints: tuple[Constraint, ...]
     preferences: tuple[Preference, ...]

@@ -1,16 +1,37 @@
 import { useEffect, useState } from 'react'
-import { Alert, Badge, Button, Card, Col, Container, ListGroup, Row, Spinner } from 'react-bootstrap'
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  Col,
+  Container,
+  Form,
+  ListGroup,
+  Row,
+  Spinner,
+} from 'react-bootstrap'
 import {
   fetchPrimaryRecommendation,
-  type EmploymentRequirementsState,
   type Recommendation,
+  type WorkArrangement,
 } from './api/recommendations'
 
+const workArrangementLabels: Record<WorkArrangement, string> = {
+  remote: 'Remote',
+  hybrid: 'Hybrid',
+  on_site: 'On-site',
+  flexible: 'Flexible',
+}
+
+function isWorkArrangement(value: string): value is WorkArrangement {
+  return value in workArrangementLabels
+}
+
 function App() {
-  const [employmentRequirements, setEmploymentRequirements] =
-    useState<EmploymentRequirementsState>('unclear')
-  const [hasConfirmedEmploymentRequirements, setHasConfirmedEmploymentRequirements] =
-    useState(false)
+  const [draftWorkArrangement, setDraftWorkArrangement] = useState<WorkArrangement | ''>('')
+  const [submittedWorkArrangement, setSubmittedWorkArrangement] =
+    useState<WorkArrangement | null>(null)
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -23,7 +44,7 @@ function App() {
     setError(null)
     setIsLoading(true)
 
-    fetchPrimaryRecommendation(employmentRequirements, controller.signal)
+    fetchPrimaryRecommendation(submittedWorkArrangement ?? undefined, controller.signal)
       .then((nextRecommendation) => {
         if (isCurrentRequest) {
           setRecommendation(nextRecommendation)
@@ -48,7 +69,7 @@ function App() {
       isCurrentRequest = false
       controller.abort()
     }
-  }, [employmentRequirements])
+  }, [submittedWorkArrangement])
 
   return (
     <main className="app-shell py-5">
@@ -85,9 +106,9 @@ function App() {
 
             {recommendation && (
               <>
-                {hasConfirmedEmploymentRequirements && (
+                {submittedWorkArrangement && (
                   <Alert className="state-update mt-5 mb-0" variant="success">
-                    Employment requirements marked as clarified.
+                    Work arrangement recorded: {workArrangementLabels[submittedWorkArrangement]}.
                   </Alert>
                 )}
 
@@ -99,21 +120,46 @@ function App() {
                     Primary recommendation
                   </p>
                   <h2 className="step-name mb-0">{recommendation.what}</h2>
-                  {!hasConfirmedEmploymentRequirements && (
-                    <div className="recommendation-action mt-4 pt-4">
-                      <p className="mb-3">
-                        Do you know what kind of job would make the move workable for your spouse?
-                      </p>
-                      <Button
-                        variant="outline-success"
-                        onClick={() => {
-                          setHasConfirmedEmploymentRequirements(true)
-                          setEmploymentRequirements('clarified')
+                  {!submittedWorkArrangement && (
+                    <Form
+                      className="recommendation-action mt-4 pt-4"
+                      onSubmit={(event) => {
+                        event.preventDefault()
+                        if (draftWorkArrangement) {
+                          setSubmittedWorkArrangement(draftWorkArrangement)
+                        }
+                      }}
+                    >
+                      <Form.Label htmlFor="work-arrangement">
+                        What kind of work arrangement would make the move workable for your spouse?
+                      </Form.Label>
+                      <Form.Select
+                        className="mb-3"
+                        id="work-arrangement"
+                        value={draftWorkArrangement}
+                        onChange={(event) => {
+                          if (
+                            event.target.value === '' ||
+                            isWorkArrangement(event.target.value)
+                          ) {
+                            setDraftWorkArrangement(event.target.value)
+                          }
                         }}
                       >
-                        Yes, we know what to look for
+                        <option value="">Select a work arrangement</option>
+                        <option value="remote">Remote</option>
+                        <option value="hybrid">Hybrid</option>
+                        <option value="on_site">On-site</option>
+                        <option value="flexible">Flexible</option>
+                      </Form.Select>
+                      <Button
+                        disabled={!draftWorkArrangement}
+                        type="submit"
+                        variant="outline-success"
+                      >
+                        Use this requirement
                       </Button>
-                    </div>
+                    </Form>
                   )}
                 </section>
 
