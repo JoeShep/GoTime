@@ -507,3 +507,56 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Capture one likely workplace area for hybrid or on-site work and use it to
   recommend gathering credible travel-time evidence without calculating routes
   or scoring candidate locations.
+
+---
+
+## Session 12 -- One Likely Workplace Area
+
+### Completed
+
+- Added `likely_workplace_area` as trimmed, bounded free-form planning context
+  on the in-memory relocation Goal snapshot.
+- Accepted the value only for hybrid or on-site work with a valid maximum
+  one-way commute.
+- Rejected blank, whitespace-only, over-length, and prerequisite-incompatible
+  values.
+- Added a focused workplace-area input after a successful commute-limit
+  submission.
+- Kept draft input local and submitted only an explicitly confirmed, trimmed
+  value.
+- Advanced the Recommendation to gathering credible one-way travel-time
+  evidence between candidate locations and the likely workplace area.
+- Preserved loading, cancellation, stale-response, and error behavior.
+
+### Modeling and Product Boundaries
+
+- The workplace area is opaque user-provided text. It may describe a city,
+  neighborhood, employment corridor, or approximate region.
+- It is not a confirmed employer location, verified workplace, normalized city,
+  geocoded place, or generic location entity.
+- The engine does not calculate routes, use travel-time data, or score
+  candidate locations.
+- Traffic conditions and travel mode remain unresolved. Hybrid frequency also
+  remains unresolved for hybrid work.
+- Suitable employment remains an unconfirmed Assumption.
+- State remains local and in memory. No persistence, search, autocomplete,
+  mapping, or generalized state infrastructure was introduced.
+
+### Verification
+
+- Frontend tests: 7 passed.
+- Frontend production build: passed.
+- Backend tests: 39 passed.
+- Backend Python compilation: passed.
+- Docker Compose rebuilt successfully; backend health and frontend startup
+  passed.
+- Supported hybrid and on-site workplace-area contracts returned HTTP 200.
+- Blank, over-length, contradictory, and unexpected query contracts returned
+  HTTP 422.
+- Whitespace validation with `git diff --check`: passed.
+
+### Next
+
+- Capture one intended commute travel mode and use it to make the manual
+  evidence-gathering Recommendation more specific without calculating routes
+  or scoring candidate locations.

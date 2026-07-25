@@ -131,6 +131,29 @@ def test_valid_commute_limit_is_used_as_an_evaluation_boundary(
     assert recommendation["related_assumptions"][0]["status"] == "unconfirmed"
 
 
+@pytest.mark.parametrize("value", ("hybrid", "on_site"))
+def test_valid_likely_workplace_area_advances_to_evidence_gathering(
+    value: str,
+) -> None:
+    response = asyncio.run(
+        get_primary_recommendation(
+            f"?work_arrangement={value}&acceptable_commute_minutes=45"
+            "&likely_workplace_area=%20San%20Jose%20"
+        )
+    )
+
+    assert response.status_code == 200
+    recommendation = response.json()
+    assert recommendation["what"] == (
+        "Gather credible one-way travel-time evidence between candidate locations "
+        "and the likely San Jose workplace area."
+    )
+    assert "user-provided likely workplace area" in recommendation["why"][0]
+    assert "No route or travel time has been calculated." in recommendation["why"]
+    assert "No candidate location currently passes or fails" in recommendation["why"][-2]
+    assert recommendation["related_assumptions"][0]["status"] == "unconfirmed"
+
+
 def test_unsupported_work_arrangement_value_returns_422() -> None:
     response = asyncio.run(get_primary_recommendation("?work_arrangement=unknown"))
 
@@ -177,6 +200,53 @@ def test_incompatible_commute_limit_returns_422(query: str) -> None:
             "or work_arrangement=on_site."
         )
     }
+
+
+@pytest.mark.parametrize(
+    "query",
+    (
+        "?likely_workplace_area=San%20Jose",
+        "?work_arrangement=remote&acceptable_commute_minutes=45"
+        "&likely_workplace_area=San%20Jose",
+        "?work_arrangement=flexible&acceptable_commute_minutes=45"
+        "&likely_workplace_area=San%20Jose",
+        "?work_arrangement=hybrid&likely_workplace_area=San%20Jose",
+    ),
+)
+def test_incompatible_likely_workplace_area_returns_422(query: str) -> None:
+    response = asyncio.run(get_primary_recommendation(query))
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "value",
+    ("", "%20%20%20"),
+)
+def test_blank_likely_workplace_area_returns_422(value: str) -> None:
+    response = asyncio.run(
+        get_primary_recommendation(
+            "?work_arrangement=hybrid&acceptable_commute_minutes=45"
+            f"&likely_workplace_area={value}"
+        )
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": "likely_workplace_area must not be blank."
+    }
+
+
+def test_over_length_likely_workplace_area_returns_422() -> None:
+    response = asyncio.run(
+        get_primary_recommendation(
+            "?work_arrangement=hybrid&acceptable_commute_minutes=45"
+            f"&likely_workplace_area={'a' * 121}"
+        )
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", "likely_workplace_area"]
 
 
 @pytest.mark.parametrize(

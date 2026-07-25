@@ -1,6 +1,9 @@
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+LIKELY_WORKPLACE_AREA_MAX_LENGTH = 120
 
 
 class DomainModel(BaseModel):
@@ -61,11 +64,24 @@ class Goal(DomainModel):
     current_state: str
     acceptable_work_arrangement: WorkArrangement | None = None
     acceptable_commute_minutes: int | None = Field(default=None, gt=0)
+    likely_workplace_area: str | None = Field(
+        default=None, max_length=LIKELY_WORKPLACE_AREA_MAX_LENGTH
+    )
     success_criteria: tuple[SuccessCriterion, ...]
     constraints: tuple[Constraint, ...]
     preferences: tuple[Preference, ...]
     decisions: tuple[Decision, ...]
     assumptions: tuple[Assumption, ...]
+
+    @field_validator("likely_workplace_area")
+    @classmethod
+    def validate_likely_workplace_area(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped_value = value.strip()
+        if not stripped_value:
+            raise ValueError("Likely workplace area must not be blank.")
+        return stripped_value
 
     @model_validator(mode="after")
     def validate_commute_requirement(self) -> "Goal":
@@ -77,6 +93,15 @@ class Goal(DomainModel):
             raise ValueError(
                 "An acceptable commute limit requires a hybrid or on-site "
                 "work arrangement."
+            )
+        if self.likely_workplace_area is not None and (
+            self.acceptable_work_arrangement
+            not in (WorkArrangement.HYBRID, WorkArrangement.ON_SITE)
+            or self.acceptable_commute_minutes is None
+        ):
+            raise ValueError(
+                "A likely workplace area requires a hybrid or on-site work "
+                "arrangement and an acceptable commute limit."
             )
         return self
 

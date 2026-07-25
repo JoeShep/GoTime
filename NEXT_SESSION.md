@@ -353,22 +353,45 @@ Implementation is complete and verified.
 
 # Next Milestone — Capture a Likely Workplace Area
 
+## Status
+
+Implementation is complete and verified.
+
+* The user can provide one free-form likely workplace area after submitting a
+  hybrid or on-site arrangement and maximum one-way commute.
+* The value is trimmed, limited to 120 characters, and treated as opaque
+  user-provided planning context.
+* The API rejects blank, over-length, and prerequisite-incompatible values.
+* The Recommendation advances from defining commute requirements to gathering
+  credible one-way travel-time evidence.
+* The engine does not verify or normalize the area, geocode it, calculate a
+  route, or claim that any candidate location passes or fails.
+* Traffic conditions and travel mode remain unresolved. Hybrid frequency also
+  remains unresolved for hybrid work.
+* Suitable employment remains an unconfirmed Assumption.
+* State remains intentionally local and non-persistent.
+* Frontend, backend, Docker, integration, compilation, and whitespace
+  verification pass.
+
+# Next Milestone — Capture an Intended Commute Travel Mode
+
 ## Objective
 
-Capture one likely workplace area for hybrid or on-site work so the engine can
-identify the next evidence-gathering step for commute evaluation.
+Capture one intended commute travel mode so the evidence-gathering
+Recommendation can identify what kind of travel-time evidence the user should
+collect.
 
 ## Behavior to Prove
 
-The user provides a likely workplace area after recording a maximum one-way
-commute. The Recommendation should use the workplace area and commute boundary
-to direct travel-time research, while making clear that GoTime has not measured
-a route and no candidate location currently passes or fails.
+After recording a likely workplace area, the user provides an intended commute
+mode. The Recommendation should use the mode, workplace area, and maximum
+one-way commute to direct manual evidence gathering without calculating a
+route or evaluating candidate locations.
 
 ## Scope
 
-* Capture one user-provided likely workplace area.
-* Allow it only for hybrid or on-site work with a commute limit.
+* Capture one intended travel mode for hybrid or on-site work.
+* Allow it only after a commute limit and likely workplace area are present.
 * Pass it through the existing frontend-to-backend flow.
 * Represent it as narrowly scoped, in-memory relocation state.
 * Use it in one deterministic reasoning path and explanation.
@@ -378,6 +401,7 @@ a route and no candidate location currently passes or fails.
 ## Out of Scope
 
 * Persistence or authentication
+* Generic transportation or location models
 * Employer or job searches
 * Candidate-location models or scoring
 * Geocoding, mapping, route, traffic, or travel-time APIs
@@ -388,9 +412,9 @@ a route and no candidate location currently passes or fails.
 
 ## Key Design Question
 
-Determine the smallest honest workplace-area input that is specific enough to
-guide later travel-time research without implying that an employer, job, or
-worksite has been confirmed.
+Choose the smallest honest set of travel-mode values that guides evidence
+gathering without implying that GoTime understands route availability or
+quality.
 
 Keep the empty `docs/adr/ADR-0001-monorepo.md` issue separate from this
 milestone.

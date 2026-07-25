@@ -46,6 +46,19 @@ const clarifiedRecommendation: Recommendation = {
   relevant_dependencies: ['Likely workplace location', 'Credible travel-time evidence'],
 }
 
+const evidenceRecommendation: Recommendation = {
+  ...clarifiedRecommendation,
+  what:
+    'Gather credible one-way travel-time evidence between candidate locations and the likely San Jose workplace area.',
+  why: [
+    'San Jose is a user-provided likely workplace area, not a confirmed workplace.',
+    'No route or travel time has been calculated.',
+    'No candidate location currently passes or fails.',
+    'The suitable-employment assumption remains unconfirmed.',
+  ],
+  why_now: 'The next step is to gather credible travel-time evidence.',
+}
+
 function responseWith(recommendation: Recommendation): Response {
   return {
     ok: true,
@@ -72,6 +85,14 @@ function submitCommuteLimit(value = '45') {
     { target: { value } },
   )
   fireEvent.click(screen.getByRole('button', { name: 'Use this commute limit' }))
+}
+
+function submitWorkplaceArea(value = 'San Jose') {
+  fireEvent.change(
+    screen.getByLabelText('What area is your spouse most likely to work in?'),
+    { target: { value } },
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Use this workplace area' }))
 }
 
 afterEach(() => {
@@ -200,9 +221,63 @@ describe('recommendation screen', () => {
     expect(
       screen.queryByRole('button', { name: 'Use this commute limit' }),
     ).not.toBeInTheDocument()
+    expect(
+      screen.getByLabelText('What area is your spouse most likely to work in?'),
+    ).toHaveAttribute('placeholder', 'San Jose or the surrounding area')
+    expect(
+      screen.getByRole('button', { name: 'Use this workplace area' }),
+    ).toBeDisabled()
   })
 
-  it('does not let an obsolete response overwrite the clarified recommendation', async () => {
+  it('keeps workplace-area draft local, trims it, and submits it explicitly', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(responseWith(unclearRecommendation))
+      .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
+      .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
+      .mockResolvedValueOnce(responseWith(evidenceRecommendation))
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<App />)
+    await screen.findByRole('heading', { name: unclearRecommendation.what })
+    submitHybridWorkArrangement()
+    await screen.findByRole('heading', { name: commuteLimitRecommendation.what })
+    submitCommuteLimit()
+    await screen.findByRole('heading', { name: clarifiedRecommendation.what })
+
+    const input = screen.getByLabelText(
+      'What area is your spouse most likely to work in?',
+    )
+    const button = screen.getByRole('button', { name: 'Use this workplace area' })
+
+    expect(input).toHaveAttribute('maxlength', '120')
+    fireEvent.change(input, { target: { value: '   ' } })
+    expect(button).toBeDisabled()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+
+    fireEvent.change(input, { target: { value: 'a'.repeat(121) } })
+    expect(button).toBeDisabled()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+
+    fireEvent.change(input, { target: { value: '  San Jose  ' } })
+    expect(button).toBeEnabled()
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    fireEvent.click(button)
+
+    expect(
+      await screen.findByRole('heading', { name: evidenceRecommendation.what }),
+    ).toBeVisible()
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      '/api/recommendations/primary?work_arrangement=hybrid&acceptable_commute_minutes=45&likely_workplace_area=San+Jose',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+    expect(screen.getByText('Likely workplace area recorded: San Jose.')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'Use this workplace area' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('does not let an obsolete response overwrite the workplace-area recommendation', async () => {
     let resolveObsolete: ((response: Response) => void) | undefined
     const obsoleteRequest = new Promise<Response>((resolve) => {
       resolveObsolete = resolve
@@ -213,6 +288,7 @@ describe('recommendation screen', () => {
       .mockResolvedValueOnce(responseWith(unclearRecommendation))
       .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
       .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
+      .mockResolvedValueOnce(responseWith(evidenceRecommendation))
     vi.stubGlobal('fetch', fetchMock)
 
     render(
@@ -225,9 +301,11 @@ describe('recommendation screen', () => {
     submitHybridWorkArrangement()
     await screen.findByRole('heading', { name: commuteLimitRecommendation.what })
     submitCommuteLimit()
+    await screen.findByRole('heading', { name: clarifiedRecommendation.what })
+    submitWorkplaceArea()
 
     expect(
-      await screen.findByRole('heading', { name: clarifiedRecommendation.what }),
+      await screen.findByRole('heading', { name: evidenceRecommendation.what }),
     ).toBeVisible()
 
     await act(async () => {
@@ -235,7 +313,7 @@ describe('recommendation screen', () => {
       await obsoleteRequest
     })
 
-    expect(screen.getByRole('heading', { name: clarifiedRecommendation.what })).toBeVisible()
+    expect(screen.getByRole('heading', { name: evidenceRecommendation.what })).toBeVisible()
     expect(
       screen.queryByRole('heading', { name: unclearRecommendation.what }),
     ).not.toBeInTheDocument()
@@ -245,11 +323,12 @@ describe('recommendation screen', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('renders an error when the commute-limit recommendation request fails', async () => {
+  it('renders an error when the workplace-area recommendation request fails', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(responseWith(unclearRecommendation))
       .mockResolvedValueOnce(responseWith(commuteLimitRecommendation))
+      .mockResolvedValueOnce(responseWith(clarifiedRecommendation))
       .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
     vi.stubGlobal('fetch', fetchMock)
 
@@ -259,6 +338,8 @@ describe('recommendation screen', () => {
     submitHybridWorkArrangement()
     await screen.findByRole('heading', { name: commuteLimitRecommendation.what })
     submitCommuteLimit()
+    await screen.findByRole('heading', { name: clarifiedRecommendation.what })
+    submitWorkplaceArea()
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Recommendation unavailable')
     expect(screen.getByRole('alert')).toHaveTextContent(
@@ -270,6 +351,9 @@ describe('recommendation screen', () => {
     ).not.toBeInTheDocument()
     expect(
       screen.queryByText('Maximum workable one-way commute recorded: 45 minutes.'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Likely workplace area recorded: San Jose.'),
     ).not.toBeInTheDocument()
   })
 })

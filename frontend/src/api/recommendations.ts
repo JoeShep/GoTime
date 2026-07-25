@@ -1,4 +1,5 @@
 export type WorkArrangement = 'remote' | 'hybrid' | 'on_site' | 'flexible'
+export const LIKELY_WORKPLACE_AREA_MAX_LENGTH = 120
 
 export interface Assumption {
   id: string
@@ -21,6 +22,7 @@ export interface Recommendation {
 export async function fetchPrimaryRecommendation(
   workArrangement?: WorkArrangement,
   acceptableCommuteMinutes?: number,
+  likelyWorkplaceArea?: string,
   signal?: AbortSignal,
 ): Promise<Recommendation> {
   const parameters = new URLSearchParams()
@@ -29,6 +31,9 @@ export async function fetchPrimaryRecommendation(
   }
   if (acceptableCommuteMinutes !== undefined) {
     parameters.set('acceptable_commute_minutes', String(acceptableCommuteMinutes))
+  }
+  if (likelyWorkplaceArea !== undefined) {
+    parameters.set('likely_workplace_area', likelyWorkplaceArea)
   }
   const query = parameters.size > 0 ? `?${parameters}` : ''
   const response = await fetch(

@@ -26,6 +26,7 @@ def build_relocation_scenario() -> Goal:
         ),
         acceptable_work_arrangement=None,
         acceptable_commute_minutes=None,
+        likely_workplace_area=None,
         success_criteria=(
             SuccessCriterion(
                 id="affordable-move",
@@ -90,6 +91,7 @@ def build_work_arrangement_scenario(
     goal: Goal,
     work_arrangement: WorkArrangement,
     acceptable_commute_minutes: int | None = None,
+    likely_workplace_area: str | None = None,
 ) -> Goal:
     """Derive a relocation snapshot with one concrete employment requirement."""
     arrangement_label = work_arrangement.value.replace("_", "-")
@@ -99,6 +101,11 @@ def build_work_arrangement_scenario(
         if acceptable_commute_minutes is not None
         else ""
     )
+    workplace_state = (
+        f" The likely workplace area is {likely_workplace_area.strip()}."
+        if likely_workplace_area is not None
+        else ""
+    )
     return Goal.model_validate(
         {
             **goal.model_dump(),
@@ -106,9 +113,10 @@ def build_work_arrangement_scenario(
                 "The family lives in Tennessee. A target location in Northern "
                 "California has not been selected, and the spouse's employment "
                 f"requirements include an acceptable {arrangement_label} work "
-                f"arrangement.{commute_state}"
+                f"arrangement.{commute_state}{workplace_state}"
             ),
             "acceptable_work_arrangement": work_arrangement,
             "acceptable_commute_minutes": acceptable_commute_minutes,
+            "likely_workplace_area": likely_workplace_area,
         }
     )

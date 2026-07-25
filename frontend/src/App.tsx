@@ -14,6 +14,7 @@ import {
 } from 'react-bootstrap'
 import {
   fetchPrimaryRecommendation,
+  LIKELY_WORKPLACE_AREA_MAX_LENGTH,
   type Recommendation,
   type WorkArrangement,
 } from './api/recommendations'
@@ -40,6 +41,9 @@ function App() {
   const [draftCommuteMinutes, setDraftCommuteMinutes] = useState('')
   const [submittedCommuteMinutes, setSubmittedCommuteMinutes] =
     useState<number | null>(null)
+  const [draftWorkplaceArea, setDraftWorkplaceArea] = useState('')
+  const [submittedWorkplaceArea, setSubmittedWorkplaceArea] =
+    useState<string | null>(null)
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -55,6 +59,7 @@ function App() {
     fetchPrimaryRecommendation(
       submittedWorkArrangement ?? undefined,
       submittedCommuteMinutes ?? undefined,
+      submittedWorkplaceArea ?? undefined,
       controller.signal,
     )
       .then((nextRecommendation) => {
@@ -81,9 +86,13 @@ function App() {
       isCurrentRequest = false
       controller.abort()
     }
-  }, [submittedCommuteMinutes, submittedWorkArrangement])
+  }, [submittedCommuteMinutes, submittedWorkArrangement, submittedWorkplaceArea])
 
   const commuteDraftIsValid = /^[1-9]\d*$/.test(draftCommuteMinutes)
+  const trimmedWorkplaceArea = draftWorkplaceArea.trim()
+  const workplaceAreaDraftIsValid =
+    trimmedWorkplaceArea.length > 0 &&
+    trimmedWorkplaceArea.length <= LIKELY_WORKPLACE_AREA_MAX_LENGTH
 
   return (
     <main className="app-shell py-5">
@@ -129,6 +138,11 @@ function App() {
                       <p className="mb-0">
                         Maximum workable one-way commute recorded: {submittedCommuteMinutes}{' '}
                         minutes.
+                      </p>
+                    )}
+                    {submittedWorkplaceArea && (
+                      <p className="mb-0">
+                        Likely workplace area recorded: {submittedWorkplaceArea}.
                       </p>
                     )}
                   </Alert>
@@ -218,6 +232,41 @@ function App() {
                           variant="outline-success"
                         >
                           Use this commute limit
+                        </Button>
+                      </Form>
+                    )}
+                  {requiresCommuteLimit(submittedWorkArrangement) &&
+                    submittedCommuteMinutes !== null &&
+                    submittedWorkplaceArea === null && (
+                      <Form
+                        className="recommendation-action mt-4 pt-4"
+                        onSubmit={(event) => {
+                          event.preventDefault()
+                          if (workplaceAreaDraftIsValid) {
+                            setSubmittedWorkplaceArea(trimmedWorkplaceArea)
+                          }
+                        }}
+                      >
+                        <Form.Label htmlFor="likely-workplace-area">
+                          What area is your spouse most likely to work in?
+                        </Form.Label>
+                        <Form.Control
+                          className="mb-3"
+                          id="likely-workplace-area"
+                          maxLength={LIKELY_WORKPLACE_AREA_MAX_LENGTH}
+                          onChange={(event) => {
+                            setDraftWorkplaceArea(event.target.value)
+                          }}
+                          placeholder="San Jose or the surrounding area"
+                          type="text"
+                          value={draftWorkplaceArea}
+                        />
+                        <Button
+                          disabled={!workplaceAreaDraftIsValid}
+                          type="submit"
+                          variant="outline-success"
+                        >
+                          Use this workplace area
                         </Button>
                       </Form>
                     )}

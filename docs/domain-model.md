@@ -199,6 +199,23 @@ remains an unconfirmed Assumption. Like work arrangement, the commute limit is
 narrowly scoped in-memory relocation state rather than an expansion of the
 generic `Constraint` model.
 
+After a hybrid or on-site arrangement and commute boundary are known, the proof
+may record `likely_workplace_area`. This is trimmed, bounded free-form text
+supplied by the user. It may describe a city, neighborhood, employment
+corridor, or approximate region.
+
+The field is opaque planning context. It is not a confirmed employer location,
+verified workplace, normalized city, geocoded place, or generic location
+entity. Its presence does not validate the suitable-employment Assumption. It
+only gives the engine enough context to recommend gathering credible
+travel-time evidence oriented toward that area.
+
+The field is valid only for hybrid or on-site work with an acceptable commute
+limit. Candidate origins, route evidence, typical traffic conditions, and
+travel mode remain unresolved; hybrid frequency also remains unresolved for
+hybrid work. No route is calculated and no candidate location is scored or
+classified as passing or failing.
+
 
 # SuccessCriterion
 
