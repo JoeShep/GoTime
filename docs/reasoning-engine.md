@@ -736,3 +736,43 @@ Operational Reasoning
 GoTime needs both.
 
 ## Future Ideas
+
+## AI Boundary
+
+AI extends the reasoning engine but does not replace its deterministic core.
+
+The deterministic engine remains responsible for:
+
+* Trusted state
+* Constraints
+* Dependencies
+* Sequencing
+* Date calculations
+* Decision readiness
+* Known rules
+* State validation
+
+AI may assist with:
+
+* Interpreting ambiguous input
+* Suggesting missing questions
+* Applying grounded domain knowledge
+* Synthesizing current research
+* Explaining tradeoffs
+
+AI-generated output remains a suggestion or evidence summary until the user confirms any new information that should enter trusted state.
+
+AI and live research should be invoked selectively, measured for cost, and designed with a safe deterministic fallback.
+
+Stable knowledge should normally enter through curated, versioned sources.
+Live research should be reserved for questions where freshness materially
+affects the Recommendation, and useful evidence should be reused while it
+remains current.
+
+Each AI-assisted operation must be a named capability with bounded inputs and
+outputs, measurable cost, and testable failure behavior. Less expensive models
+are the default when they can perform the capability reliably. The MVP does not
+run autonomous background AI.
+
+See `docs/cost-and-operations.md` for the complete cost, research, model, and
+hosting guardrails.

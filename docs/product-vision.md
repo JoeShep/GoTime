@@ -49,11 +49,24 @@ The initial technology stack includes:
 
 Additional technologies will be introduced only when they solve a real problem.
 
+## Operating Principle
+
+GoTime should remain inexpensive and operationally simple. Deterministic
+reasoning comes first; curated knowledge is preferred over live research, and
+AI is used only for selective, named capabilities with grounded, testable
+outputs and deterministic fallback behavior.
+
+For early family and tester use, the product should target approximately
+$25–$50 per month or less, operate within a configurable monthly spending
+ceiling, and remain deployable on small, maintainable infrastructure. See
+`docs/cost-and-operations.md` for the complete guardrails.
+
 ## Documentation
 
 * `docs/adr/` - Architecture Decision Records documenting significant technical decisions.
 * `docs/product-vision.md` - The long-term vision for GoTime.
 * `docs/reasoning-engine.md` - Defines how GoTime thinks
+* `docs/cost-and-operations.md` - Defines cost and operational guardrails.
 * `docs/capability-roadmap.md` - Defines what the reasoning engine can be expected to do, and where the dividing lines are between the AI and the app (For lack of a better way to put it)
 
 Vision tells us why.

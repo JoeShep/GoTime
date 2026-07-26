@@ -81,3 +81,21 @@ Work is considered complete when:
 * [ ] Write an ADR if a major decision was made.
 * [ ] Commit all completed work.
 * [ ] Verify the project still builds and runs.
+
+## Cost and Operational Discipline
+
+Before proposing or implementing a capability:
+
+* Prefer deterministic logic when it can solve the problem reliably.
+* Use AI only for a named, high-value capability.
+* Prefer curated domain knowledge over live research when freshness is not required.
+* Use live research only when current information materially affects the result.
+* Avoid AI calls during routine rendering, validation, or simple state transitions.
+* Keep prompts and responses bounded.
+* Reuse or cache external research when appropriate.
+* Do not add autonomous background AI to the MVP.
+* Preserve a deterministic fallback when AI is unavailable.
+* Consider expected hosting, model, research, and third-party API costs.
+* Keep early family and tester usage within the project's cost target and hard spending ceiling.
+
+See `docs/cost-and-operations.md`.
