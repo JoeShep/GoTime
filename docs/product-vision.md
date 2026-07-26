@@ -66,6 +66,7 @@ ceiling, and remain deployable on small, maintainable infrastructure. See
 * `docs/adr/` - Architecture Decision Records documenting significant technical decisions.
 * `docs/product-vision.md` - The long-term vision for GoTime.
 * `docs/reasoning-engine.md` - Defines how GoTime thinks
+* `docs/ai-assisted-reasoning.md` - Defines bounded AI capabilities and their relationship to deterministic reasoning.
 * `docs/cost-and-operations.md` - Defines cost and operational guardrails.
 * `docs/capability-roadmap.md` - Defines what the reasoning engine can be expected to do, and where the dividing lines are between the AI and the app (For lack of a better way to put it)
 
