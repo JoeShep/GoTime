@@ -1,0 +1,53 @@
+{
+  "baseline_version": "moving-service-baseline-v1",
+  "status": "draft",
+  "decision_id": "moving-service-model",
+  "supported_move_types": ["interstate"],
+  "questions": [
+    {
+      "question_id": "moving-service-question.special-handling.v1",
+      "priority": 10,
+      "information_category": "special_handling_needs",
+      "question": "Are there any specialty items or handling needs that a moving service would need to accommodate?",
+      "deterministic_rationale": "This would clarify whether specialty-handling requirements must be considered when comparing moving-service models.",
+      "relevant_knowledge_ids": ["moving-service.full-service-carrier.v1"],
+      "relevant_claim_ids": ["moving-service.full-service-carrier.v1.special-handling"]
+    },
+    {
+      "question_id": "moving-service-question.temporary-storage.v1",
+      "priority": 20,
+      "information_category": "temporary_storage_need",
+      "question": "Will you need temporary storage between leaving your current home and settling into the new one?",
+      "deterministic_rationale": "This would clarify whether temporary storage needs must be considered when comparing moving-service models.",
+      "relevant_knowledge_ids": ["moving-service.full-service-carrier.v1", "moving-service.portable-container.v1"],
+      "relevant_claim_ids": ["moving-service.full-service-carrier.v1.storage-relevance", "moving-service.portable-container.v1.storage-relevance"]
+    },
+    {
+      "question_id": "moving-service-question.rental-truck-driving.v1",
+      "priority": 30,
+      "information_category": "willing_to_drive_rental_truck",
+      "question": "Would someone in your household be willing to drive a rental truck for the move?",
+      "deterministic_rationale": "This would clarify whether a service model that depends on household driving should remain under consideration.",
+      "relevant_knowledge_ids": ["moving-service.rental-truck.v1"],
+      "relevant_claim_ids": ["moving-service.rental-truck.v1.customer-driving"]
+    },
+    {
+      "question_id": "moving-service-question.packing-preference.v1",
+      "priority": 40,
+      "information_category": "packing_preference",
+      "question": "How much of the packing would you prefer the moving service to handle?",
+      "deterministic_rationale": "This would clarify which packing responsibilities matter when comparing moving-service models.",
+      "relevant_knowledge_ids": ["moving-service.full-service-carrier.v1", "moving-service.portable-container.v1", "moving-service.rental-truck.v1"],
+      "relevant_claim_ids": ["moving-service.full-service-carrier.v1.packing-responsibilities", "moving-service.portable-container.v1.packing-and-labor", "moving-service.rental-truck.v1.packing-and-labor"]
+    },
+    {
+      "question_id": "moving-service-question.cost-convenience.v1",
+      "priority": 50,
+      "information_category": "cost_vs_convenience_preference",
+      "question": "For this move, how would you balance lower cost against having less work to do yourself?",
+      "deterministic_rationale": "This would clarify the cost-versus-convenience preference to apply when comparing moving-service models.",
+      "relevant_knowledge_ids": ["moving-service.full-service-carrier.v1", "moving-service.rental-truck.v1"],
+      "relevant_claim_ids": ["moving-service.full-service-carrier.v1.cost-convenience", "moving-service.rental-truck.v1.cost-convenience"]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "experiment": "suggest_moving_service_questions",
+  "artifact_version": "1.0.0",
+  "knowledge_version": "moving-service-knowledge-v1",
+  "baseline_version": "moving-service-baseline-v1",
+  "scenario_version": "moving-service-scenarios-v1",
+  "expectations_version": "moving-service-expectations-v1",
+  "status": "draft",
+  "ai_evaluation_eligible": false
+}

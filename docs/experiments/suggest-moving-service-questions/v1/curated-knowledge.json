@@ -1,0 +1,293 @@
+{
+  "fixture_version": "moving-service-knowledge-v1",
+  "status": "draft",
+  "reviewed_at": null,
+  "sources": [],
+  "items": [
+    {
+      "knowledge_id": "moving-service.full-service-carrier.v1",
+      "service_model": "full_service_interstate_carrier",
+      "description": null,
+      "relevant_circumstances": [],
+      "typical_tradeoffs": [],
+      "information_needed_to_evaluate_fit": [],
+      "claims": [
+        {
+          "claim_id": "moving-service.full-service-carrier.v1.definition",
+          "target_field": "description",
+          "claim_requirement": "Establish a bounded, sourced definition of a full-service interstate carrier.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.full-service-carrier.v1.packing-responsibilities",
+          "target_field": "relevant_circumstances",
+          "claim_requirement": "Establish which packing responsibilities may be offered by the service or retained by the customer.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.full-service-carrier.v1.storage-relevance",
+          "target_field": "relevant_circumstances",
+          "claim_requirement": "Establish whether and how a temporary storage need can be relevant when evaluating this model.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.full-service-carrier.v1.special-handling",
+          "target_field": "information_needed_to_evaluate_fit",
+          "claim_requirement": "Establish why specialty-item handling requirements may need clarification before evaluating this model.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.full-service-carrier.v1.cost-convenience",
+          "target_field": "typical_tradeoffs",
+          "claim_requirement": "Establish any supportable cost-versus-convenience considerations without using current pricing.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        }
+      ],
+      "reviewed_at": null,
+      "freshness_guidance": null,
+      "version": "1.0.0"
+    },
+    {
+      "knowledge_id": "moving-service.broker.v1",
+      "service_model": "moving_broker",
+      "description": null,
+      "relevant_circumstances": [],
+      "typical_tradeoffs": [],
+      "information_needed_to_evaluate_fit": [],
+      "claims": [
+        {
+          "claim_id": "moving-service.broker.v1.definition",
+          "target_field": "description",
+          "claim_requirement": "Establish a bounded, sourced definition of a moving broker and its role.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.broker.v1.relationships",
+          "target_field": "relevant_circumstances",
+          "claim_requirement": "Establish how the broker role relates to the entity performing transportation.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.broker.v1.fit-information",
+          "target_field": "information_needed_to_evaluate_fit",
+          "claim_requirement": "Establish what user information is needed to evaluate whether an intermediary service relationship is acceptable.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        }
+      ],
+      "reviewed_at": null,
+      "freshness_guidance": null,
+      "version": "1.0.0"
+    },
+    {
+      "knowledge_id": "moving-service.portable-container.v1",
+      "service_model": "portable_storage_container",
+      "description": null,
+      "relevant_circumstances": [],
+      "typical_tradeoffs": [],
+      "information_needed_to_evaluate_fit": [],
+      "claims": [
+        {
+          "claim_id": "moving-service.portable-container.v1.definition",
+          "target_field": "description",
+          "claim_requirement": "Establish a bounded, sourced definition of a portable storage container service.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.portable-container.v1.responsibilities",
+          "target_field": "relevant_circumstances",
+          "claim_requirement": "Establish how transportation, loading, unloading, and storage responsibilities are generally allocated.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.portable-container.v1.storage-relevance",
+          "target_field": "information_needed_to_evaluate_fit",
+          "claim_requirement": "Establish why temporary storage needs may be relevant when evaluating this model.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.portable-container.v1.packing-and-labor",
+          "target_field": "typical_tradeoffs",
+          "claim_requirement": "Establish any supportable considerations involving packing preference and household labor.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        }
+      ],
+      "reviewed_at": null,
+      "freshness_guidance": null,
+      "version": "1.0.0"
+    },
+    {
+      "knowledge_id": "moving-service.rental-truck.v1",
+      "service_model": "rental_truck",
+      "description": null,
+      "relevant_circumstances": [],
+      "typical_tradeoffs": [],
+      "information_needed_to_evaluate_fit": [],
+      "claims": [
+        {
+          "claim_id": "moving-service.rental-truck.v1.definition",
+          "target_field": "description",
+          "claim_requirement": "Establish a bounded, sourced definition of a rental-truck moving model.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.rental-truck.v1.customer-driving",
+          "target_field": "relevant_circumstances",
+          "claim_requirement": "Establish how willingness and ability to drive affect evaluation of this model.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.rental-truck.v1.packing-and-labor",
+          "target_field": "information_needed_to_evaluate_fit",
+          "claim_requirement": "Establish which packing, loading, and unloading responsibilities need clarification.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.rental-truck.v1.cost-convenience",
+          "target_field": "typical_tradeoffs",
+          "claim_requirement": "Establish any supportable cost-versus-convenience considerations without using current pricing.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        }
+      ],
+      "reviewed_at": null,
+      "freshness_guidance": null,
+      "version": "1.0.0"
+    },
+    {
+      "knowledge_id": "moving-service.freight-trailer.v1",
+      "service_model": "freight_or_trailer_service",
+      "description": null,
+      "relevant_circumstances": [],
+      "typical_tradeoffs": [],
+      "information_needed_to_evaluate_fit": [],
+      "claims": [
+        {
+          "claim_id": "moving-service.freight-trailer.v1.definition",
+          "target_field": "description",
+          "claim_requirement": "Establish a bounded, sourced definition of a freight or trailer moving service.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.freight-trailer.v1.responsibilities",
+          "target_field": "relevant_circumstances",
+          "claim_requirement": "Establish how transportation and household labor responsibilities are generally allocated.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.freight-trailer.v1.fit-information",
+          "target_field": "information_needed_to_evaluate_fit",
+          "claim_requirement": "Establish which shipment, packing, loading, or storage information may be needed to evaluate fit.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        }
+      ],
+      "reviewed_at": null,
+      "freshness_guidance": null,
+      "version": "1.0.0"
+    },
+    {
+      "knowledge_id": "moving-service.labor-only.v1",
+      "service_model": "labor_only_assistance",
+      "description": null,
+      "relevant_circumstances": [],
+      "typical_tradeoffs": [],
+      "information_needed_to_evaluate_fit": [],
+      "claims": [
+        {
+          "claim_id": "moving-service.labor-only.v1.definition",
+          "target_field": "description",
+          "claim_requirement": "Establish a bounded, sourced definition of labor-only moving assistance.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.labor-only.v1.activities",
+          "target_field": "relevant_circumstances",
+          "claim_requirement": "Establish which moving activities labor-only assistance may perform.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.labor-only.v1.transportation-boundary",
+          "target_field": "typical_tradeoffs",
+          "claim_requirement": "Establish which transportation responsibilities this service does not resolve by itself.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        },
+        {
+          "claim_id": "moving-service.labor-only.v1.fit-information",
+          "target_field": "information_needed_to_evaluate_fit",
+          "claim_requirement": "Establish how packing, loading, specialty handling, and self-drive context may affect evaluation.",
+          "statement": null,
+          "verification_status": "unverified",
+          "source_ids": [],
+          "review_notes": null
+        }
+      ],
+      "reviewed_at": null,
+      "freshness_guidance": null,
+      "version": "1.0.0"
+    }
+  ]
+}
