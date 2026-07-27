@@ -424,6 +424,9 @@ suggest_moving_service_questions
 
 It validates **AI Capability A — State Discovery Assistance**.
 
+The detailed experiment contract is defined in
+`docs/experiments/suggest-moving-service-questions.md`.
+
 ### Purpose
 
 Given trusted relocation state and a small curated moving-service guide,
