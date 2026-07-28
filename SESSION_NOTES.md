@@ -681,3 +681,57 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   separate bounded slice before considering real-model evaluation.
 - Do not introduce a real model until curated statements have approved sources
   and the fake-adapter contract has passed review.
+
+---
+
+## Session 15 -- V1 Moving-Service Artifact Reconciliation
+
+### Completed
+
+- Replaced the legacy nested-claim knowledge artifact with the exact runtime
+  storage implementation fixture.
+- Replaced the legacy fallback order, names, and claim references with the
+  exact runtime fallback questions and missing-information contracts.
+- Replaced legacy scenarios with `storage_unknown`, `complete`, and a
+  contract-only multiple-gap fixture.
+- Added valid, zero-suggestion, and deliberately invalid response fixtures for
+  runtime schema and semantic validation.
+- Replaced legacy expected themes with exact execution, fallback, and bounded
+  observability expectations.
+- Added separate manifest readiness fields and explicit ineligibility reasons.
+- Rewrote the artifact evaluator to use runtime Pydantic models, request
+  construction, response validation, fallback selection, and orchestration.
+- Added backend anti-drift tests covering artifact compatibility and production
+  independence from documentation files.
+- Corrected experiment-document differences involving runtime state statuses,
+  knowledge scope, duplicate detection, and real-model knowledge readiness.
+
+### Boundaries
+
+- The artifact package is contract-test eligible.
+- The artifact package is not real-model-evaluation eligible.
+- No moving-industry source research was performed.
+- The storage statement remains an implementation fixture without an approved
+  grounding source.
+- Production code does not load the artifacts from `docs/`.
+- No real model, SDK, credential, live research, vector infrastructure,
+  persistence, provider abstraction, or external telemetry was introduced.
+
+### Verification
+
+- Artifact compatibility tests: 12 passed.
+- Backend tests: 89 passed.
+- Frontend tests: 17 passed.
+- Frontend production build: passed.
+- Backend Python compilation: passed.
+- Docker Compose rebuilt successfully; backend health and frontend startup
+  passed.
+- All seven fake-adapter experiment paths returned HTTP 200 through the
+  frontend proxy.
+- Whitespace validation with `git diff --check`: passed.
+
+### Next
+
+- Review and approve the reconciled artifact package.
+- If approved, plan a separate curated-knowledge review slice before any
+  real-model evaluation work.

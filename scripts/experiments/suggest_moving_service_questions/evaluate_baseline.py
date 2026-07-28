@@ -1,16 +1,47 @@
 #!/usr/bin/env python3
-"""Validate and evaluate the fixed deterministic experiment baseline."""
+"""Validate v1 artifacts against the runtime experiment contracts."""
+
+from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-STATUSES = {"known", "unknown", "not_applicable", "not_supplied"}
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+BACKEND_ROOT = REPOSITORY_ROOT / "backend"
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
+
+from app.moving_service_questions import (  # noqa: E402
+    ANSWER_TYPES,
+    CAPABILITY,
+    FALLBACK_QUESTIONS,
+    FALLBACK_VERSION,
+    KNOWLEDGE_VERSION,
+    PROMPT_VERSION,
+    SCHEMA_VERSION,
+    STORAGE_KNOWLEDGE,
+    CuratedKnowledgeItem,
+    ExperimentFixture,
+    FallbackQuestion,
+    MissingInformationCategory,
+    MissingInformationItem,
+    MovingServiceQuestionRequest,
+    MovingServiceTrustedState,
+    ResponseValidationError,
+    construct_request,
+    run_experiment,
+    select_fallback,
+    validate_response,
+)
+
 FILES = {
     "manifest": "manifest.json",
     "knowledge": "curated-knowledge.json",
     "baseline": "deterministic-baseline.json",
     "scenarios": "scenarios.json",
+    "responses": "response-fixtures.json",
     "expected": "expected-results.json",
 }
 
@@ -19,256 +50,397 @@ class ArtifactValidationError(ValueError):
     pass
 
 
-def _fail(message):
+def _fail(message: str) -> None:
     raise ArtifactValidationError(message)
 
 
-def _require(obj, fields, context):
-    if not isinstance(obj, dict):
+def _require(document: object, fields: tuple[str, ...], context: str) -> dict:
+    if not isinstance(document, dict):
         _fail(f"{context}: must be an object")
-    missing = [field for field in fields if field not in obj]
+    missing = [field for field in fields if field not in document]
     if missing:
         _fail(f"{context}: missing required fields: {', '.join(missing)}")
+    return document
 
 
-def _expect(value, expected_type, context):
-    if not isinstance(value, expected_type):
-        _fail(f"{context}: expected {expected_type.__name__}")
+def default_artifact_dir() -> Path:
+    return (
+        REPOSITORY_ROOT
+        / "docs/experiments/suggest-moving-service-questions/v1"
+    )
 
 
-def default_artifact_dir():
-    return Path(__file__).resolve().parents[3] / "docs/experiments/suggest-moving-service-questions/v1"
-
-
-def load_artifacts(directory=None):
+def load_artifacts(directory: Path | None = None) -> dict[str, dict]:
     root = Path(directory or default_artifact_dir())
-    return {name: json.loads((root / filename).read_text()) for name, filename in FILES.items()}
-
-
-def validate_artifacts(artifacts):
-    manifest = artifacts["manifest"]
-    knowledge = artifacts["knowledge"]
-    baseline = artifacts["baseline"]
-    scenarios_doc = artifacts["scenarios"]
-    expected_doc = artifacts["expected"]
-    _require(manifest, ["experiment", "artifact_version", "knowledge_version", "baseline_version",
-                        "scenario_version", "expectations_version", "status",
-                        "ai_evaluation_eligible"], "manifest")
-    if manifest["experiment"] != "suggest_moving_service_questions":
-        _fail("manifest: unexpected experiment")
-    if manifest["status"] not in {"draft", "frozen"}:
-        _fail("manifest: status must be draft or frozen")
-    _expect(manifest["ai_evaluation_eligible"], bool, "manifest ai_evaluation_eligible")
-    if manifest["status"] == "draft" and manifest["ai_evaluation_eligible"] is not False:
-        _fail("manifest: draft artifacts cannot be AI-evaluation eligible")
-    versions = [
-        ("knowledge", "fixture_version", "knowledge_version"),
-        ("baseline", "baseline_version", "baseline_version"),
-        ("scenarios", "scenario_version", "scenario_version"),
-        ("expected", "expectations_version", "expectations_version"),
-    ]
-    for artifact_name, field, manifest_field in versions:
-        if artifacts[artifact_name].get(field) != manifest[manifest_field]:
-            _fail(f"{artifact_name}: version is incompatible with manifest")
-
-    _require(knowledge, ["fixture_version", "status", "reviewed_at", "sources", "items"], "knowledge")
-    _expect(knowledge["sources"], list, "knowledge sources")
-    _expect(knowledge["items"], list, "knowledge items")
-    knowledge_ids, claim_ids = set(), set()
-    source_ids = {source.get("source_id") for source in knowledge["sources"]}
-    for item in knowledge["items"]:
-        _require(item, ["knowledge_id", "service_model", "description", "relevant_circumstances",
-                        "typical_tradeoffs", "information_needed_to_evaluate_fit", "claims",
-                        "reviewed_at", "freshness_guidance", "version"], "knowledge item")
-        kid = item["knowledge_id"]
-        _expect(kid, str, "knowledge_id")
-        for field in ("relevant_circumstances", "typical_tradeoffs",
-                      "information_needed_to_evaluate_fit", "claims"):
-            _expect(item[field], list, f"knowledge item {kid} {field}")
-        if kid in knowledge_ids:
-            _fail(f"knowledge: duplicate knowledge_id {kid}")
-        knowledge_ids.add(kid)
-        for claim in item["claims"]:
-            _require(claim, ["claim_id", "target_field", "claim_requirement", "statement",
-                             "verification_status", "source_ids", "review_notes"], f"claim in {kid}")
-            cid = claim["claim_id"]
-            _expect(cid, str, f"claim in {kid} claim_id")
-            _expect(claim["source_ids"], list, f"claim {cid} source_ids")
-            if cid in claim_ids:
-                _fail(f"knowledge: duplicate claim_id {cid}")
-            claim_ids.add(cid)
-            if claim["verification_status"] not in {"unverified", "verified"}:
-                _fail(f"claim {cid}: invalid verification_status")
-            if not set(claim["source_ids"]).issubset(source_ids):
-                _fail(f"claim {cid}: unknown source reference")
-            if claim["verification_status"] == "verified" and (
-                    not claim["statement"] or not claim["source_ids"]):
-                _fail(f"claim {cid}: verified claims require a statement and source")
-
-    _require(baseline, ["baseline_version", "status", "decision_id",
-                        "supported_move_types", "questions"], "baseline")
-    _expect(baseline["supported_move_types"], list, "baseline supported_move_types")
-    _expect(baseline["questions"], list, "baseline questions")
-    question_ids, question_categories, questions_by_id = set(), set(), {}
-    priorities = set()
-    for question in baseline["questions"]:
-        _require(question, ["question_id", "priority", "information_category", "question",
-                            "deterministic_rationale", "relevant_knowledge_ids",
-                            "relevant_claim_ids"], "baseline question")
-        qid = question["question_id"]
-        _expect(question["priority"], int, f"question {qid} priority")
-        for field in ("relevant_knowledge_ids", "relevant_claim_ids"):
-            _expect(question[field], list, f"question {qid} {field}")
-        if qid in question_ids or question["priority"] in priorities:
-            _fail("baseline: question IDs and priorities must be unique")
-        question_ids.add(qid)
-        questions_by_id[qid] = question
-        priorities.add(question["priority"])
-        question_categories.add(question["information_category"])
-        if not set(question["relevant_knowledge_ids"]).issubset(knowledge_ids):
-            _fail(f"question {qid}: unknown knowledge reference")
-        if not set(question["relevant_claim_ids"]).issubset(claim_ids):
-            _fail(f"question {qid}: unknown claim reference")
-
-    _require(scenarios_doc, ["scenario_version", "status", "information_categories",
-                             "scenarios"], "scenarios")
-    _expect(scenarios_doc["information_categories"], list, "scenario information_categories")
-    _expect(scenarios_doc["scenarios"], list, "scenarios")
-    categories = set(scenarios_doc["information_categories"])
-    if not question_categories.issubset(categories):
-        _fail("scenarios: baseline question category is not declared")
-    scenario_ids = set()
-    for scenario in scenarios_doc["scenarios"]:
-        _require(scenario, ["scenario_id", "label", "trusted_state", "missing_information",
-                            "inapplicable_information", "prohibited_question_categories",
-                            "known_constraints", "open_decision", "existing_recommendation",
-                            "curated_knowledge_ids"], "scenario")
-        sid = scenario["scenario_id"]
-        _expect(scenario["trusted_state"], dict, f"scenario {sid} trusted_state")
-        for field in ("missing_information", "inapplicable_information",
-                      "prohibited_question_categories", "known_constraints",
-                      "curated_knowledge_ids"):
-            _expect(scenario[field], list, f"scenario {sid} {field}")
-        if sid in scenario_ids:
-            _fail(f"scenarios: duplicate scenario_id {sid}")
-        scenario_ids.add(sid)
-        state = scenario["trusted_state"]
-        for field, entry in state.items():
-            _require(entry, ["status"], f"scenario {sid} state {field}")
-            status = entry["status"]
-            if status not in STATUSES:
-                _fail(f"scenario {sid} state {field}: invalid status")
-            if status == "known" and ("value" not in entry or entry["value"] is None):
-                _fail(f"scenario {sid} state {field}: known requires a value")
-            if status != "known" and "value" in entry:
-                _fail(f"scenario {sid} state {field}: only known may contain a value")
-        missing = set(scenario["missing_information"])
-        inapplicable = set(scenario["inapplicable_information"])
-        prohibited = set(scenario["prohibited_question_categories"])
-        if not (missing | inapplicable | prohibited).issubset(categories):
-            _fail(f"scenario {sid}: unknown information category reference")
-        if missing & inapplicable:
-            _fail(f"scenario {sid}: information cannot be both missing and inapplicable")
-        for category in categories & set(state):
-            status = state[category]["status"]
-            if (category in missing) != (status == "unknown"):
-                _fail(f"scenario {sid}: missing_information contradicts {category} status")
-            if (category in inapplicable) != (status == "not_applicable"):
-                _fail(f"scenario {sid}: inapplicable_information contradicts {category} status")
-        if missing & prohibited:
-            _fail(f"scenario {sid}: a missing category cannot also be prohibited")
-        if scenario["open_decision"] != {"decision_id": baseline["decision_id"], "status": "unresolved"}:
-            _fail(f"scenario {sid}: open decision is incompatible with baseline")
-        if not set(scenario["curated_knowledge_ids"]).issubset(knowledge_ids):
-            _fail(f"scenario {sid}: unknown knowledge reference")
-
-    _require(expected_doc, ["expectations_version", "status", "results"], "expected results")
-    _expect(expected_doc["results"], list, "expected results")
-    expected_ids = set()
-    for result in expected_doc["results"]:
-        _require(result, ["scenario_id", "expected_question_id", "expected_information_category",
-                          "acceptable_question_themes", "zero_suggestions_allowed"],
-                 "expected result")
-        sid = result["scenario_id"]
-        _expect(result["acceptable_question_themes"], list,
-                f"expected result {sid} acceptable_question_themes")
-        _expect(result["zero_suggestions_allowed"], bool,
-                f"expected result {sid} zero_suggestions_allowed")
-        expected_ids.add(sid)
-        if sid not in scenario_ids:
-            _fail(f"expected result: unknown scenario {sid}")
-        qid = result["expected_question_id"]
-        if qid is not None and qid not in question_ids:
-            _fail(f"expected result {sid}: unknown question reference")
-        if (qid is None) != (result["expected_information_category"] is None):
-            _fail(f"expected result {sid}: question and category must both be set or null")
-        if qid is not None and (
-                questions_by_id[qid]["information_category"]
-                != result["expected_information_category"]):
-            _fail(f"expected result {sid}: question category is inconsistent")
-    if expected_ids != scenario_ids or len(expected_ids) != len(expected_doc["results"]):
-        _fail("expected results: must contain exactly one result per scenario")
-    return artifacts
-
-
-def evaluate_scenario(artifacts, scenario_id):
-    validate_artifacts(artifacts)
-    manifest, baseline = artifacts["manifest"], artifacts["baseline"]
-    scenario = next((item for item in artifacts["scenarios"]["scenarios"]
-                     if item["scenario_id"] == scenario_id), None)
-    if scenario is None:
-        _fail(f"unknown scenario {scenario_id}")
-    known = {field: entry["value"] for field, entry in scenario["trusted_state"].items()
-             if entry["status"] == "known"}
-    available = set(scenario["curated_knowledge_ids"])
-    candidates = [
-        question for question in baseline["questions"]
-        if question["information_category"] in scenario["missing_information"]
-        and question["information_category"] not in scenario["inapplicable_information"]
-        and question["information_category"] not in scenario["prohibited_question_categories"]
-        and set(question["relevant_knowledge_ids"]).issubset(available)
-    ]
-    selected = min(candidates, key=lambda item: item["priority"]) if candidates else None
     return {
-        "scenario_id": scenario_id,
-        "artifact_status": manifest["status"],
-        "ai_evaluation_eligible": manifest["ai_evaluation_eligible"],
-        "baseline_version": baseline["baseline_version"],
-        "contextual_known_facts": known,
-        "question": None if selected is None else {
-            key: selected[key] for key in
-            ("question_id", "information_category", "question", "deterministic_rationale",
-             "relevant_knowledge_ids", "relevant_claim_ids")
-        },
-        "no_question_reason": None if selected else
-            "No applicable checklist question is grounded by the supplied knowledge."
+        name: json.loads((root / filename).read_text())
+        for name, filename in FILES.items()
     }
 
 
-def evaluate_all(artifacts):
-    results = [evaluate_scenario(artifacts, scenario["scenario_id"])
-               for scenario in artifacts["scenarios"]["scenarios"]]
-    expected = {item["scenario_id"]: item for item in artifacts["expected"]["results"]}
-    for result in results:
-        actual = result["question"]
-        specification = expected[result["scenario_id"]]
-        actual_id = actual["question_id"] if actual else None
-        actual_category = actual["information_category"] if actual else None
-        if actual_id != specification["expected_question_id"] or (
-                actual_category != specification["expected_information_category"]):
-            _fail(f"scenario {result['scenario_id']}: result does not match expectation")
+def _validate_readiness(
+    manifest: dict, value_field: str, reasons_field: str
+) -> None:
+    value = manifest[value_field]
+    reasons = manifest[reasons_field]
+    if not isinstance(value, bool):
+        _fail(f"manifest: {value_field} must be boolean")
+    if not isinstance(reasons, list) or not all(
+        isinstance(reason, str) and reason.strip() for reason in reasons
+    ):
+        _fail(f"manifest: {reasons_field} must contain nonblank strings")
+    if value and reasons:
+        _fail(f"manifest: {reasons_field} must be empty when eligible")
+    if not value and not reasons:
+        _fail(f"manifest: {reasons_field} is required when ineligible")
+
+
+def _validate_manifest(artifacts: dict[str, dict]) -> None:
+    manifest = _require(
+        artifacts["manifest"],
+        (
+            "capability",
+            "artifact_version",
+            "prompt_version",
+            "schema_version",
+            "knowledge_fixture_version",
+            "fallback_version",
+            "scenario_version",
+            "response_fixture_version",
+            "expectations_version",
+            "status",
+            "contract_test_eligible",
+            "contract_test_ineligibility_reasons",
+            "real_model_evaluation_eligible",
+            "real_model_ineligibility_reasons",
+        ),
+        "manifest",
+    )
+    if manifest["capability"] != CAPABILITY:
+        _fail("manifest: capability does not match runtime")
+    runtime_versions = {
+        "prompt_version": PROMPT_VERSION,
+        "schema_version": SCHEMA_VERSION,
+        "knowledge_fixture_version": KNOWLEDGE_VERSION,
+        "fallback_version": FALLBACK_VERSION,
+    }
+    for field, runtime_value in runtime_versions.items():
+        if manifest[field] != runtime_value:
+            _fail(f"manifest: {field} does not match runtime")
+    artifact_versions = {
+        "scenario_version": artifacts["scenarios"].get("scenario_version"),
+        "response_fixture_version": artifacts["responses"].get(
+            "response_fixture_version"
+        ),
+        "expectations_version": artifacts["expected"].get(
+            "expectations_version"
+        ),
+    }
+    for field, artifact_value in artifact_versions.items():
+        if manifest[field] != artifact_value:
+            _fail(f"manifest: {field} does not match its artifact")
+    _validate_readiness(
+        manifest,
+        "contract_test_eligible",
+        "contract_test_ineligibility_reasons",
+    )
+    _validate_readiness(
+        manifest,
+        "real_model_evaluation_eligible",
+        "real_model_ineligibility_reasons",
+    )
+    if not manifest["contract_test_eligible"]:
+        _fail("manifest: reconciled v1 package must be contract-test eligible")
+    if manifest["real_model_evaluation_eligible"]:
+        _fail("manifest: implementation knowledge is not real-model eligible")
+
+
+def _validate_knowledge(artifacts: dict[str, dict]) -> tuple[CuratedKnowledgeItem, ...]:
+    knowledge = _require(
+        artifacts["knowledge"],
+        (
+            "fixture_version",
+            "status",
+            "valid_for",
+            "real_model_grounding_approved",
+            "limitations",
+            "items",
+        ),
+        "knowledge",
+    )
+    if knowledge["fixture_version"] != KNOWLEDGE_VERSION:
+        _fail("knowledge: fixture version does not match runtime")
+    if knowledge["real_model_grounding_approved"] is not False:
+        _fail("knowledge: implementation fixture cannot be real-model approved")
+    if not knowledge["limitations"]:
+        _fail("knowledge: implementation limitations are required")
+    try:
+        items = tuple(
+            CuratedKnowledgeItem.model_validate(item)
+            for item in knowledge["items"]
+        )
+    except ValueError as error:
+        raise ArtifactValidationError(
+            "knowledge: item does not match the runtime contract"
+        ) from error
+    if [item.model_dump(mode="json") for item in items] != [
+        STORAGE_KNOWLEDGE.model_dump(mode="json")
+    ]:
+        _fail("knowledge: items have drifted from the runtime fixture")
+    return items
+
+
+def _runtime_missing_information_contracts() -> list[dict]:
+    contracts = []
+    for category in MissingInformationCategory:
+        answer_type, allowed_values = ANSWER_TYPES[category]
+        contracts.append(
+            MissingInformationItem(
+                category_id=category,
+                state_field=category,
+                answer_type=answer_type,
+                allowed_enum_values=allowed_values,
+                reason_missing=f"{category.value} has not been confirmed.",
+            ).model_dump(mode="json")
+        )
+    return contracts
+
+
+def _validate_baseline(artifacts: dict[str, dict]) -> None:
+    baseline = _require(
+        artifacts["baseline"],
+        (
+            "fallback_version",
+            "status",
+            "missing_information_contracts",
+            "questions",
+        ),
+        "baseline",
+    )
+    if baseline["fallback_version"] != FALLBACK_VERSION:
+        _fail("baseline: fallback version does not match runtime")
+    try:
+        contracts = [
+            MissingInformationItem.model_validate(item)
+            for item in baseline["missing_information_contracts"]
+        ]
+        questions = [
+            FallbackQuestion.model_validate(item)
+            for item in baseline["questions"]
+        ]
+    except ValueError as error:
+        raise ArtifactValidationError(
+            "baseline: data does not match runtime models"
+        ) from error
+    if [item.model_dump(mode="json") for item in contracts] != (
+        _runtime_missing_information_contracts()
+    ):
+        _fail("baseline: missing-information contracts have drifted from runtime")
+    if [item.model_dump(mode="json") for item in questions] != [
+        item.model_dump(mode="json") for item in FALLBACK_QUESTIONS
+    ]:
+        _fail("baseline: fallback questions have drifted from runtime")
+
+
+def _build_scenario_requests(
+    artifacts: dict[str, dict],
+) -> dict[str, MovingServiceQuestionRequest]:
+    scenarios = _require(
+        artifacts["scenarios"],
+        (
+            "scenario_version",
+            "status",
+            "expected_request_fields",
+            "excluded_request_fields",
+            "scenarios",
+        ),
+        "scenarios",
+    )
+    requests: dict[str, MovingServiceQuestionRequest] = {}
+    for scenario in scenarios["scenarios"]:
+        scenario = _require(
+            scenario,
+            (
+                "fixture_id",
+                "purpose",
+                "trusted_state",
+                "expected_missing_categories",
+            ),
+            "scenario",
+        )
+        fixture_id = scenario["fixture_id"]
+        if fixture_id in requests:
+            _fail(f"scenarios: duplicate fixture_id {fixture_id}")
+        try:
+            trusted_state = MovingServiceTrustedState.model_validate(
+                scenario["trusted_state"]
+            )
+            request = construct_request(trusted_state)
+        except ValueError as error:
+            raise ArtifactValidationError(
+                f"scenario {fixture_id}: does not match runtime contracts"
+            ) from error
+        serialized = request.model_dump(mode="json")
+        if set(serialized) != set(scenarios["expected_request_fields"]):
+            _fail(f"scenario {fixture_id}: request fields have drifted")
+        if set(serialized) & set(scenarios["excluded_request_fields"]):
+            _fail(f"scenario {fixture_id}: excluded request field is present")
+        actual_categories = [
+            item.category_id.value for item in request.missing_information
+        ]
+        if actual_categories != scenario["expected_missing_categories"]:
+            _fail(f"scenario {fixture_id}: missing categories do not match")
+        requests[fixture_id] = request
+    return requests
+
+
+def _validate_response_fixtures(
+    artifacts: dict[str, dict],
+    requests: dict[str, MovingServiceQuestionRequest],
+) -> list[dict]:
+    responses = _require(
+        artifacts["responses"],
+        ("response_fixture_version", "status", "cases"),
+        "responses",
+    )
+    results = []
+    fixture_ids: set[str] = set()
+    for case in responses["cases"]:
+        case = _require(
+            case,
+            (
+                "response_fixture_id",
+                "request_fixture_id",
+                "response",
+                "expected_valid",
+                "expected_fallback_question_id",
+                "expected_fallback_reason",
+            ),
+            "response case",
+        )
+        response_fixture_id = case["response_fixture_id"]
+        if response_fixture_id in fixture_ids:
+            _fail(f"responses: duplicate fixture {response_fixture_id}")
+        fixture_ids.add(response_fixture_id)
+        request = requests.get(case["request_fixture_id"])
+        if request is None:
+            _fail(
+                f"response {response_fixture_id}: unknown request fixture"
+            )
+        valid = True
+        try:
+            validate_response(request, case["response"])
+        except ResponseValidationError:
+            valid = False
+        if valid is not case["expected_valid"]:
+            _fail(
+                f"response {response_fixture_id}: validity expectation failed"
+            )
+        fallback = select_fallback(request) if not valid else None
+        fallback_id = fallback.question_id if fallback else None
+        if fallback_id != case["expected_fallback_question_id"]:
+            _fail(
+                f"response {response_fixture_id}: fallback expectation failed"
+            )
+        expected_reason = (
+            "invalid_adapter_response" if not valid and fallback else None
+        )
+        if expected_reason != case["expected_fallback_reason"]:
+            _fail(
+                f"response {response_fixture_id}: fallback reason is inconsistent"
+            )
+        results.append(
+            {
+                "response_fixture_id": response_fixture_id,
+                "valid": valid,
+                "fallback_question_id": fallback_id,
+            }
+        )
     return results
 
 
-def main():
+def _validate_execution_expectations(
+    artifacts: dict[str, dict],
+) -> list[dict]:
+    expected = _require(
+        artifacts["expected"],
+        (
+            "expectations_version",
+            "status",
+            "stable_observability_fields",
+            "excluded_observability_payloads",
+            "execution_cases",
+        ),
+        "expected",
+    )
+    results = []
+    for case in expected["execution_cases"]:
+        fixture = ExperimentFixture(case["fixture_id"])
+        result = run_experiment(fixture)
+        observability = result.observability.model_dump(mode="json")
+        stable_observability = {
+            field: observability[field]
+            for field in expected["stable_observability_fields"]
+        }
+        if set(stable_observability) != set(
+            expected["stable_observability_fields"]
+        ):
+            _fail(f"execution {fixture.value}: observability fields drifted")
+        if set(observability) & set(expected["excluded_observability_payloads"]):
+            _fail(f"execution {fixture.value}: excluded payload was observed")
+        actual = {
+            "expected_source": result.source.value,
+            "expected_question_id": (
+                result.suggestion.question_id if result.suggestion else None
+            ),
+            "expected_schema_valid": result.observability.schema_valid,
+            "expected_fallback_used": result.observability.fallback_used,
+            "expected_fallback_reason": result.observability.fallback_reason,
+            "expected_suggestion_count": result.observability.suggestion_count,
+            "expected_cost": result.observability.estimated_cost,
+        }
+        for field, value in actual.items():
+            if case[field] != value:
+                _fail(
+                    f"execution {fixture.value}: {field} does not match runtime"
+                )
+        results.append(
+            {
+                "fixture_id": fixture.value,
+                "source": result.source.value,
+                "question_id": actual["expected_question_id"],
+                "observability": stable_observability,
+            }
+        )
+    return results
+
+
+def validate_artifacts(artifacts: dict[str, dict]) -> dict[str, object]:
+    """Validate artifact data by passing it through runtime behavior."""
+    _validate_manifest(artifacts)
+    knowledge_items = _validate_knowledge(artifacts)
+    _validate_baseline(artifacts)
+    requests = _build_scenario_requests(artifacts)
+    response_results = _validate_response_fixtures(artifacts, requests)
+    execution_results = _validate_execution_expectations(artifacts)
+    return {
+        "manifest": artifacts["manifest"],
+        "knowledge_item_count": len(knowledge_items),
+        "request_fixtures": {
+            fixture_id: request.model_dump(mode="json")
+            for fixture_id, request in requests.items()
+        },
+        "response_results": response_results,
+        "execution_results": execution_results,
+    }
+
+
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--artifacts", type=Path, default=default_artifact_dir())
-    parser.add_argument("--scenario")
     args = parser.parse_args()
-    artifacts = load_artifacts(args.artifacts)
-    output = (evaluate_scenario(artifacts, args.scenario)
-              if args.scenario else evaluate_all(artifacts))
-    print(json.dumps(output, indent=2, sort_keys=True))
+    result = validate_artifacts(load_artifacts(args.artifacts))
+    print(json.dumps(result, indent=2, sort_keys=True))
 
 
 if __name__ == "__main__":

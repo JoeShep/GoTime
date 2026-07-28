@@ -1,10 +1,19 @@
 {
-  "experiment": "suggest_moving_service_questions",
-  "artifact_version": "1.0.0",
-  "knowledge_version": "moving-service-knowledge-v1",
-  "baseline_version": "moving-service-baseline-v1",
-  "scenario_version": "moving-service-scenarios-v1",
-  "expectations_version": "moving-service-expectations-v1",
-  "status": "draft",
-  "ai_evaluation_eligible": false
+  "capability": "suggest_moving_service_questions",
+  "artifact_version": "1.1.0",
+  "prompt_version": "moving-service-questions-prompt-v1",
+  "schema_version": "moving-service-questions-schema-v1",
+  "knowledge_fixture_version": "moving-service-storage-fixture-v1",
+  "fallback_version": "moving-service-fallback-v1",
+  "scenario_version": "moving-service-scenarios-v1.1",
+  "response_fixture_version": "moving-service-response-fixtures-v1.1",
+  "expectations_version": "moving-service-expectations-v1.1",
+  "status": "contract_test_ready",
+  "contract_test_eligible": true,
+  "contract_test_ineligibility_reasons": [],
+  "real_model_evaluation_eligible": false,
+  "real_model_ineligibility_reasons": [
+    "The storage knowledge statement is an implementation fixture without an approved grounding source.",
+    "The fixture is not evidence that the broader moving-service knowledge set is complete."
+  ]
 }

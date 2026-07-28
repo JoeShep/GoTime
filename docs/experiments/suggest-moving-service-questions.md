@@ -75,6 +75,30 @@ fixture remains explicitly unsuitable for real-model evaluation.
 This slice proves contract enforcement and fallback behavior. It does not prove
 that AI adds product value.
 
+### V1 Artifact Reconciliation Status
+
+The `v1` artifact package is reconciled with the fake-adapter runtime contract
+and is ready for contract testing.
+
+The package provides:
+
+* Versioned trusted-state scenarios.
+* The exact frozen fallback data and missing-information mappings.
+* Valid, zero-suggestion, and deliberately invalid response fixtures.
+* Stable expected execution and observability outcomes.
+* Separate contract-test and real-model readiness metadata.
+* Executable compatibility tests that use the runtime Pydantic models,
+  response validator, fallback selector, and orchestration behavior.
+
+Runtime code remains the schema and behavior authority. Production code does
+not load files from `docs/`; the artifacts are evaluation fixtures and contract
+examples.
+
+The manifest is contract-test eligible and explicitly not real-model-evaluation
+eligible. Its storage statement is an implementation fixture without an
+approved grounding source and does not establish that broader moving-service
+knowledge is complete.
+
 ## 1. Hypothesis
 
 > Given bounded trusted relocation state, explicitly identified missing
@@ -209,6 +233,13 @@ not_applicable
 not_supplied
 ```
 
+The fake-adapter runtime currently uses the narrower executable statuses
+`known`, `missing`, and `not_applicable`. Its target move window records
+`explicitly_unknown` as the bounded value. The broader absence distinctions
+above remain design vocabulary until a later trusted-state slice requires
+them; v1 executable artifacts use the runtime vocabulary rather than mixing
+the two representations.
+
 Absence must not be interpreted as a known negative value. A value omitted
 from the capability request must not be treated as missing information unless
 the deterministic system explicitly includes it in
@@ -254,7 +285,7 @@ The request explicitly excludes:
 The experiment uses a small, reviewed, versioned knowledge fixture rather than
 a general knowledge base.
 
-The minimum fixture represents:
+The broader moving-service knowledge design represents:
 
 1. Full-service interstate carrier.
 2. Moving broker.
@@ -277,9 +308,14 @@ freshness_guidance
 version
 ```
 
-For this question-suggestion experiment, the fixture needs only enough reviewed
-knowledge to establish why the following information may affect which service
-models deserve investigation:
+The fake-adapter contract fixture contains only the storage statement needed
+to prove request, grounding-reference, validation, and fallback behavior. It is
+an implementation fixture, not approved real-model grounding.
+
+The first real-model evaluation fixture needs reviewed knowledge for every
+category included in its approved evaluation scenarios. Broader
+question-suggestion coverage may require knowledge establishing why the
+following information affects which service models deserve investigation:
 
 * Temporary storage need.
 * Packing responsibility.
@@ -287,6 +323,10 @@ models deserve investigation:
 * Willingness to drive a rental truck.
 * Cost-versus-convenience preference.
 * Specialty-item handling.
+
+Completing the six-model set remains required before claiming broad
+moving-service coverage or beginning the later service-model comparison
+experiment. The narrow storage fixture is not evidence that set is complete.
 
 Each statement must be bounded, attributable, and applicable only under its
 documented conditions. A statement must not imply that one service model is
@@ -310,6 +350,23 @@ The draft knowledge fixture is not eligible for a real-model experiment until:
 * Review dates and freshness guidance are populated.
 * The complete fixture is assigned a version.
 * The request references that exact version.
+
+For this experiment, "reviewed enough for real-model evaluation" means every
+included statement:
+
+* Is necessary for a category in the approved evaluation scenarios.
+* Is bounded, conditional, and free of provider selection or ranking.
+* Has an identifiable source reviewed by a person.
+* Records a review date and explicit freshness guidance.
+* Avoids current pricing, availability, booking-window, or other claims that
+  require live research.
+* Validates against the runtime knowledge model and fits within the request
+  budget.
+
+This approval would mean only that the fixture is suitable as grounding for a
+controlled question-suggestion evaluation. It would not establish that the
+knowledge library is complete, suitable for provider selection, approved for
+production, or sufficient for Grounded Domain Guidance.
 
 ## 6. AI Request Contract
 
@@ -491,11 +548,10 @@ Duplicate detection remains intentionally simple in v1:
 2. Normalize question text for case, surrounding whitespace, repeated
    whitespace, and punctuation.
 3. Reject exact normalized duplicates.
-4. Apply a small, deterministic token-overlap or string-similarity threshold
-   for near-exact duplication.
 
 The experiment does not introduce embeddings, vector search, or vector
-infrastructure.
+infrastructure. More advanced near-duplicate detection is deferred until
+real-model output demonstrates a concrete need.
 
 Any validation failure rejects the complete response. GoTime must not partially
 accept, retain, or display individual suggestions from an invalid response.
@@ -975,7 +1031,8 @@ The following decisions remain for a bounded implementation proposal:
 * The prompt, schema, fixture, and baseline version identifiers.
 * The deterministic fallback question wording and fixed priority order.
 * The deterministic rule for selecting one returned suggestion for display.
-* The normalized-text near-duplicate threshold.
+* Whether real-model results demonstrate a need for duplicate detection beyond
+  normalized exact text.
 * The human evaluation scoring threshold.
 * The promotion-ready schema-validity and grounding thresholds.
 * The required number of repeated real-model fixture runs.

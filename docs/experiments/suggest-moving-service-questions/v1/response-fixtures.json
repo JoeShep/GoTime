@@ -1,0 +1,363 @@
+{
+  "response_fixture_version": "moving-service-response-fixtures-v1.1",
+  "status": "contract_test_fixture",
+  "cases": [
+    {
+      "response_fixture_id": "valid_storage_suggestion",
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [
+          {
+            "question_id": "ai-temporary-storage-v1",
+            "question": "Will you need temporary storage between homes?",
+            "why_it_matters": "Storage needs can change which moving-service models are practical to investigate.",
+            "information_it_would_clarify": "Temporary storage need",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "The supplied state marks temporary storage as missing, and moving-service.storage-question.fixture.v1 explains why it matters.",
+            "reason_not_deterministic": "The experiment is testing grounded question prioritization; the deterministic fallback remains available.",
+            "uncertainties": [
+              "The user has not confirmed a storage need."
+            ],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": true,
+      "expected_fallback_question_id": null,
+      "expected_fallback_reason": null
+    },
+    {
+      "response_fixture_id": "valid_zero_suggestions",
+      "request_fixture_id": "complete",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": true,
+      "expected_fallback_question_id": null,
+      "expected_fallback_reason": null
+    },
+    {
+      "response_fixture_id": "invalid_unknown_knowledge",
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [
+          {
+            "question_id": "ai-temporary-storage-v1",
+            "question": "Will you need temporary storage between homes?",
+            "why_it_matters": "Storage needs can change which moving-service models are practical to investigate.",
+            "information_it_would_clarify": "Temporary storage need",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "unknown-knowledge-id"
+            ],
+            "grounding_summary": "This intentionally references knowledge that was not supplied.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": false,
+      "expected_fallback_question_id": "fallback-temporary-storage-v1",
+      "expected_fallback_reason": "invalid_adapter_response"
+    },
+    {
+      "response_fixture_id": "invalid_confirmation_false",
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [
+          {
+            "question_id": "ai-temporary-storage-v1",
+            "question": "Will you need temporary storage between homes?",
+            "why_it_matters": "Storage needs can change which moving-service models are practical to investigate.",
+            "information_it_would_clarify": "Temporary storage need",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "The supplied storage gap grounds the question.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": false
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": false,
+      "expected_fallback_question_id": "fallback-temporary-storage-v1",
+      "expected_fallback_reason": "invalid_adapter_response"
+    },
+    {
+      "response_fixture_id": "invalid_known_category",
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [
+          {
+            "question_id": "ai-driving-v1",
+            "question": "Would someone in your household drive a rental truck?",
+            "why_it_matters": "This intentionally targets information that is already known.",
+            "information_it_would_clarify": "Driving willingness",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "willing_to_drive_rental_truck",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "Contract rejection fixture.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": false,
+      "expected_fallback_question_id": "fallback-temporary-storage-v1",
+      "expected_fallback_reason": "invalid_adapter_response"
+    },
+    {
+      "response_fixture_id": "invalid_duplicate_question_id",
+      "request_fixture_id": "validation_multiple_gaps",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [
+          {
+            "question_id": "duplicate-id",
+            "question": "Will you need temporary storage between homes?",
+            "why_it_matters": "Storage can affect later research.",
+            "information_it_would_clarify": "Temporary storage need",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "The supplied storage gap grounds the question.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          },
+          {
+            "question_id": "duplicate-id",
+            "question": "Are there specialty items that need special handling?",
+            "why_it_matters": "Special handling can affect later research.",
+            "information_it_would_clarify": "Specialty-item needs",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "specialty_item_needs",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "Contract rejection fixture.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": false,
+      "expected_fallback_question_id": "fallback-temporary-storage-v1",
+      "expected_fallback_reason": "invalid_adapter_response"
+    },
+    {
+      "response_fixture_id": "invalid_duplicate_category",
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [
+          {
+            "question_id": "storage-one",
+            "question": "Will you need temporary storage between homes?",
+            "why_it_matters": "Storage can affect later research.",
+            "information_it_would_clarify": "Temporary storage need",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "The supplied storage gap grounds the question.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          },
+          {
+            "question_id": "storage-two",
+            "question": "Is temporary storage part of this move?",
+            "why_it_matters": "Storage can affect later research.",
+            "information_it_would_clarify": "Temporary storage need",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "The supplied storage gap grounds the question.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": false,
+      "expected_fallback_question_id": "fallback-temporary-storage-v1",
+      "expected_fallback_reason": "invalid_adapter_response"
+    },
+    {
+      "response_fixture_id": "invalid_duplicate_normalized_text",
+      "request_fixture_id": "validation_multiple_gaps",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [
+          {
+            "question_id": "storage-question",
+            "question": "Will you need temporary storage between homes?",
+            "why_it_matters": "Storage can affect later research.",
+            "information_it_would_clarify": "Temporary storage need",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "The supplied storage gap grounds the question.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          },
+          {
+            "question_id": "specialty-question",
+            "question": " WILL you need temporary storage between homes ",
+            "why_it_matters": "This intentionally duplicates normalized text.",
+            "information_it_would_clarify": "Specialty-item needs",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "specialty_item_needs",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "Contract rejection fixture.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": false,
+      "expected_fallback_question_id": "fallback-temporary-storage-v1",
+      "expected_fallback_reason": "invalid_adapter_response"
+    },
+    {
+      "response_fixture_id": "invalid_mutation_field",
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [
+          {
+            "question_id": "ai-temporary-storage-v1",
+            "question": "Will you need temporary storage between homes?",
+            "why_it_matters": "Storage needs can affect later research.",
+            "information_it_would_clarify": "Temporary storage need",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "The supplied storage gap grounds the question.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true,
+            "state_mutation": {
+              "temporary_storage_need": true
+            }
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": false,
+      "expected_fallback_question_id": "fallback-temporary-storage-v1",
+      "expected_fallback_reason": "invalid_adapter_response"
+    },
+    {
+      "response_fixture_id": "invalid_selection_field",
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v1",
+        "schema_version": "moving-service-questions-schema-v1",
+        "suggestions": [
+          {
+            "question_id": "ai-temporary-storage-v1",
+            "question": "Will you need temporary storage between homes?",
+            "why_it_matters": "Storage needs can affect later research.",
+            "information_it_would_clarify": "Temporary storage need",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.storage-question.fixture.v1"
+            ],
+            "grounding_summary": "The supplied storage gap grounds the question.",
+            "reason_not_deterministic": "Contract rejection fixture.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": [],
+        "selected_service_model": "full_service"
+      },
+      "expected_valid": false,
+      "expected_fallback_question_id": "fallback-temporary-storage-v1",
+      "expected_fallback_reason": "invalid_adapter_response"
+    }
+  ]
+}

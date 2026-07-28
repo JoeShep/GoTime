@@ -491,3 +491,42 @@ This slice does not prove that AI adds product value or that the experiment
 knowledge is sufficient for real-model use. No real-model work may begin until
 curated statements have approved sources, the knowledge fixture is versioned
 for that purpose, and the fake-adapter contract is approved.
+
+# V1 Artifact Reconciliation — Suggest Moving-Service Questions
+
+## Status
+
+Implementation is complete, verified, and ready for review.
+
+The older `v1` package now:
+
+* Uses the exact runtime knowledge-item, missing-information, fallback,
+  trusted-state, request, and response vocabulary.
+* Contains executable `storage_unknown`, `complete`, and contract-only
+  multiple-gap request fixtures.
+* Contains valid, zero-suggestion, and eight invalid response fixtures.
+* Records expected valid, invalid, fallback, unavailable, timeout,
+  budget-unavailable, disabled, no-question, and observability outcomes.
+* Delegates request construction, response validation, fallback selection, and
+  orchestration expectations to the runtime implementation.
+* Separates contract-test readiness from real-model-evaluation readiness.
+* Is contract-test eligible and explicitly ineligible for real-model
+  evaluation.
+
+The knowledge artifact contains only the current storage implementation
+fixture. It is valid for fake-adapter and compatibility testing, has no
+approved real-model grounding source, and does not imply that the broader
+six-model knowledge set is complete.
+
+Production runtime remains independent from `docs/`. Backend anti-drift tests
+load the package; application execution does not.
+
+## Review Focus
+
+* Confirm the artifact package contains no legacy nested claim schema.
+* Confirm manifest readiness values and reasons are accurate.
+* Confirm artifact compatibility tests use runtime behavior rather than a
+  second implementation.
+* Confirm the narrow knowledge boundary is not overstated.
+* Confirm no real-model work begins until a separately reviewed knowledge
+  curation step satisfies the documented gate.

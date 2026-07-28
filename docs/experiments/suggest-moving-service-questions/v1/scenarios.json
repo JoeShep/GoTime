@@ -1,122 +1,148 @@
 {
-  "scenario_version": "moving-service-scenarios-v1",
-  "status": "draft",
-  "information_categories": ["temporary_storage_need", "packing_preference", "willing_to_drive_rental_truck", "cost_vs_convenience_preference", "special_handling_needs", "building_access_constraints"],
+  "scenario_version": "moving-service-scenarios-v1.1",
+  "status": "contract_test_fixture",
+  "expected_request_fields": [
+    "capability",
+    "trusted_state",
+    "missing_information",
+    "deterministic_context",
+    "curated_knowledge_items",
+    "requested_output",
+    "prompt_version",
+    "schema_version",
+    "knowledge_fixture_version",
+    "maximum_questions",
+    "maximum_output_tokens"
+  ],
+  "excluded_request_fields": [
+    "full_goal_history",
+    "raw_conversation_history",
+    "application_logs",
+    "live_provider_information",
+    "unbounded_project_context"
+  ],
   "scenarios": [
     {
-      "scenario_id": "storage-likely",
-      "label": "Storage likely",
+      "fixture_id": "storage_unknown",
+      "purpose": "Executable request fixture for the supported storage-question path.",
       "trusted_state": {
-        "move_type": {"status": "known", "value": "interstate"},
-        "origin_region": {"status": "known", "value": "Tennessee"},
-        "destination_region": {"status": "known", "value": "Northern California"},
-        "target_move_window": {"status": "not_supplied"},
-        "household_size": {"status": "not_supplied"},
-        "temporary_storage_need": {"status": "known", "value": "possible"},
-        "packing_preference": {"status": "unknown"},
-        "willing_to_drive_rental_truck": {"status": "known", "value": false},
-        "cost_vs_convenience_preference": {"status": "unknown"},
-        "special_handling_needs": {"status": "known", "value": "none_known"}
+        "goal_summary": "Relocate the household from Tennessee to Northern California.",
+        "move_type": "interstate",
+        "origin_region": "Tennessee",
+        "destination_region": "Northern California",
+        "target_move_window": "explicitly_unknown",
+        "household_size": {
+          "status": "known",
+          "value": "household"
+        },
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "packing_preference": {
+          "status": "known",
+          "value": "full_packing"
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        },
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "known_constraints": [
+          "The household is unwilling to drive a rental truck."
+        ]
       },
-      "missing_information": ["packing_preference", "cost_vs_convenience_preference"],
-      "inapplicable_information": [],
-      "prohibited_question_categories": ["temporary_storage_need", "willing_to_drive_rental_truck", "special_handling_needs"],
-      "known_constraints": ["Temporary storage may be needed.", "The household does not want to drive a rental truck."],
-      "open_decision": {"decision_id": "moving-service-model", "status": "unresolved"},
-      "existing_recommendation": "Clarify the missing moving-service requirements before comparing service models.",
-      "curated_knowledge_ids": ["moving-service.full-service-carrier.v1", "moving-service.broker.v1", "moving-service.portable-container.v1", "moving-service.rental-truck.v1", "moving-service.freight-trailer.v1", "moving-service.labor-only.v1"]
+      "expected_missing_categories": [
+        "temporary_storage_need"
+      ]
     },
     {
-      "scenario_id": "cost-sensitive-self-drive",
-      "label": "Cost-sensitive and willing to self-drive",
+      "fixture_id": "complete",
+      "purpose": "Executable request fixture proving that no supported gap is manufactured.",
       "trusted_state": {
-        "move_type": {"status": "known", "value": "interstate"},
-        "origin_region": {"status": "known", "value": "Tennessee"},
-        "destination_region": {"status": "known", "value": "Northern California"},
-        "target_move_window": {"status": "not_supplied"},
-        "household_size": {"status": "not_supplied"},
-        "temporary_storage_need": {"status": "known", "value": "not_needed"},
-        "packing_preference": {"status": "unknown"},
-        "willing_to_drive_rental_truck": {"status": "known", "value": true},
-        "cost_vs_convenience_preference": {"status": "known", "value": "prioritize_cost"},
-        "special_handling_needs": {"status": "known", "value": "none_known"}
+        "goal_summary": "Relocate the household from Tennessee to Northern California.",
+        "move_type": "interstate",
+        "origin_region": "Tennessee",
+        "destination_region": "Northern California",
+        "target_move_window": "explicitly_unknown",
+        "household_size": {
+          "status": "known",
+          "value": "household"
+        },
+        "temporary_storage_need": {
+          "status": "known",
+          "value": false
+        },
+        "packing_preference": {
+          "status": "known",
+          "value": "self_pack"
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        },
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "known_constraints": [
+          "The household is unwilling to drive a rental truck."
+        ]
       },
-      "missing_information": ["packing_preference"],
-      "inapplicable_information": [],
-      "prohibited_question_categories": ["temporary_storage_need", "willing_to_drive_rental_truck", "cost_vs_convenience_preference", "special_handling_needs"],
-      "known_constraints": ["Cost is a high priority.", "The household is willing to drive.", "Temporary storage is not needed."],
-      "open_decision": {"decision_id": "moving-service-model", "status": "unresolved"},
-      "existing_recommendation": "Clarify the missing moving-service requirements before comparing service models.",
-      "curated_knowledge_ids": ["moving-service.full-service-carrier.v1", "moving-service.broker.v1", "moving-service.portable-container.v1", "moving-service.rental-truck.v1", "moving-service.freight-trailer.v1", "moving-service.labor-only.v1"]
+      "expected_missing_categories": []
     },
     {
-      "scenario_id": "convenience-sensitive",
-      "label": "Convenience-sensitive",
+      "fixture_id": "validation_multiple_gaps",
+      "purpose": "Contract-only fixture for duplicate-response validation; not an HTTP fixture.",
       "trusted_state": {
-        "move_type": {"status": "known", "value": "interstate"},
-        "origin_region": {"status": "known", "value": "Tennessee"},
-        "destination_region": {"status": "known", "value": "Northern California"},
-        "target_move_window": {"status": "not_supplied"},
-        "household_size": {"status": "not_supplied"},
-        "temporary_storage_need": {"status": "unknown"},
-        "packing_preference": {"status": "known", "value": "prefer_full_packing"},
-        "willing_to_drive_rental_truck": {"status": "known", "value": false},
-        "cost_vs_convenience_preference": {"status": "unknown"},
-        "special_handling_needs": {"status": "unknown"}
+        "goal_summary": "Relocate the household from Tennessee to Northern California.",
+        "move_type": "interstate",
+        "origin_region": "Tennessee",
+        "destination_region": "Northern California",
+        "target_move_window": "explicitly_unknown",
+        "household_size": {
+          "status": "known",
+          "value": "household"
+        },
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "packing_preference": {
+          "status": "known",
+          "value": "full_packing"
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        },
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "specialty_item_needs": {
+          "status": "missing",
+          "value": null
+        },
+        "known_constraints": [
+          "The household is unwilling to drive a rental truck."
+        ]
       },
-      "missing_information": ["special_handling_needs", "temporary_storage_need", "cost_vs_convenience_preference"],
-      "inapplicable_information": [],
-      "prohibited_question_categories": ["packing_preference", "willing_to_drive_rental_truck"],
-      "known_constraints": ["The household wants minimal hands-on work.", "Specialty items may exist, but handling needs are not yet known."],
-      "open_decision": {"decision_id": "moving-service-model", "status": "unresolved"},
-      "existing_recommendation": "Clarify the missing moving-service requirements before comparing service models.",
-      "curated_knowledge_ids": ["moving-service.full-service-carrier.v1", "moving-service.broker.v1", "moving-service.portable-container.v1", "moving-service.rental-truck.v1", "moving-service.freight-trailer.v1", "moving-service.labor-only.v1"]
-    },
-    {
-      "scenario_id": "core-information-known",
-      "label": "Core information already known",
-      "trusted_state": {
-        "move_type": {"status": "known", "value": "interstate"},
-        "origin_region": {"status": "known", "value": "Tennessee"},
-        "destination_region": {"status": "known", "value": "Northern California"},
-        "target_move_window": {"status": "not_supplied"},
-        "household_size": {"status": "not_supplied"},
-        "temporary_storage_need": {"status": "known", "value": "not_needed"},
-        "packing_preference": {"status": "known", "value": "self_pack"},
-        "willing_to_drive_rental_truck": {"status": "known", "value": false},
-        "cost_vs_convenience_preference": {"status": "known", "value": "balanced"},
-        "special_handling_needs": {"status": "unknown"}
-      },
-      "missing_information": ["special_handling_needs"],
-      "inapplicable_information": [],
-      "prohibited_question_categories": ["temporary_storage_need", "packing_preference", "willing_to_drive_rental_truck", "cost_vs_convenience_preference"],
-      "known_constraints": ["Storage, packing preference, driving willingness, and cost preference are already known."],
-      "open_decision": {"decision_id": "moving-service-model", "status": "unresolved"},
-      "existing_recommendation": "Clarify the missing moving-service requirements before comparing service models.",
-      "curated_knowledge_ids": ["moving-service.full-service-carrier.v1", "moving-service.broker.v1", "moving-service.portable-container.v1", "moving-service.rental-truck.v1", "moving-service.freight-trailer.v1", "moving-service.labor-only.v1"]
-    },
-    {
-      "scenario_id": "no-applicable-curated-question",
-      "label": "No applicable curated knowledge",
-      "trusted_state": {
-        "move_type": {"status": "known", "value": "interstate"},
-        "origin_region": {"status": "known", "value": "Tennessee"},
-        "destination_region": {"status": "known", "value": "Northern California"},
-        "target_move_window": {"status": "not_supplied"},
-        "household_size": {"status": "not_supplied"},
-        "temporary_storage_need": {"status": "known", "value": "not_needed"},
-        "packing_preference": {"status": "known", "value": "self_pack"},
-        "willing_to_drive_rental_truck": {"status": "known", "value": false},
-        "cost_vs_convenience_preference": {"status": "known", "value": "balanced"},
-        "special_handling_needs": {"status": "known", "value": "none_known"}
-      },
-      "missing_information": ["building_access_constraints"],
-      "inapplicable_information": [],
-      "prohibited_question_categories": ["temporary_storage_need", "packing_preference", "willing_to_drive_rental_truck", "cost_vs_convenience_preference", "special_handling_needs"],
-      "known_constraints": ["All information covered by the v1 checklist is already known."],
-      "open_decision": {"decision_id": "moving-service-model", "status": "unresolved"},
-      "existing_recommendation": "Clarify the missing moving-service requirements before comparing service models.",
-      "curated_knowledge_ids": []
+      "expected_missing_categories": [
+        "temporary_storage_need",
+        "specialty_item_needs"
+      ]
     }
   ]
 }

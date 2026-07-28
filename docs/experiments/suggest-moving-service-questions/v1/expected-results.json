@@ -1,11 +1,98 @@
 {
-  "expectations_version": "moving-service-expectations-v1",
-  "status": "draft",
-  "results": [
-    {"scenario_id": "storage-likely", "expected_question_id": "moving-service-question.packing-preference.v1", "expected_information_category": "packing_preference", "acceptable_question_themes": ["packing responsibility"], "zero_suggestions_allowed": false},
-    {"scenario_id": "cost-sensitive-self-drive", "expected_question_id": "moving-service-question.packing-preference.v1", "expected_information_category": "packing_preference", "acceptable_question_themes": ["packing responsibility"], "zero_suggestions_allowed": false},
-    {"scenario_id": "convenience-sensitive", "expected_question_id": "moving-service-question.special-handling.v1", "expected_information_category": "special_handling_needs", "acceptable_question_themes": ["specialty items", "special handling"], "zero_suggestions_allowed": false},
-    {"scenario_id": "core-information-known", "expected_question_id": "moving-service-question.special-handling.v1", "expected_information_category": "special_handling_needs", "acceptable_question_themes": ["specialty items", "special handling"], "zero_suggestions_allowed": false},
-    {"scenario_id": "no-applicable-curated-question", "expected_question_id": null, "expected_information_category": null, "acceptable_question_themes": [], "zero_suggestions_allowed": true}
+  "expectations_version": "moving-service-expectations-v1.1",
+  "status": "contract_test_fixture",
+  "stable_observability_fields": [
+    "capability",
+    "prompt_version",
+    "schema_version",
+    "fixture_id",
+    "adapter_identifier",
+    "knowledge_version",
+    "referenced_knowledge_ids",
+    "schema_valid",
+    "fallback_used",
+    "fallback_reason",
+    "suggestion_count",
+    "estimated_cost",
+    "user_disposition"
+  ],
+  "excluded_observability_payloads": [
+    "full_prompt",
+    "full_response",
+    "trusted_state",
+    "user_answer",
+    "raw_conversation"
+  ],
+  "execution_cases": [
+    {
+      "fixture_id": "storage_unknown",
+      "expected_source": "fake_ai_adapter",
+      "expected_question_id": "ai-temporary-storage-v1",
+      "expected_schema_valid": true,
+      "expected_fallback_used": false,
+      "expected_fallback_reason": null,
+      "expected_suggestion_count": 1,
+      "expected_cost": "$0.00"
+    },
+    {
+      "fixture_id": "complete",
+      "expected_source": "none",
+      "expected_question_id": null,
+      "expected_schema_valid": true,
+      "expected_fallback_used": false,
+      "expected_fallback_reason": null,
+      "expected_suggestion_count": 0,
+      "expected_cost": "$0.00"
+    },
+    {
+      "fixture_id": "invalid_ai_response",
+      "expected_source": "deterministic_fallback",
+      "expected_question_id": "fallback-temporary-storage-v1",
+      "expected_schema_valid": false,
+      "expected_fallback_used": true,
+      "expected_fallback_reason": "invalid_adapter_response",
+      "expected_suggestion_count": 0,
+      "expected_cost": "$0.00"
+    },
+    {
+      "fixture_id": "adapter_unavailable",
+      "expected_source": "deterministic_fallback",
+      "expected_question_id": "fallback-temporary-storage-v1",
+      "expected_schema_valid": null,
+      "expected_fallback_used": true,
+      "expected_fallback_reason": "adapter_unavailable",
+      "expected_suggestion_count": 0,
+      "expected_cost": "$0.00"
+    },
+    {
+      "fixture_id": "adapter_timeout",
+      "expected_source": "deterministic_fallback",
+      "expected_question_id": "fallback-temporary-storage-v1",
+      "expected_schema_valid": null,
+      "expected_fallback_used": true,
+      "expected_fallback_reason": "adapter_timeout",
+      "expected_suggestion_count": 0,
+      "expected_cost": "$0.00"
+    },
+    {
+      "fixture_id": "budget_unavailable",
+      "expected_source": "deterministic_fallback",
+      "expected_question_id": "fallback-temporary-storage-v1",
+      "expected_schema_valid": null,
+      "expected_fallback_used": true,
+      "expected_fallback_reason": "experimental_budget_unavailable",
+      "expected_suggestion_count": 0,
+      "expected_cost": "$0.00"
+    },
+    {
+      "fixture_id": "ai_disabled",
+      "expected_source": "deterministic_fallback",
+      "expected_question_id": "fallback-temporary-storage-v1",
+      "expected_schema_valid": null,
+      "expected_fallback_used": true,
+      "expected_fallback_reason": "ai_assistance_disabled",
+      "expected_suggestion_count": 0,
+      "expected_cost": "$0.00"
+    }
   ]
 }
