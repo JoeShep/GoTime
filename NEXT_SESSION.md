@@ -530,3 +530,210 @@ load the package; application execution does not.
 * Confirm the narrow knowledge boundary is not overstated.
 * Confirm no real-model work begins until a separately reviewed knowledge
   curation step satisfies the documented gate.
+
+# Next Session — Curate Knowledge for the First Real-Model Evaluation
+
+## Previous Milestone
+
+The moving-service experiment artifacts have been reconciled with the approved runtime contract.
+
+The current experiment now has:
+
+* A bounded request contract.
+* A structured response contract.
+* A fake adapter.
+* Complete-response validation.
+* A deterministic fallback.
+* A browser-based experiment flow.
+* Executable artifact fixtures.
+* Runtime anti-drift tests.
+* Separate readiness flags for:
+
+  * Contract testing
+  * Real-model evaluation
+
+The artifact package is currently:
+
+* `contract_test_eligible: true`
+* `real_model_evaluation_eligible: false`
+
+The package remains blocked from real-model evaluation because its curated storage statement is an implementation fixture without an approved grounding source.
+
+## Next Objective
+
+Create the smallest reviewed, source-backed moving-service knowledge fixture needed to evaluate:
+
+`suggest_moving_service_questions`
+
+against the `storage_unknown` scenario.
+
+This session should determine whether a real model can be given trustworthy, bounded knowledge for suggesting this question:
+
+> Will you need temporary storage between homes?
+
+The session should not connect a real model.
+
+## Product Question
+
+Can GoTime ground one useful moving-service question in reviewed domain knowledge without requiring a broad moving-industry knowledge library?
+
+## Knowledge Scope
+
+Curate only the knowledge needed to establish that temporary storage needs can affect which moving-service approaches are practical to investigate.
+
+The knowledge should support question discovery.
+
+It does not need to provide:
+
+* A complete comparison of moving-service models.
+* A recommended moving-service model.
+* Provider-specific guidance.
+* Pricing.
+* Availability.
+* Booking windows.
+* Rankings.
+* Current market research.
+
+## Required Knowledge Item Fields
+
+Each approved knowledge item must include:
+
+* `knowledge_id`
+* `service_model`
+* `statement`
+* `tradeoff_category`
+* `applicable_conditions`
+* `source`
+* `reviewed_at`
+* `freshness_guidance`
+* `version`
+
+The statement must be:
+
+* Narrow.
+* Directly supported by the cited source.
+* Relevant to the storage question.
+* Free of provider selection or ranking.
+* Stable enough that live research is unnecessary.
+* Appropriate for a controlled question-suggestion evaluation.
+
+## Source Requirements
+
+Use authoritative or primary sources where reasonably available.
+
+For each source, record:
+
+* Publisher
+* Title
+* Stable locator
+* Date accessed or reviewed
+* The specific claim it supports
+* Any limitations
+
+The source must be read and reviewed rather than merely collected.
+
+Do not use:
+
+* Unattributed AI summaries.
+* Unsupported generalizations.
+* Placeholder citations.
+* Provider marketing as evidence for broad industry-wide claims unless its limitations are explicit.
+* Current pricing or availability claims.
+* Information that requires live research to remain reliable.
+
+## Review Questions
+
+For each proposed statement, ask:
+
+* Is this statement necessary for the `storage_unknown` fixture?
+* Does the source directly support it?
+* Is the wording narrower than or equal to what the source establishes?
+* Does it avoid recommending a service model?
+* Does it avoid implying that temporary storage is definitely required?
+* Is it stable enough for curated knowledge?
+* What freshness guidance should apply?
+* Would the statement remain useful if the user ultimately does not need storage?
+* Does the complete bounded request remain within the experiment’s token budget?
+
+## Artifact Updates
+
+After the knowledge has been reviewed:
+
+* Update `curated-knowledge.json`.
+* Update the manifest knowledge version.
+* Update any affected request or expected-result fixtures.
+* Update knowledge references where necessary.
+* Preserve compatibility with the runtime `CuratedKnowledgeItem` model.
+* Keep production runtime independent from files under `docs/`.
+
+Do not mark the package as real-model eligible merely because the JSON validates.
+
+## Readiness Decision
+
+At the end of the session, explicitly decide whether:
+
+`real_model_evaluation_eligible`
+
+can change from `false` to `true`.
+
+It may become `true` only if:
+
+* Every included statement has an approved source.
+* Every statement is narrowly supported.
+* Review and freshness metadata are complete.
+* The artifact/runtime compatibility tests pass.
+* The full request remains within the declared token budget.
+* The fake-adapter and deterministic-fallback tests still pass.
+* No placeholder or unreviewed knowledge remains in the evaluated fixture.
+
+If any requirement remains unmet, keep the flag `false` and record the exact ineligibility reasons.
+
+## Deliverables
+
+The session should produce:
+
+* One or more reviewed knowledge statements sufficient for the storage-question fixture.
+* Complete source and freshness metadata.
+* Updated versioned artifacts.
+* Updated readiness metadata.
+* Tests confirming artifact/runtime compatibility.
+* A brief review note explaining what the knowledge is approved to support.
+* An explicit statement of what it is not approved to support.
+
+## Out of Scope
+
+Do not add:
+
+* A real model adapter.
+* An AI SDK.
+* API credentials.
+* Live web research during application execution.
+* Provider recommendations.
+* Provider rankings.
+* Quotes or availability.
+* Booking-window logic.
+* A complete six-model moving-service library.
+* Vector infrastructure.
+* Persistence.
+* Automatic trusted-state updates.
+* General-purpose chat.
+* Background AI activity.
+
+## Definition of Done
+
+This milestone is complete when:
+
+* The storage-question knowledge fixture contains no placeholders.
+* Every included statement has been human-reviewed against an identifiable source.
+* Statements are bounded to the first experiment.
+* Freshness guidance and versions are recorded.
+* Runtime and artifact compatibility tests pass.
+* The deterministic fallback remains unchanged and useful.
+* The package’s real-model readiness status is reviewed explicitly.
+* No real model has been connected.
+
+## Later Milestone
+
+Only after the knowledge fixture is approved should GoTime design the real-model adapter and controlled evaluation run.
+
+That later milestone should compare real-model suggestions against the frozen deterministic fallback using the approved fixtures, rubric, cost ceiling, and latency limits.
