@@ -156,6 +156,18 @@ describe('recommendation screen', () => {
       ),
     ).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Use this requirement' })).toBeDisabled()
+    const primaryRecommendation = screen.getByText('Primary recommendation')
+    const experimentHeading = screen.getByRole('heading', {
+      name: 'Something else worth clarifying',
+    })
+    expect(
+      primaryRecommendation.compareDocumentPosition(experimentHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('button', { name: 'Get a suggested question' }),
+    ).toBeVisible()
+    expect(fetch).toHaveBeenCalledTimes(1)
   })
 
   it('submits hybrid work and requests a commute boundary without submitting its draft', async () => {

@@ -6,6 +6,11 @@ from app.models import (
     Recommendation,
     WorkArrangement,
 )
+from app.moving_service_questions import (
+    ExperimentFixture,
+    MovingServiceQuestionExperimentResult,
+    run_experiment,
+)
 from app.reasoning import UnsupportedReasoningStateError, recommend_next_step
 from app.scenarios import (
     build_relocation_scenario,
@@ -18,6 +23,25 @@ app = FastAPI(title="GoTime API")
 @app.get("/api/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get(
+    "/api/experiments/moving-service-question",
+    response_model=MovingServiceQuestionExperimentResult,
+)
+async def moving_service_question_experiment(
+    request: Request,
+    scenario: ExperimentFixture,
+) -> MovingServiceQuestionExperimentResult:
+    """Temporary fixture-only endpoint for the fake-adapter experiment."""
+    unexpected_parameters = set(request.query_params) - {"scenario"}
+    if unexpected_parameters:
+        names = ", ".join(sorted(unexpected_parameters))
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Unsupported query parameter(s): {names}.",
+        )
+    return run_experiment(scenario)
 
 
 @app.get("/api/recommendations/primary", response_model=Recommendation)

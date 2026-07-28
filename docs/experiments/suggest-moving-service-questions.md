@@ -6,7 +6,7 @@
 capability: suggest_moving_service_questions
 primary AI capability: State Discovery Assistance
 phase: design
-status: approved for fake-adapter contract work
+status: fake-adapter vertical slice implemented; pending review
 ```
 
 This experiment tests whether bounded AI assistance can use trusted relocation
@@ -38,6 +38,42 @@ The experiment does not:
 The experiment may conclude that AI should not be used for this capability.
 Schema-valid output or more polished wording is not sufficient evidence of
 product value.
+
+### Fake-Adapter Implementation Status
+
+The first contract-proving vertical slice is implemented for review.
+
+It includes:
+
+* A capability-specific fake adapter.
+* Narrow `storage_unknown` and `complete` trusted-state fixtures.
+* Deliberately invalid, unavailable, timeout, budget-unavailable, and
+  AI-disabled paths.
+* Bounded request construction from experiment fixture state.
+* Complete-response deterministic validation.
+* A frozen in-code fallback order for the five approved information
+  categories.
+* One optional suggestion beneath the primary deterministic Recommendation.
+* Local-only boolean answer confirmation.
+* Bounded in-memory and log observability with a `$0.00` fake-adapter cost.
+
+The temporary fixture endpoint is:
+
+```text
+GET /api/experiments/moving-service-question?scenario=<fixture>
+```
+
+The query parameter selects only a trusted experiment fixture. It is not
+passed to the adapter as reasoning context and is not a proposed production
+API.
+
+The implementation intentionally does not add moving-service fields to the
+current `Goal`, update trusted state, or trigger re-reasoning. It also does not
+use the older draft `v1` JSON knowledge artifacts at runtime. The implementation
+fixture remains explicitly unsuitable for real-model evaluation.
+
+This slice proves contract enforcement and fallback behavior. It does not prove
+that AI adds product value.
 
 ## 1. Hypothesis
 

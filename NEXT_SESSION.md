@@ -435,3 +435,59 @@ is not the committed next implementation milestone.
 
 Keep the empty `docs/adr/ADR-0001-monorepo.md` issue separate from this
 session.
+
+# First Fake-Adapter Slice — Suggest Moving-Service Questions
+
+## Status
+
+Implementation is complete, verified, and ready for review.
+
+The slice now:
+
+* Constructs a bounded `suggest_moving_service_questions` request from narrow
+  trusted experiment fixtures.
+* Invokes one capability-specific fake adapter after an explicit user action.
+* Validates the complete structured response deterministically.
+* Rejects invalid responses without retaining individual suggestions.
+* Uses one frozen deterministic fallback question when an applicable gap
+  remains.
+* Returns a valid no-question result when all supported information is known.
+* Presents one optional question beneath the primary deterministic
+  Recommendation.
+* Lets the user dismiss the suggestion, inspect its grounding, or confirm a
+  boolean answer locally.
+* Leaves the current trusted `Goal` unchanged and does not trigger
+  re-reasoning.
+* Records bounded observability with a `$0.00` fake-adapter cost.
+
+The temporary fixture endpoint supports:
+
+* `storage_unknown`
+* `complete`
+* `invalid_ai_response`
+* `adapter_unavailable`
+* `adapter_timeout`
+* `budget_unavailable`
+* `ai_disabled`
+
+Unsupported fixtures and unexpected query parameters return HTTP 422.
+
+## Review Focus
+
+* Confirm that the request contains only approved experiment context.
+* Confirm that response validation rejects the complete invalid response.
+* Confirm that fallback guidance remains useful and is not presented as an
+  error.
+* Confirm that source labels are helpful without emphasizing implementation
+  mechanics.
+* Confirm that local answer confirmation cannot update trusted state.
+* Decide whether the in-code fallback baseline and temporary fixture artifacts
+  should be reconciled with the older draft `v1` JSON artifacts in a separate
+  documentation-and-fixture slice.
+
+## Explicitly Not Proven
+
+This slice does not prove that AI adds product value or that the experiment
+knowledge is sufficient for real-model use. No real-model work may begin until
+curated statements have approved sources, the knowledge fixture is versioned
+for that purpose, and the fake-adapter contract is approved.

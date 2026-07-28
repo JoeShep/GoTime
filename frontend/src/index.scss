@@ -57,6 +57,25 @@ body {
   border-top: 1px solid rgb(42 61 52 / 15%);
 }
 
+.moving-service-experiment {
+  border-top: 1px solid rgb(42 61 52 / 15%);
+  padding-top: 1.5rem;
+}
+
+.experiment-suggestion {
+  background: #f7f8f5;
+}
+
+.experiment-question {
+  color: variables.$ink;
+  font-size: 1.2rem;
+  font-weight: 650;
+}
+
+.experiment-grounding {
+  background: #eef1eb;
+}
+
 .state-update {
   font-size: 0.95rem;
 }

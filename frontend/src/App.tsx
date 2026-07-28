@@ -19,6 +19,7 @@ import {
   type Recommendation,
   type WorkArrangement,
 } from './api/recommendations'
+import { MovingServiceQuestionExperiment } from './MovingServiceQuestionExperiment'
 
 const workArrangementLabels: Record<WorkArrangement, string> = {
   remote: 'Remote',
@@ -340,6 +341,8 @@ function App() {
                       </Form>
                     )}
                 </section>
+
+                <MovingServiceQuestionExperiment />
 
                 <section className="pt-5" aria-labelledby="why-heading">
                   <h2 className="detail-heading mb-3" id="why-heading">

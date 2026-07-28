@@ -58,6 +58,14 @@ employment planning; suitable employment remains an unconfirmed Assumption.
 All state remains in memory, with no persistence, authentication, general
 editing, or task-management workflow.
 
+The current interface also includes an optional, explicitly triggered
+fake-adapter experiment for suggesting one moving-service question. It uses
+narrow experiment fixtures, validates the complete structured response, and
+falls back to a deterministic planning-guide question when the fake response
+is unavailable or invalid. Answers remain local to the demonstration and do
+not change the trusted Goal or trigger re-reasoning. No real AI provider, live
+research, persistence, or external telemetry is involved.
+
 ## Run locally
 
 With Docker and Docker Compose installed:

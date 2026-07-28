@@ -614,3 +614,70 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   remaining grounded, transparent, and testable.
 - Treat hybrid commute frequency as a possible future deterministic input, not
   the committed next implementation milestone.
+
+---
+
+## Session 14 -- Fake Moving-Service Question Adapter
+
+### Completed
+
+- Added a capability-specific fake adapter for
+  `suggest_moving_service_questions`.
+- Constructed a bounded AI-shaped request from narrow trusted experiment
+  fixtures rather than the production `Goal`.
+- Added a small storage-question knowledge fixture explicitly labeled as
+  unsuitable for real-model evaluation.
+- Added deterministic complete-response validation for versions, counts,
+  unique IDs, unique categories, normalized question text, open Decision
+  references, supplied knowledge references, approved missing information,
+  answer types, confirmation requirements, output bounds, and forbidden extra
+  fields.
+- Added a fixed-priority deterministic fallback for the five approved
+  moving-service information categories.
+- Added valid, zero-suggestion, invalid, unavailable, timeout,
+  budget-unavailable, and AI-disabled fixture paths.
+- Added a temporary fixture-only experiment endpoint with strict query
+  validation.
+- Added an explicitly triggered secondary frontend experiment beneath the
+  primary Recommendation.
+- Added useful fallback presentation, grounding disclosure, local dismissal,
+  and local-only boolean confirmation.
+- Added bounded observability with exact source and fallback values and a
+  `$0.00` fake-adapter cost.
+
+### Product and Architecture Boundaries
+
+- No real model, AI SDK, credential, live research, vector infrastructure,
+  persistence, or external telemetry was added.
+- No generic AI abstraction or cross-domain capability framework was added.
+- Moving-service fields were not added to the current `Goal`.
+- The suggestion and its answer cannot update trusted state or trigger
+  re-reasoning.
+- Invalid responses are rejected completely; valid-looking suggestions from
+  an invalid response are not retained.
+- The temporary scenario query selects a trusted fixture only and is not a
+  proposed production API.
+- User-facing copy says "Experimental suggestion" or "Suggested from GoTime's
+  planning guide" rather than exposing adapter mechanics.
+- The fixture validates the contract, not AI product value or moving-industry
+  knowledge quality.
+
+### Verification
+
+- Frontend tests: 17 passed.
+- Frontend production build: passed.
+- Backend tests: 87 passed.
+- Backend Python compilation: passed.
+- Docker Compose rebuilt successfully; backend health and frontend startup
+  passed.
+- All seven experiment fixture paths returned HTTP 200 through the frontend
+  proxy.
+- Unsupported fixtures and unexpected parameters returned HTTP 422.
+
+### Next
+
+- Review the fake-adapter boundary and decide whether to approve the contract.
+- Reconcile the older draft `v1` JSON artifacts with the approved contract in a
+  separate bounded slice before considering real-model evaluation.
+- Do not introduce a real model until curated statements have approved sources
+  and the fake-adapter contract has passed review.
