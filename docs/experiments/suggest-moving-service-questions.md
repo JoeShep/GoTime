@@ -4,103 +4,145 @@
 
 ```text
 capability: suggest_moving_service_questions
-AI capability: State Discovery Assistance
+primary AI capability: State Discovery Assistance
 phase: design
+status: approved for fake-adapter contract work
 ```
 
-This experiment tests whether bounded AI assistance can identify a useful
-missing question while a user is deciding which moving-service models are
-worth investigating.
+This experiment tests whether bounded AI assistance can use trusted relocation
+state, explicitly missing information, and a small curated moving-service
+knowledge set to suggest useful questions that help the user determine which
+moving-service models deserve investigation.
+
+The experiment primarily validates **State Discovery Assistance**. Curated
+knowledge grounds the suggested questions, but this experiment does not
+validate the broader Grounded Domain Guidance capability of producing a
+service-model comparison.
+
+The capability may suggest a question. It does not decide what the user should
+choose, and its output does not become trusted state.
 
 The experiment does not:
 
+* Select a moving company.
 * Select or recommend a moving-service model.
-* Search for or recommend a provider.
-* Calculate dates.
-* Supply or invent booking windows.
-* Perform live research.
-* Interpret an answer into trusted state.
+* Compare, rank, or score moving-service models.
+* Perform live web research.
+* Calculate dates or apply booking windows.
 * Modify trusted state or confirm an Assumption.
+* Generate an unbounded move plan.
 * Replace deterministic Recommendation eligibility or sequencing.
-* Generate a plan.
+* Interpret free-form answers.
+* Run autonomously or in the background.
 
 The experiment may conclude that AI should not be used for this capability.
-Passing schema validation or producing polished language is not enough to
-justify product integration.
+Schema-valid output or more polished wording is not sufficient evidence of
+product value.
 
-## Hypothesis
+## 1. Hypothesis
 
-> Given bounded trusted relocation state, an unresolved moving-service-model
-> Decision, explicitly missing information, and curated moving-service
-> knowledge, AI can suggest zero to three relevant questions that improve
-> Decision readiness without inventing facts, repeating known information, or
-> selecting an option.
+> Given bounded trusted relocation state, explicitly identified missing
+> information, an unresolved moving-service Decision, and a small curated
+> moving-service knowledge set, AI can suggest zero to three relevant,
+> nonduplicative questions that improve the user's readiness to investigate
+> moving-service models without inventing facts, repeating known information,
+> or selecting an option.
 
-One high-value question is the expected default. A response should include a
-second or third question only when each adds distinct, material value that the
-first question does not provide.
+One high-value question is the expected default. A response may contain a
+second or third question only when each question targets a different approved
+missing-information category and provides distinct, material value.
 
-Success would show that AI can prioritize context-sensitive discovery questions
-and explain why they matter.
+Zero suggestions is a valid result. The model must not manufacture a gap or a
+question to fill a quota.
 
-Success would not show that AI can:
+Success would show that AI can prioritize context-sensitive discovery
+questions and provide a grounded explanation of why each question matters. It
+would not show that AI can:
 
 * Choose a service model or provider.
-* Safely interpret the user's answer.
-* Compare current providers, pricing, or availability.
-* Supply planning-window guidance.
-* Perform date arithmetic.
+* Interpret an answer safely.
+* Produce a complete service-model comparison.
 * Improve the final relocation outcome.
-* Replace deterministic validation, eligibility, or sequencing.
+* Replace deterministic validation, state transitions, or sequencing.
 
-## Why This May Be AI-Worthy
+## 2. User Value
 
-A deterministic checklist can identify missing fields and present a fixed
-question. The possible value of AI is narrower:
+Moving-service research requires users to understand distinctions they may
+never have encountered before. A user may not know that temporary storage,
+packing responsibility, willingness to drive, specialty-item handling, or the
+balance between cost and hands-on work can affect which service models are
+practical to investigate.
 
-* Select the most useful question from several grounded possibilities based on
-  interacting circumstances.
-* Avoid questions made irrelevant by combinations of trusted facts.
-* Explain why a question matters in the current situation.
-* Identify when no supplied knowledge supports an additional useful question.
+This capability should help the user understand what matters next without
+requiring prior moving-industry knowledge. It should make it easier to:
 
-Different wording alone is not sufficient value. The experiment must compare
-AI output with a frozen deterministic baseline. If a small maintainable
-checklist performs as well, GoTime should keep the capability deterministic.
+* Notice a relevant unresolved circumstance.
+* Focus on the most useful question rather than a long checklist.
+* Understand why the answer could affect moving-service research.
+* Avoid spending time investigating clearly incompatible approaches.
+* Continue making progress while retaining control of every Decision.
 
-## Deterministic Trigger and Eligibility
+The core GoTime experience remains:
 
-The deterministic core owns eligibility. AI cannot decide when it should run.
+> What should I do next?
+
+The deterministic Recommendation remains the primary product output. An
+AI-suggested question is optional supporting assistance that may help the user
+supply information needed to act on that Recommendation.
+
+## 3. Entry Conditions
+
+The deterministic engine owns capability eligibility. AI cannot decide when it
+should run.
 
 The capability may be offered only when:
 
 * The move is classified as interstate.
+* Origin and destination regions are present.
+* A target move window exists or is explicitly unknown.
 * A moving-service-model Decision exists and remains unresolved.
-* Deterministic reasoning has identified missing information.
-* Compatible curated moving-service knowledge is available.
-* The capability, prompt, baseline, and fixture versions are supported.
-* The monthly experiment budget remains available.
-* The user explicitly requests or accepts AI assistance.
+* Deterministic sequencing has reached the moving-service research stage.
+* Deterministic state inspection has identified at least one relevant
+  information gap or unresolved conflict.
+* Every eligible gap includes an approved category identifier, allowlisted
+  state-field mapping, and supported answer type.
+* Compatible, reviewed, versioned moving-service knowledge is available.
+* The prompt, schema, and knowledge-fixture versions are supported.
+* The user explicitly requests or approves AI assistance.
+* The experimental AI budget remains available.
 
-The eligibility result should be structured:
+The capability must not run:
+
+* When a screen renders.
+* On every keystroke or routine state change.
+* Merely because the deterministic Recommendation is displayed.
+* Automatically after an earlier response.
+* In the background.
+* When any deterministic eligibility condition fails.
+
+The deterministic eligibility result should be structured:
 
 ```text
 eligible
 ineligible_reason
 decision_id
-missing_information
+research_stage
+eligible_missing_information
 knowledge_fixture_version
-baseline_version
+prompt_version
+schema_version
 budget_available
 ```
 
-If any prerequisite is absent, GoTime does not call AI and uses deterministic
-behavior.
+If the request is ineligible, GoTime does not call the adapter. It preserves
+the deterministic Recommendation and uses the deterministic fallback when an
+applicable fallback question exists.
 
-## Trusted Input Context
+## 4. Trusted Input Contract
 
-The following fields define an **experiment context contract**. They are not
-claims about fields that already exist on the production `Goal` model.
+The request contains a narrow experiment context. These fields define the
+capability contract; they do not imply that all fields already exist on the
+production `Goal` model.
 
 ```text
 goal_summary
@@ -113,118 +155,141 @@ temporary_storage_need
 packing_preference
 willing_to_drive_rental_truck
 cost_vs_convenience_preference
-special_handling_needs
+specialty_item_needs
 known_constraints
-missing_information
-open_decision
-deterministic_recommendation
-unconfirmed_assumptions
+explicit_missing_information
+open_moving_service_decision
+current_deterministic_recommendation
+prompt_version
+maximum_output_size
 ```
 
-Optional information must distinguish:
+Optional state must distinguish among:
 
-* A known value
-* Explicitly unknown
-* Not applicable
-* Not supplied to this capability
+```text
+known
+explicitly_unknown
+not_applicable
+not_supplied
+```
 
-The context excludes:
+Absence must not be interpreted as a known negative value. A value omitted
+from the capability request must not be treated as missing information unless
+the deterministic system explicitly includes it in
+`explicit_missing_information`.
 
-* Entire conversation history
-* Entire Goal history
-* Unrelated personal details
-* Raw application logs
-* Current web research
-* Provider-specific information
-* Unconfirmed AI interpretations
+Each eligible missing-information entry must contain:
 
-The target move window may be supplied as context, but this experiment neither
-calculates dates nor applies booking-window guidance.
+```text
+category_id
+state_field
+answer_type
+allowed_enum_values
+reason_missing
+```
 
-## Curated Moving-Service Fixture
+Contract rules:
 
-The experiment uses a small, versioned fixture rather than a broad knowledge
-base.
+* `category_id` is a deterministic, allowlisted category identifier.
+* `state_field` is the deterministic mapping to the trusted-state vocabulary.
+* `answer_type` is `boolean` or `enum`.
+* `allowed_enum_values` is required for an enum and absent for a boolean.
+* The AI may select a supplied category to ask about.
+* The AI may not create a category, state-field mapping, answer type, or enum
+  value.
 
-It should contain one reviewed item for each category:
+The target move window may be supplied as context, but this capability neither
+calculates dates nor applies planning-window guidance.
 
-1. Full-service interstate carrier
-2. Moving broker
-3. Portable storage container
-4. Rental truck
-5. Freight or trailer service
-6. Labor-only assistance
+The request explicitly excludes:
 
-Each item contains:
+* Full Goal history.
+* Unrelated personal information.
+* Raw conversation history.
+* Application logs.
+* Live provider information.
+* Current prices, quotes, or availability.
+* Unconfirmed AI interpretations.
+* Unbounded free-form project context.
+* Data included merely because it is easy to retrieve.
+
+## 5. Curated Knowledge Contract
+
+The experiment uses a small, reviewed, versioned knowledge fixture rather than
+a general knowledge base.
+
+The minimum fixture represents:
+
+1. Full-service interstate carrier.
+2. Moving broker.
+3. Portable storage container.
+4. Freight or trailer-based service.
+5. Rental truck.
+6. Labor-only moving help.
+
+Each knowledge item contains:
 
 ```text
 knowledge_id
 service_model
-description
-relevant_circumstances
-typical_tradeoffs
-information_needed_to_evaluate_fit
+statement
+tradeoff_category
+applicable_conditions
 source
 reviewed_at
 freshness_guidance
 version
 ```
 
-The fixture needs only enough information to ground questions about storage,
-packing, driving willingness, cost sensitivity, specialty handling, and other
-documented fit considerations.
+For this question-suggestion experiment, the fixture needs only enough reviewed
+knowledge to establish why the following information may affect which service
+models deserve investigation:
 
-The fixture does not include:
+* Temporary storage need.
+* Packing responsibility.
+* Loading and unloading responsibility.
+* Willingness to drive a rental truck.
+* Cost-versus-convenience preference.
+* Specialty-item handling.
 
-* Providers
-* Current pricing
-* Current availability
-* Current regulations
-* Booking-window rules
-* Unsupported claims about which model is best
+Each statement must be bounded, attributable, and applicable only under its
+documented conditions. A statement must not imply that one service model is
+best for the user.
 
-## Frozen Deterministic Baseline
+The following richer content can wait for the later service-model comparison
+experiment:
 
-The deterministic fallback is also the experiment baseline. It must be fully
-defined and versioned before the first AI evaluation run.
+* Comprehensive advantages and disadvantages.
+* Model rankings or recommendations.
+* Detailed regulatory guidance.
+* Booking-window guidance.
+* Current pricing.
+* Provider availability or service areas.
+* Location-specific suitability.
+* Full comparisons across service models.
 
-The baseline includes:
+The draft knowledge fixture is not eligible for a real-model experiment until:
 
-* A curated checklist of moving-service questions.
-* A mapping from each question to the information it clarifies.
-* Deterministic applicability filters.
-* Rules for removing questions about known information.
-* A fixed priority ordering.
-* Behavior when no checklist question remains.
+* Every included statement has a reviewed source.
+* Review dates and freshness guidance are populated.
+* The complete fixture is assigned a version.
+* The request references that exact version.
 
-Baseline behavior is:
+## 6. AI Request Contract
 
-1. Remove questions whose answers are already known.
-2. Remove questions that deterministic state makes inapplicable.
-3. Apply the frozen priority ordering.
-4. Return the highest-priority remaining question or a structured no-question
-   result.
-
-The baseline version, checklist, filters, and priority ordering must not be
-revised in response to individual AI outputs. A change requires an explicit,
-versioned experiment revision and a new evaluation run. This prevents the
-comparison target from moving during the experiment.
-
-## AI Request Contract
-
-The request is bounded and capability-specific:
+The request envelope is capability-specific and bounded:
 
 ```text
 capability
-prompt_version
-request_id
 trusted_state
 missing_information
-open_decision
-deterministic_recommendation
+deterministic_context
 curated_knowledge_items
-baseline_version
-maximum_suggestions
+requested_output
+prompt_version
+schema_version
+knowledge_fixture_version
+maximum_questions
 maximum_output_tokens
 ```
 
@@ -234,36 +299,66 @@ Required fixed value:
 capability: suggest_moving_service_questions
 ```
 
-The request permits at most three suggestions, but directs the model to prefer
-one high-value suggestion. Additional suggestions require distinct, material
-value.
+`missing_information` contains only deterministic entries from the trusted
+input contract:
 
-The request contains only the selected experiment context and relevant
-knowledge items. It does not contain an unbounded conversation or Goal history.
+```text
+category_id
+state_field
+answer_type
+allowed_enum_values
+reason_missing
+```
 
-## AI Response Contract
+`deterministic_context` contains only:
 
-The response allows zero to three suggestions:
+```text
+open_decision
+current_recommendation
+research_stage
+applicable_known_constraints
+```
+
+`requested_output` directs the adapter to:
+
+* Return zero to three structured question suggestions.
+* Prefer one high-value question.
+* Use only supplied missing-information categories.
+* Use only supplied curated knowledge.
+* Return zero suggestions when no useful grounded question is supported.
+* Avoid selecting a service model or provider.
+* Avoid proposing or commanding a trusted-state mutation.
+
+The request does not contain unbounded Goal history, conversation history, or
+project context.
+
+## 7. AI Response Contract
+
+The response is structured:
 
 ```text
 capability
 prompt_version
-request_id
+schema_version
 suggestions
-no_suggestion_reason
+fallback_recommended
+warnings
 ```
 
 Each suggestion contains:
 
 ```text
+question_id
 question
 why_it_matters
 information_it_would_clarify
 affected_decision_id
+selected_missing_information_category
 relevant_knowledge_ids
 grounding_summary
 reason_not_deterministic
 uncertainties
+suggested_answer_type
 requires_user_confirmation
 ```
 
@@ -271,442 +366,590 @@ Contract rules:
 
 * `suggestions` contains zero to three entries.
 * One suggestion is the expected default.
-* Every additional suggestion must clarify different information and add
-  material value.
-* `no_suggestion_reason` is required when `suggestions` is empty.
-* `no_suggestion_reason` is absent when suggestions exist.
+* Each suggestion selects exactly one supplied missing-information category.
+* Multiple suggestions may not select the same category.
+* `question_id` values are unique within the response.
+* `suggested_answer_type` must equal the answer type supplied for the selected
+  category.
+* The response does not contain `proposed_state_field`.
+* The response cannot create a state field, category, answer type, or enum
+  value.
 * `requires_user_confirmation` is always `true`.
+* `fallback_recommended` may be `true` when no useful grounded question is
+  available or deterministic behavior is preferable.
+* `warnings` contains only bounded warning codes defined by the schema.
 * The response contains no command, patch, or proposed automatic state change.
 
 `grounding_summary` identifies the supplied trusted context and knowledge IDs
-that support the question. It cannot introduce an unsupported source.
+that support the question. It must not introduce an unsupported source or
+claim.
 
-`reason_not_deterministic` identifies the contextual ambiguity or interaction
-that required AI prioritization. A generic claim that AI is helpful is invalid.
+`reason_not_deterministic` identifies the contextual interaction or ambiguity
+that justified AI prioritization. A generic statement such as "AI is helpful"
+is invalid.
 
-The later UI is not required to show every returned suggestion at once. It may
-present only the highest-priority valid suggestion while retaining other valid
-suggestions for later use or evaluation.
+`information_it_would_clarify` describes the purpose of an answer. It is not
+the answer and cannot satisfy missing information.
 
-## Field Visibility
+A zero-suggestion response is valid. It must not invent a question to fill a
+quota.
 
-User-facing fields:
+## 8. Question-Quality Rules
 
-* `question`
-* `why_it_matters`
-* A concise form of `grounding_summary`
-* Uncertainty that materially affects interpretation
+Every suggestion must:
 
-Internal or diagnostic fields:
+* Be answerable by the user.
+* Ask only about a supplied missing or conflicting information category.
+* Avoid duplicating a known fact.
+* Be relevant to the open moving-service Decision.
+* Be grounded in at least one supplied curated knowledge item.
+* Explain why the answer matters to moving-service research.
+* Use natural, nontechnical language.
+* Avoid assuming the answer.
+* Ask one concept at a time.
+* Avoid combining unrelated questions.
+* Avoid unnecessary sensitive information.
+* Remain safe and useful if the user declines to answer.
+* Avoid presenting advice as a question.
+* Avoid implying that a service model or provider is preferred.
+* Avoid unsupported pricing, availability, regulatory, provider, or
+  booking-window claims.
 
-* `affected_decision_id`
-* `relevant_knowledge_ids`
-* `reason_not_deterministic`
-* Full uncertainty codes
-* Capability, prompt, fixture, baseline, and request versions
+A second or third suggestion must:
 
-`information_it_would_clarify` may support presentation and later deterministic
-routing. It is not the user's answer and does not satisfy missing information.
+* Select a different missing-information category.
+* Add distinct, material value.
+* Not be a rephrasing of another suggestion.
 
-## Suggestion-Quality Rules
+The model should return fewer suggestions rather than include a weak,
+duplicative, or manufactured question.
 
-Every suggestion must follow these rules:
+## 9. Deterministic Validation
 
-* Do not ask for information already present in trusted state.
-* Do not repeat the deterministic Recommendation as a question.
-* Do not ask unrelated questions.
-* Ask one concept per question.
-* Do not ask a compound question that cannot map to one missing-information
-  category.
-* Reference at least one supplied curated knowledge item.
-* Explain how the answer could affect the open Decision.
-* Do not assume that an unknown fact has a particular value.
-* Do not recommend a moving-service model or provider.
-* Do not claim that one service model is best.
-* Do not use unsupported provider, pricing, regulatory, booking-window, or
-  availability claims.
-* Prefer the smallest number of high-value questions.
-* Include a second or third question only for distinct, material value.
-* Do not disguise advice as a question.
-* Return zero suggestions when supplied context and knowledge do not support a
-  useful additional question.
+Normal code validates the complete response before any suggestion is shown.
 
-Evaluation should penalize unnecessary suggestions, lower-value additions, and
-responses that appear complete only because they contain more questions.
+Validation includes:
 
-## User Experience Contract
+* The response matches the supported schema.
+* Capability, prompt, and schema versions match the request.
+* The response contains zero to three suggestions.
+* Every `question_id` is present and unique.
+* Every selected missing-information category was supplied in the request.
+* No two suggestions target the same missing-information category.
+* Every affected Decision ID exists and remains open.
+* Every referenced knowledge ID was supplied in the request.
+* Every suggested answer type matches the selected category.
+* Every enum category retains the deterministic set of allowed values.
+* `requires_user_confirmation` is always `true`.
+* No suggestion targets a field already known or not applicable.
+* Question and response lengths remain within limits.
+* No state-field proposal or mutation command is present.
+* No prohibited provider, model-selection, date, research, or planning claim
+  is present.
+* `fallback_recommended` and warning codes are schema-valid.
 
-The interaction boundary is:
+Duplicate detection remains intentionally simple in v1:
+
+1. Reject multiple suggestions targeting the same missing-information
+   category.
+2. Normalize question text for case, surrounding whitespace, repeated
+   whitespace, and punctuation.
+3. Reject exact normalized duplicates.
+4. Apply a small, deterministic token-overlap or string-similarity threshold
+   for near-exact duplication.
+
+The experiment does not introduce embeddings, vector search, or vector
+infrastructure.
+
+Any validation failure rejects the complete response. GoTime must not partially
+accept, retain, or display individual suggestions from an invalid response.
+The deterministic fallback is used instead.
+
+## 10. User Experience Contract
+
+The initial UI presents at most one valid AI-suggested question at a time, even
+though the response contract permits zero to three suggestions.
+
+Example:
+
+> **Something else worth clarifying — AI suggestion**
+>
+> Will you need temporary storage between homes?
+>
+> This matters because storage needs can change which moving-service models
+> are practical to investigate.
+
+Available actions:
+
+* **Answer this**
+* **Not relevant**
+* **Why are you asking?**
+
+The UI must:
+
+* Label the question as an AI suggestion.
+* Show why it matters.
+* Preserve the deterministic Recommendation as the primary product output.
+* Never present an inferred fact or answer as true.
+* Let the user reject or dismiss the suggestion.
+* Avoid implying that the user must answer to continue.
+* Require explicit confirmation before saving any answer.
+* Present only supported boolean or enum answer controls.
+* Avoid free-form answer input in the initial experiment.
+
+If a valid response contains multiple suggestions, deterministic presentation
+logic selects one to show. Other suggestions may be retained only for
+controlled evaluation or later presentation; they do not become trusted state
+and are not shown simultaneously in the initial UI.
+
+## 11. Trusted-State Transition
+
+The only permitted state transition is:
 
 ```text
-Deterministic Recommendation
-→ optional AI assistance offered
-→ user explicitly requests or accepts assistance
-→ AI-suggested question with grounding and uncertainty
-→ user answers, dismisses, or asks why
-→ answer remains untrusted
-→ user confirms a structured interpretation
+AI suggests a question
+→ user chooses to answer
+→ UI presents a deterministic boolean or enum control
+→ user supplies an answer
 → deterministic validation
-→ trusted state may change
-→ deterministic re-reasoning
+→ user confirms the answer and its meaning
+→ trusted state updates
+→ deterministic engine re-reasons
 ```
 
-Possible user actions are:
+The deterministic system already knows the selected category's state-field
+mapping and supported answer values. AI does not interpret the answer and does
+not propose the destination state field.
 
-* Answer the suggested question.
-* Add the question to the plan.
-* Dismiss it as irrelevant.
-* Ask why it matters.
-* Correct a later AI interpretation.
+The AI suggestion itself must never:
 
-This experiment ends at question suggestion. It does not define or implement
-free-form answer interpretation. No answer enters trusted state without
-explicit confirmation and deterministic validation.
+* Satisfy required information.
+* Change Decision readiness.
+* Confirm or invalidate an Assumption.
+* Create a Preference or Constraint.
+* Replace the current Recommendation.
+* Trigger a trusted reasoning path.
 
-## Deterministic Fallback
+Free-form answer interpretation is a separate, deferred capability.
 
-The frozen baseline is also the useful non-AI fallback.
+## 12. Deterministic Fallback
 
-It applies when:
+The deterministic fallback is both the useful no-AI path and the comparison
+baseline for the experiment.
+
+The initial curated question list may include:
+
+* Will temporary storage be needed between homes?
+* Are you willing to drive a rental truck?
+* Would you rather minimize cost or minimize hands-on work?
+* Do you want the moving service to pack your belongings?
+* Are there specialty items that require special handling?
+
+Fallback selection:
+
+1. Remove questions for fields that are already known.
+2. Remove questions made inapplicable by trusted state.
+3. Retain only questions whose category, state-field mapping, and answer type
+   are approved.
+4. Apply a frozen priority ordering.
+5. Return the highest-priority applicable question or a structured no-question
+   result.
+
+The fallback remains available when:
 
 * AI is unavailable.
+* The response is invalid.
 * The monthly budget is exhausted.
 * The user declines AI assistance.
-* The model times out.
-* The response fails schema validation.
-* The response lacks grounding.
+* The request times out.
 * Curated knowledge is unavailable or incompatible.
-* Prompt or fixture versions do not match.
+* Prompt, schema, or fixture versions do not match.
 
-The deterministic Recommendation remains visible. The baseline supplies its
-highest-priority applicable question or reports that no checklist question
-remains. The user can continue without AI and is never blocked.
+The fallback baseline must be frozen, versioned, and tested before any
+real-model evaluation. It must not be revised in response to individual model
+outputs. A baseline change requires a new version and a new evaluation run.
 
-## Fixed Test Fixtures
+The deterministic Recommendation remains visible, and the user is never
+blocked by AI failure or refusal.
 
-All fields below are experiment fixtures, not existing production `Goal`
-fields.
+## 13. Test Fixtures
 
-### Scenario A — Storage Likely
+All fixture fields are experiment context, not claims about the current
+production `Goal` model.
 
-Trusted context:
+### Scenario A — Storage Unknown
 
-* Temporary storage may be needed.
+Known:
+
+* The move is interstate.
 * The user does not want to drive a rental truck.
-* Packing preference is unknown.
+* Temporary storage need is unknown.
 
-Expected themes:
+Expected:
 
-* Clarify packing involvement or storage/service responsibility.
-* Do not ask about driving willingness again.
-* Questions should differ from the self-drive fixture.
+* A storage-related question is strongly relevant.
+* The system does not ask whether the user will self-drive.
+* The question uses the approved storage category and boolean or enum mapping.
+* No service model is selected or recommended.
 
-### Scenario B — Cost-Sensitive and Willing to Self-Drive
+### Scenario B — Cost Sensitivity Unknown
 
-Trusted context:
+Known:
 
-* Cost is a high priority.
-* The user is willing to drive.
 * Storage is not needed.
+* Packing help is desired.
+* Cost-versus-convenience preference is unknown.
 
-Expected themes:
+Expected:
 
-* Clarify loading labor, packing involvement, or acceptable hands-on effort.
-* Do not ask about storage or driving willingness.
+* A cost-versus-convenience tradeoff question is relevant.
+* The system does not repeat the packing preference.
+* The question uses the approved cost-versus-convenience enum.
+* No service model is selected or recommended.
 
-### Scenario C — Convenience-Sensitive
+### Scenario C — Most Inputs Already Known
 
-Trusted context:
+Known:
 
-* The user wants minimal hands-on work.
-* Specialty items may exist.
-* Budget tolerance is unknown.
+* Storage need.
+* Packing preference.
+* Driving willingness.
+* Cost preference.
+* Specialty-item needs.
 
-Expected themes:
+Expected:
 
-* Clarify specialty handling or budget tolerance.
-* Do not recommend full-service moving.
+* The response contains fewer questions or zero suggestions.
+* `fallback_recommended` may be `true`.
+* The model does not manufacture a gap merely to fill the quota.
+* No known information is requested again.
 
-### Scenario D — Core Information Already Known
+### Scenario D — Conflicting or Ambiguous State
 
-Trusted context:
+Known:
 
-* Storage need is known.
-* Packing preference is known.
-* Driving willingness is known.
-* Cost preference is known.
+* Convenience is recorded as most important.
+* A strict moving budget is also recorded.
+* The deterministic system marks the related tradeoff category as conflicting
+  and eligible for clarification.
 
-Expected behavior:
+Expected:
 
-* Identify another gap supported by the fixture, such as specialty handling, or
-  return zero suggestions.
-* Do not repeat known questions.
+* The AI may suggest clarifying the approved cost-versus-convenience category.
+* The question identifies the tradeoff without assuming which value should
+  win.
+* The AI does not resolve the conflict.
+* Any answer remains subject to deterministic validation and user
+  confirmation.
 
-### Scenario E — No Applicable Knowledge
+### Optional Scenario E — No Applicable Knowledge
 
-Trusted context:
+Known:
 
-* Missing information exists.
-* Supplied curated items do not ground a useful question about it.
+* A missing-information category exists.
+* The supplied curated knowledge does not ground a useful question about it.
 
-Expected behavior:
+Expected:
 
-* Return zero suggestions.
-* State that supplied knowledge does not support another useful question.
+* The response contains zero suggestions.
+* `fallback_recommended` is `true`.
+* The model does not use outside knowledge to manufacture a question.
 
-## Evaluation Gates
+## 14. Evaluation Rubric
 
-Passing one gate does not imply passage of the next.
+Evaluation has separate validity, usefulness, and promotion gates.
 
-### Gate 1 — Valid Output
+### Automated Validity
 
-The result:
-
-* Passes schema validation.
-* Uses only knowledge IDs supplied in the request.
-* Contains no unsupported claims.
-* Does not ask for known information.
-* Does not attempt state mutation.
-* Obeys suggestion-count and confirmation rules.
-
-Invalid output is discarded and the deterministic fallback is used.
-
-### Gate 2 — Useful Output
-
-Human review confirms that the suggestion:
-
-* Is relevant.
-* Is context-sensitive.
-* Could improve Decision readiness.
-* Provides value beyond different wording.
-* Is at least as useful as the frozen deterministic fallback.
-* Uses the smallest justified number of questions.
-
-A structurally valid result that fails this gate is not evidence of a useful AI
-capability.
-
-### Gate 3 — Promotion-Ready Capability
-
-Across the fixed evaluation set, the capability:
-
-* Performs reliably.
-* Meets declared grounding thresholds.
-* Remains within cost and latency budgets.
-* Has a dependable deterministic fallback.
-* Demonstrates consistent user value.
-* Does not create unacceptable human-review or deterministic-filtering burden.
-
-Only a capability that passes all three gates may be proposed for a later
-product-integration slice.
-
-## Automated Evaluation
-
-Automated checks cover:
+Automated evaluation measures:
 
 * Schema validity.
-* Zero to three suggestions.
-* Correct capability, request, and prompt versions.
-* Valid affected Decision ID.
-* Knowledge IDs exist in the request.
-* `requires_user_confirmation` is always `true`.
-* Known-information categories are not requested.
-* Normalized questions are not duplicated.
-* Additional questions clarify distinct information.
-* No provider, pricing, regulation, availability, or booking-window claim.
-* No state-mutation field or command.
-* Empty results include `no_suggestion_reason`.
-* Input and output remain within size limits.
-* Cost and latency logs exist.
+* Capability and version validity.
+* Suggestion-count validity.
+* Knowledge-reference validity.
+* Decision-reference validity.
+* Category and answer-type validity.
+* Confirmation-boundary validity.
+* Known-state respect.
+* Duplicate detection.
+* Output-size compliance.
+* Absence of mutation commands and prohibited claims.
 
-Automated validation establishes Gate 1. It cannot establish usefulness or
-promotion readiness by itself.
+Any failed automated validity check rejects the complete response and invokes
+the deterministic fallback.
 
-## Human Evaluation
+### Human Usefulness Review
 
-Human reviewers assess:
+Human reviewers score each valid response from 1 to 5 for:
 
-* Relevance
-* Context sensitivity
-* Question clarity
-* Potential effect on Decision readiness
-* Grounding quality
-* Honest uncertainty
-* Value beyond alternate wording
-* Comparison with the deterministic fallback
-* Meaningful differences across fixtures
-* Whether the suggestion implies a preferred service model
-* Whether every additional question adds material value
+* Relevance.
+* Grounding.
+* Nonduplication.
+* Usefulness.
+* Clarity.
+* Respect for known state.
+* Respect for missing-state boundaries.
+* Appropriate number of questions.
+* Value beyond the deterministic baseline.
 
-The implementation design must define a small scoring rubric and pass threshold
-before evaluation begins. Human review establishes Gate 2 and contributes to
-Gate 3.
+Reviewers also record:
 
-## Baseline Comparison
+* Whether a suggestion implies a preferred service model.
+* Whether its rationale is supported by supplied knowledge.
+* Whether every additional suggestion adds material value.
+* Whether the user accepts, rejects, or ignores the displayed suggestion.
 
-Every fixture runs through:
+### Measured Operational Criteria
 
-1. The frozen deterministic baseline.
-2. The AI capability.
+The experiment measures:
 
-Compare:
+* Schema-valid response rate.
+* Hallucination rate.
+* Unsupported-reference rate.
+* User acceptance, rejection, and ignore rate.
+* Cost per invocation.
+* Latency.
+* Fallback invocation rate.
+* Fallback quality.
 
-* Relevance
-* Repetition
-* Context sensitivity
-* Usefulness of rationale
-* Number of questions
-* Cost
-* Latency
+### Failure
 
-The experiment succeeds only when AI provides material, repeatable benefit over
-the frozen fallback. Better phrasing alone is not sufficient.
+The experiment fails if it produces:
 
-## Cost and Operational Budget
+* Any automatic trusted-state mutation.
+* Any provider or service-model selection.
+* Repeated requests for known information.
+* Unsupported references or claims.
+* A manufactured gap in Scenario C.
+* An AI-resolved conflict in Scenario D.
+* Unreliable structured output.
+* Cost or latency above the declared ceilings.
+* A deterministic fallback that is not independently useful.
+* No material, repeatable value beyond the frozen deterministic baseline.
+* A safety burden that requires extensive post-processing or human repair.
 
-Initial experiment limits:
+Passing automated validation alone is not experiment success.
+
+## 15. Cost and Latency Budget
+
+Initial provisional experiment limits:
 
 ```text
-maximum input: 4,000 tokens
-maximum output: 700 tokens
+maximum input tokens: 3,000
+maximum output tokens: 500
 maximum suggestions: 3
 expected default suggestions: 1
-target cost per call: $0.01 or less
-hard cost ceiling per call: $0.03
+model calls: 1 per explicit user action
+automatic retries: 0
+target estimated cost per call: $0.01 or less
+hard estimated cost ceiling per call: $0.03
 monthly experiment ceiling: $10
 target latency: 5 seconds or less
-hard timeout: 15 seconds
-automatic model retries: 0
+hard timeout: 12 seconds
+live research: prohibited
 background calls: prohibited
 routine-render calls: prohibited
 ```
 
-These are experiment limits, not production pricing commitments.
+These are experiment budgets, not vendor or production pricing commitments.
+No final model or provider is selected by this document. A later evaluation
+should use the least expensive model that reliably satisfies the contract.
 
-The least expensive model that reliably meets the contract should be preferred,
-but provider and model selection remain explicitly deferred.
+The deterministic system checks the monthly ceiling before making a request.
+No automatic retry occurs in v1. A timeout, invalid response, or transient
+failure resolves to the deterministic fallback rather than another model call.
 
-Logging should record:
+### Cache Policy
 
-```text
-capability
-prompt_version
-fixture_version
-baseline_version
-input_tokens
-output_tokens
-estimated_cost
-latency
-validation_result
-cache_status
-fallback_reason
-```
-
-## Cache Contract
-
-User-facing experiment operation may reuse a previously validated result for
-identical context.
+A user-facing experiment may reuse a previously validated response only for
+identical normalized context.
 
 The cache key includes:
 
 ```text
 capability
 prompt_version
+schema_version
 normalized_trusted_state_hash
 missing_information_hash
-curated_fixture_version
-baseline_version
+knowledge_fixture_version
+fallback_baseline_version
 ```
 
 Rules:
 
 * Never cache or reuse invalid or ungrounded output.
-* Invalidate when trusted state, missing information, prompt, fixture, or
-  baseline version changes.
-* Allow explicitly uncached runs during controlled evaluation.
-* Record cache status in capability logs.
+* Invalidate when trusted state, missing information, prompt, schema,
+  knowledge fixture, or baseline version changes.
+* Permit explicitly uncached runs during controlled evaluation.
+* Record cache status in observability data.
 * Never treat a cached suggestion as trusted state.
 
-## Failure Modes
+## 16. Observability
 
-| Failure | Detection | Safe behavior |
-| --- | --- | --- |
-| Invalid JSON or schema | Schema validator | Discard response; use fallback |
-| Unknown knowledge ID | Grounding validator | Discard response; use fallback |
-| Unsupported factual claim | Grounding validator or review | Reject response; use fallback |
-| Question about known information | Deterministic validator | Reject suggestion; use next valid suggestion or fallback |
-| Duplicate questions | Normalized comparison | Reject duplicates; use one valid suggestion or fallback |
-| Irrelevant question | Human rubric | Record Gate 2 failure; do not promote |
-| Overly broad or compound question | Automated rule or human review | Reject suggestion; use fallback |
-| Unnecessary additional question | Human comparison | Penalize usefulness score |
-| Timeout | Hard request deadline | Cancel request; use fallback |
-| Budget exhausted | Deterministic pre-call check | Do not call AI; use fallback |
-| Curated knowledge unavailable | Eligibility check | Do not call AI; use fallback |
-| Prompt or fixture mismatch | Version validation | Reject request or response; use fallback |
-| Baseline mismatch | Version validation | Do not evaluate until versions align |
+Log the minimum metadata needed to evaluate reliability, cost, latency, and
+user response:
 
-No failure changes trusted state or blocks the user.
+```text
+capability
+prompt_version
+schema_version
+scenario_or_fixture_id
+model_identifier
+knowledge_fixture_version
+fallback_baseline_version
+referenced_knowledge_ids
+input_tokens
+output_tokens
+estimated_cost
+duration
+schema_valid
+fallback_used
+fallback_reason
+suggestion_count
+displayed_question_id
+selected_missing_information_category
+user_disposition
+cache_status
+```
 
-## Explicitly Deferred Work
+`user_disposition` supports:
+
+```text
+accepted
+rejected
+ignored
+not_shown
+```
+
+Do not log by default:
+
+* Full prompts.
+* Raw conversation history.
+* Unnecessary trusted-state values.
+* Sensitive user answers.
+* Entire model responses when bounded evaluation metadata is sufficient.
+
+Logs do not become trusted Goal state. Retention and access policies must be
+defined before collecting real-user experimental data.
+
+## 17. Success Criteria
+
+The experiment succeeds only if:
+
+* Suggestions respond materially to supplied state.
+* Questions do not repeat known information.
+* Questions target only approved missing or conflicting categories.
+* Rationales are grounded in supplied curated knowledge.
+* Structured output validates reliably.
+* No output automatically mutates trusted state.
+* The confirmation boundary remains intact.
+* The deterministic fallback remains useful.
+* Cost and latency remain within the declared budget.
+* Intended users find at least some suggestions meaningfully helpful.
+* AI demonstrates material, repeatable value beyond different wording of the
+  deterministic fallback.
+
+Success at this experiment validates only the bounded question-suggestion
+capability. It does not authorize service-model comparison, live research,
+answer interpretation, autonomous operation, or any other deferred capability.
+
+## 18. Explicitly Deferred Work
 
 This experiment defers:
 
-* Free-form answer interpretation
-* Production moving-service Decision and state modeling
-* Automated question-to-field mapping
-* Live research
-* Provider search or ranking
-* Quote collection
-* Booking
-* Current provider availability
-* Current pricing
-* Current regulations
-* Booking-window logic
-* General moving-service comparison
-* Automatic writes to trusted state
-* General-purpose chat
-* Cross-domain orchestration
-* Vector databases
-* Background agents
-* Production persistence for AI suggestions
-* Model-provider selection
-* Model selection
+* Live moving-company research.
+* Provider recommendations.
+* Provider rankings.
+* Quotes and availability.
+* Booking-window implementation.
+* Automatic service-model selection.
+* Full moving-service-model comparison.
+* Free-form answer interpretation.
+* General-purpose chat.
+* Autonomous background AI.
+* Vector database or embedding infrastructure.
+* Cross-domain suggestion orchestration.
+* Automatic writes to trusted state.
+* Provider or model selection.
+* Production persistence for AI suggestions.
+* General moving-plan generation.
 
-## Experiment Completion Criteria
+## 19. Staged Implementation Recommendation
 
-The design is ready for a later implementation slice when:
+The experiment should be implemented in two separately reviewed steps.
 
-* Input and output schemas are unambiguous.
-* Curated knowledge fixtures are defined.
-* The deterministic baseline checklist, filters, priority, and version are
-  frozen.
-* Test fixtures and expected qualities are documented.
-* Automated Gate 1 checks are specified.
-* The Gate 2 human rubric and pass threshold are declared.
-* Gate 3 promotion thresholds are declared.
-* Fallback behavior is complete.
-* Cost and latency limits are declared.
-* Cache identity and invalidation are defined.
-* User-confirmation boundaries are explicit.
-* No unresolved question would force an implementer to invent product
-  behavior.
+### Step 1 — Fake or Deterministic Adapter
 
-Implementation completion is not the same as experiment success. The
-capability should be promoted only if it passes all three evaluation gates.
+The first adapter returns fixed fixture responses and validates:
 
-## Open Decisions for a Later Implementation Slice
+* Request construction.
+* Schema validation.
+* Complete-response rejection behavior.
+* Deterministic fallback behavior.
+* UI presentation.
+* User-confirmation boundaries.
+* Observability.
 
-The design intentionally leaves these decisions for a bounded implementation
-proposal:
+This step proves that GoTime can enforce the contract independently of a model.
+It does not prove that AI adds product value, produces useful questions, or
+outperforms the deterministic baseline.
 
+Before Step 1 is complete:
+
+* The deterministic fallback baseline must be frozen and versioned.
+* Baseline applicability and priority rules must have focused tests.
+* Valid, invalid, empty, duplicate, unsupported-reference, and over-limit fake
+  responses must be covered.
+* The UI must show no more than one suggestion at a time.
+* Boolean and enum confirmation flows must preserve the trusted-state boundary.
+* Observability must record both suggestion and fallback outcomes.
+
+### Step 2 — Real-Model Adapter
+
+A real-model experiment may begin only after:
+
+* Curated knowledge statements have reviewed sources.
+* The knowledge fixture is complete and versioned.
+* Fake-adapter contract tests pass.
+* The deterministic fallback baseline is frozen, versioned, and tested.
+* Cost, latency, and evaluation collection are ready.
+
+The real-model adapter must use the same request and response contracts as the
+fake adapter. Introducing a model does not relax deterministic validation,
+fallback behavior, confirmation boundaries, or observability requirements.
+
+Every fixed scenario must run through both:
+
+1. The frozen deterministic fallback baseline.
+2. The real-model capability.
+
+The experiment should advance only if the model provides material, repeatable
+benefit beyond the baseline. Better phrasing alone is not sufficient.
+
+## 20. Open Decisions Before Implementation
+
+The following decisions remain for a bounded implementation proposal:
+
+* The exact allowlisted state fields in the first request.
+* The exact missing-information category identifiers.
+* The boolean and enum values supported by each category.
+* The minimum curated statements and reviewed sources.
 * The exact JSON Schema representation.
-* The content and source review of the six curated fixture items.
-* The baseline checklist text and fixed priority ordering.
-* The Gate 2 scoring scale and pass threshold.
-* The Gate 3 reliability and grounding thresholds.
-* The exact test-run count.
-* The provider and model.
-* How a later interface presents one suggestion when multiple valid
-  suggestions are returned.
+* The prompt, schema, fixture, and baseline version identifiers.
+* The deterministic fallback question wording and fixed priority order.
+* The deterministic rule for selecting one returned suggestion for display.
+* The normalized-text near-duplicate threshold.
+* The human evaluation scoring threshold.
+* The promotion-ready schema-validity and grounding thresholds.
+* The required number of repeated real-model fixture runs.
+* The model characteristics required for reliable structured output.
+* The exact mechanism for recording accepted, rejected, ignored, and
+  not-shown suggestions.
+* Whether user-facing caching is enabled during initial testing.
+* The retention and access policy for experiment observability data.
+* The deterministic event or state that means the user has reached the
+  moving-service research stage.
 
-These decisions must be resolved before the first AI evaluation run, not
-invented during evaluation.
+These decisions must be resolved before the relevant implementation or
+evaluation step. They must not be invented during a real-model evaluation run.
