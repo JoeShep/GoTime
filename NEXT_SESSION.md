@@ -745,3 +745,83 @@ This milestone is complete when:
 Only after the knowledge fixture is approved should GoTime design the real-model adapter and controlled evaluation run.
 
 That later milestone should compare real-model suggestions against the frozen deterministic fallback using the approved fixtures, rubric, cost ceiling, and latency limits.
+
+# Next Milestone — Design the Controlled Real-Model Evaluation
+
+## Objective
+
+Design the controlled real-model evaluation for:
+
+`suggest_moving_service_questions`
+
+The evaluation should determine whether a real model provides material,
+repeatable value beyond the frozen deterministic fallback for the approved
+`storage_unknown` fixture.
+
+This is an evaluation-design milestone, not a production rollout. Do not
+implement or enable the real-model adapter until its boundary, controls,
+credentials, evaluation protocol, and failure behavior have been reviewed.
+
+## Design Scope
+
+Define:
+
+* A provisional, capability-specific model adapter boundary that preserves the
+  approved runtime request and response contracts.
+* Evaluation-only credentials and configuration that cannot silently enable
+  production or background use.
+* The exact fixed scenarios to run, including the approved `storage_unknown`
+  fixture and required negative or no-question controls.
+* A fixed repeated-run count for each model and scenario combination.
+* The minimum schema-validity threshold required to continue evaluation.
+* Automated and human checks for grounded knowledge use, unsupported claims,
+  hallucinations, known-state repetition, and prohibited recommendations.
+* The existing per-call cost ceiling, monthly experiment ceiling, target
+  latency, and hard timeout.
+* A comparison method against the frozen deterministic fallback that measures
+  usefulness rather than wording alone.
+* A bounded human review process, reviewer rubric, and result-recording format.
+* Explicit promotion criteria and failure criteria.
+* A safe rollback path to the fake adapter or deterministic fallback when the
+  model is unavailable, invalid, over budget, too slow, or not demonstrably
+  better.
+
+## Required Boundaries
+
+The design must:
+
+* Keep the experiment limited to
+  `suggest_moving_service_questions`.
+* Preserve complete-response validation and rejection.
+* Preserve explicit user invocation and the trusted-state confirmation
+  boundary.
+* Use only the approved, versioned storage knowledge for the controlled
+  `storage_unknown` evaluation.
+* Keep the frozen deterministic fallback as both the comparison baseline and
+  safe no-model path.
+* Prevent evaluation credentials or configuration from becoming production
+  defaults.
+* Define how evaluation observability excludes full prompts, full responses,
+  sensitive answers, and unnecessary trusted state.
+* Stop the evaluation when cost, latency, validity, grounding, or safety limits
+  are exceeded.
+
+## Out of Scope
+
+Do not:
+
+* Roll the capability out to production users.
+* Add autonomous or background model calls.
+* Add provider recommendations, rankings, pricing, availability, or live
+  research.
+* Expand the knowledge fixture beyond what an approved evaluation scenario
+  requires.
+* Add vector infrastructure, persistence, general-purpose chat, or generic
+  cross-domain AI abstractions.
+* Change trusted-state behavior or allow model output to write state.
+
+## Expected Deliverable
+
+Produce a reviewed evaluation protocol that is precise enough to implement in
+a later, separately approved slice. Stop before adding a provider SDK,
+credentials, or a real-model adapter.
