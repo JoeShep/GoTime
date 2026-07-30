@@ -19,6 +19,7 @@ from app.moving_service_questions import (  # noqa: E402
     FALLBACK_QUESTIONS,
     FALLBACK_VERSION,
     KNOWLEDGE_VERSION,
+    MAXIMUM_INPUT_TOKENS,
     PROMPT_VERSION,
     SCHEMA_VERSION,
     STORAGE_KNOWLEDGE,
@@ -151,8 +152,13 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
     )
     if not manifest["contract_test_eligible"]:
         _fail("manifest: reconciled v1 package must be contract-test eligible")
-    if manifest["real_model_evaluation_eligible"]:
-        _fail("manifest: implementation knowledge is not real-model eligible")
+    if manifest["status"] != "controlled_storage_question_evaluation_ready":
+        _fail("manifest: controlled storage evaluation status is required")
+    if not manifest["real_model_evaluation_eligible"]:
+        _fail(
+            "manifest: approved storage fixture must be eligible for its "
+            "controlled real-model evaluation"
+        )
 
 
 def _validate_knowledge(artifacts: dict[str, dict]) -> tuple[CuratedKnowledgeItem, ...]:
@@ -170,10 +176,17 @@ def _validate_knowledge(artifacts: dict[str, dict]) -> tuple[CuratedKnowledgeIte
     )
     if knowledge["fixture_version"] != KNOWLEDGE_VERSION:
         _fail("knowledge: fixture version does not match runtime")
-    if knowledge["real_model_grounding_approved"] is not False:
-        _fail("knowledge: implementation fixture cannot be real-model approved")
+    if knowledge["status"] != "reviewed_controlled_evaluation_fixture":
+        _fail("knowledge: approved fixture status is required")
+    if knowledge["real_model_grounding_approved"] is not True:
+        _fail("knowledge: approved storage grounding must be recorded")
+    if (
+        "controlled_storage_question_model_evaluation"
+        not in knowledge["valid_for"]
+    ):
+        _fail("knowledge: controlled evaluation scope is required")
     if not knowledge["limitations"]:
-        _fail("knowledge: implementation limitations are required")
+        _fail("knowledge: controlled-evaluation limitations are required")
     try:
         items = tuple(
             CuratedKnowledgeItem.model_validate(item)
@@ -265,6 +278,7 @@ def _build_scenario_requests(
                 "purpose",
                 "trusted_state",
                 "expected_missing_categories",
+                "expected_knowledge_ids",
             ),
             "scenario",
         )
@@ -290,6 +304,19 @@ def _build_scenario_requests(
         ]
         if actual_categories != scenario["expected_missing_categories"]:
             _fail(f"scenario {fixture_id}: missing categories do not match")
+        actual_knowledge_ids = [
+            item.knowledge_id for item in request.curated_knowledge_items
+        ]
+        if actual_knowledge_ids != scenario["expected_knowledge_ids"]:
+            _fail(f"scenario {fixture_id}: knowledge IDs do not match")
+        request_bytes = len(
+            json.dumps(serialized, separators=(",", ":")).encode("utf-8")
+        )
+        if request_bytes > MAXIMUM_INPUT_TOKENS:
+            _fail(
+                f"scenario {fixture_id}: request exceeds the conservative "
+                "3,000-token byte upper bound"
+            )
         requests[fixture_id] = request
     return requests
 
@@ -398,6 +425,9 @@ def _validate_execution_expectations(
             "expected_fallback_reason": result.observability.fallback_reason,
             "expected_suggestion_count": result.observability.suggestion_count,
             "expected_cost": result.observability.estimated_cost,
+            "expected_referenced_knowledge_ids": list(
+                result.observability.referenced_knowledge_ids
+            ),
         }
         for field, value in actual.items():
             if case[field] != value:

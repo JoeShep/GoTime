@@ -735,3 +735,53 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Review and approve the reconciled artifact package.
 - If approved, plan a separate curated-knowledge review slice before any
   real-model evaluation work.
+
+---
+
+## Session 16 -- Reviewed Storage-Question Knowledge
+
+### Completed
+
+- Replaced the implementation-only storage statement with one bounded,
+  source-backed statement for interstate household-goods movers.
+- Reviewed the FMCSA handbook *Your Rights and Responsibilities When You Move*
+  and recorded its supporting sections, publication metadata, limitations,
+  freshness policy, and corroborating federal regulation.
+- Added a stable approved knowledge ID and incremented the knowledge item and
+  fixture versions.
+- Updated runtime data, artifact scenarios, response fixtures, fallback
+  references, observability expectations, and anti-drift tests consistently.
+- Added conservative request-size enforcement against the 3,000-token
+  experiment ceiling.
+- Marked the package eligible only for a controlled real-model evaluation of
+  the `storage_unknown` question suggestion.
+
+### Boundaries
+
+- Readiness does not mean production approval, complete moving-service
+  knowledge, or readiness for service-model comparison.
+- The reviewed item does not apply to portable containers, rental trucks,
+  brokers, providers, pricing, availability, rankings, or recommendations.
+- The deterministic fallback selection and trusted-state behavior are
+  unchanged.
+- Production remains independent from files under `docs/`.
+- No real model, SDK, credential, live application research, persistence,
+  vector infrastructure, or external telemetry was introduced.
+
+### Verification
+
+- Artifact compatibility tests: 12 passed.
+- Backend tests: 90 passed.
+- Frontend tests: 17 passed.
+- Frontend production build: passed.
+- Backend Python compilation: passed.
+- The serialized `storage_unknown` request is 2,610 bytes, a conservative
+  upper bound below the 3,000-token experiment ceiling.
+- Docker Compose rebuilt successfully; backend health, frontend startup, and
+  all seven experiment paths through the frontend proxy passed.
+
+### Next
+
+- Review and commit the knowledge-curation milestone.
+- Only after approval, design a separate real-model adapter and controlled
+  evaluation run against the frozen deterministic fallback.

@@ -1,29 +1,31 @@
 {
-  "fixture_version": "moving-service-storage-fixture-v1",
-  "status": "implementation_fixture",
+  "fixture_version": "moving-service-storage-fixture-v2",
+  "status": "reviewed_controlled_evaluation_fixture",
   "valid_for": [
     "fake_adapter_testing",
-    "contract_compatibility_testing"
+    "contract_compatibility_testing",
+    "controlled_storage_question_model_evaluation"
   ],
-  "real_model_grounding_approved": false,
+  "real_model_grounding_approved": true,
   "limitations": [
-    "The source is an explicit GoTime implementation fixture, not an approved moving-industry source.",
-    "The statement has not been approved for real-model grounding.",
-    "The fixture does not establish that the broader six-model moving-service knowledge set is complete."
+    "Approval is limited to grounding the storage_unknown question-suggestion evaluation.",
+    "The item does not recommend a provider or moving-service model.",
+    "The fixture does not establish that the broader six-model moving-service knowledge set is complete or ready for comparison."
   ],
   "items": [
     {
-      "knowledge_id": "moving-service.storage-question.fixture.v1",
-      "service_model": "multiple_moving_service_models",
-      "statement": "A need for temporary storage can affect which moving-service models are practical to investigate.",
+      "knowledge_id": "moving-service.temporary-storage-planning.fmcsa.v1",
+      "service_model": "interstate_household_goods_mover",
+      "statement": "For an interstate move handled by a household-goods mover, a possible need for temporary storage before final delivery is relevant when identifying the services to request.",
       "tradeoff_category": "temporary_storage",
       "applicable_conditions": [
+        "move_is_interstate",
         "temporary_storage_need_is_unknown"
       ],
-      "source": "GoTime implementation experiment fixture; not approved for real-model use.",
-      "reviewed_at": "2026-07-27",
-      "freshness_guidance": "Fixture-only statement; review and source approval are required before real-model evaluation.",
-      "version": "1.0.0"
+      "source": "U.S. DOT, FMCSA, Your Rights and Responsibilities When You Move, https://www.fmcsa.dot.gov/sites/fmcsa.dot.gov/files/2023-10/FMCSA_R%26R_Handbook_Web_v1.pdf (rev. Oct. 2022)",
+      "reviewed_at": "2026-07-30",
+      "freshness_guidance": "Review every 24 months or sooner if FMCSA revises or withdraws the handbook; not valid for provider offerings, prices, or availability.",
+      "version": "2.0.0"
     }
   ]
 }

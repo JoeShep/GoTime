@@ -21,7 +21,7 @@ def test_v1_artifacts_are_compatible_with_runtime_contracts() -> None:
     )
 
     assert result["manifest"]["contract_test_eligible"] is True
-    assert result["manifest"]["real_model_evaluation_eligible"] is False
+    assert result["manifest"]["real_model_evaluation_eligible"] is True
     assert result["knowledge_item_count"] == 1
     assert len(result["request_fixtures"]) == 3
     assert len(result["response_results"]) == 10

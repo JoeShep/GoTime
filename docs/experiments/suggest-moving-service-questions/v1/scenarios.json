@@ -1,5 +1,5 @@
 {
-  "scenario_version": "moving-service-scenarios-v1.1",
+  "scenario_version": "moving-service-scenarios-v1.2",
   "status": "contract_test_fixture",
   "expected_request_fields": [
     "capability",
@@ -61,6 +61,9 @@
       },
       "expected_missing_categories": [
         "temporary_storage_need"
+      ],
+      "expected_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
       ]
     },
     {
@@ -100,7 +103,10 @@
           "The household is unwilling to drive a rental truck."
         ]
       },
-      "expected_missing_categories": []
+      "expected_missing_categories": [],
+      "expected_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ]
     },
     {
       "fixture_id": "validation_multiple_gaps",
@@ -142,6 +148,9 @@
       "expected_missing_categories": [
         "temporary_storage_need",
         "specialty_item_needs"
+      ],
+      "expected_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
       ]
     }
   ]

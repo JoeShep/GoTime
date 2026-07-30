@@ -1,5 +1,5 @@
 {
-  "expectations_version": "moving-service-expectations-v1.1",
+  "expectations_version": "moving-service-expectations-v1.2",
   "status": "contract_test_fixture",
   "stable_observability_fields": [
     "capability",
@@ -32,7 +32,10 @@
       "expected_fallback_used": false,
       "expected_fallback_reason": null,
       "expected_suggestion_count": 1,
-      "expected_cost": "$0.00"
+      "expected_cost": "$0.00",
+      "expected_referenced_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ]
     },
     {
       "fixture_id": "complete",
@@ -42,7 +45,8 @@
       "expected_fallback_used": false,
       "expected_fallback_reason": null,
       "expected_suggestion_count": 0,
-      "expected_cost": "$0.00"
+      "expected_cost": "$0.00",
+      "expected_referenced_knowledge_ids": []
     },
     {
       "fixture_id": "invalid_ai_response",
@@ -52,7 +56,10 @@
       "expected_fallback_used": true,
       "expected_fallback_reason": "invalid_adapter_response",
       "expected_suggestion_count": 0,
-      "expected_cost": "$0.00"
+      "expected_cost": "$0.00",
+      "expected_referenced_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ]
     },
     {
       "fixture_id": "adapter_unavailable",
@@ -62,7 +69,10 @@
       "expected_fallback_used": true,
       "expected_fallback_reason": "adapter_unavailable",
       "expected_suggestion_count": 0,
-      "expected_cost": "$0.00"
+      "expected_cost": "$0.00",
+      "expected_referenced_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ]
     },
     {
       "fixture_id": "adapter_timeout",
@@ -72,7 +82,10 @@
       "expected_fallback_used": true,
       "expected_fallback_reason": "adapter_timeout",
       "expected_suggestion_count": 0,
-      "expected_cost": "$0.00"
+      "expected_cost": "$0.00",
+      "expected_referenced_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ]
     },
     {
       "fixture_id": "budget_unavailable",
@@ -82,7 +95,10 @@
       "expected_fallback_used": true,
       "expected_fallback_reason": "experimental_budget_unavailable",
       "expected_suggestion_count": 0,
-      "expected_cost": "$0.00"
+      "expected_cost": "$0.00",
+      "expected_referenced_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ]
     },
     {
       "fixture_id": "ai_disabled",
@@ -92,7 +108,10 @@
       "expected_fallback_used": true,
       "expected_fallback_reason": "ai_assistance_disabled",
       "expected_suggestion_count": 0,
-      "expected_cost": "$0.00"
+      "expected_cost": "$0.00",
+      "expected_referenced_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ]
     }
   ]
 }

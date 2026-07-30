@@ -54,7 +54,7 @@
       "question": "Will you need temporary storage between homes?",
       "why_it_matters": "Storage needs can change which moving-service models are practical to investigate.",
       "relevant_knowledge_ids": [
-        "moving-service.storage-question.fixture.v1"
+        "moving-service.temporary-storage-planning.fmcsa.v1"
       ]
     },
     {

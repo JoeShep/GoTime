@@ -14,10 +14,11 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 CAPABILITY = "suggest_moving_service_questions"
 PROMPT_VERSION = "moving-service-questions-prompt-v1"
 SCHEMA_VERSION = "moving-service-questions-schema-v1"
-KNOWLEDGE_VERSION = "moving-service-storage-fixture-v1"
+KNOWLEDGE_VERSION = "moving-service-storage-fixture-v2"
 FALLBACK_VERSION = "moving-service-fallback-v1"
 ADAPTER_IDENTIFIER = "fake-moving-service-question-adapter-v1"
 MAXIMUM_QUESTIONS = 3
+MAXIMUM_INPUT_TOKENS = 3_000
 MAXIMUM_OUTPUT_TOKENS = 500
 MAXIMUM_RESPONSE_CHARACTERS = 8_000
 MOVING_SERVICE_DECISION_ID = "moving-service-model"
@@ -154,7 +155,7 @@ class MovingServiceQuestionRequest(ExperimentModel):
     requested_output: RequestedOutput
     prompt_version: Literal["moving-service-questions-prompt-v1"]
     schema_version: Literal["moving-service-questions-schema-v1"]
-    knowledge_fixture_version: Literal["moving-service-storage-fixture-v1"]
+    knowledge_fixture_version: Literal["moving-service-storage-fixture-v2"]
     maximum_questions: Literal[3]
     maximum_output_tokens: Literal[500]
 
@@ -236,23 +237,29 @@ class AdapterTimeoutError(TimeoutError):
 
 
 STORAGE_KNOWLEDGE = CuratedKnowledgeItem(
-    knowledge_id="moving-service.storage-question.fixture.v1",
-    service_model="multiple_moving_service_models",
+    knowledge_id="moving-service.temporary-storage-planning.fmcsa.v1",
+    service_model="interstate_household_goods_mover",
     statement=(
-        "A need for temporary storage can affect which moving-service models are "
-        "practical to investigate."
+        "For an interstate move handled by a household-goods mover, a possible "
+        "need for temporary storage before final delivery is relevant when "
+        "identifying the services to request."
     ),
     tradeoff_category="temporary_storage",
-    applicable_conditions=("temporary_storage_need_is_unknown",),
+    applicable_conditions=(
+        "move_is_interstate",
+        "temporary_storage_need_is_unknown",
+    ),
     source=(
-        "GoTime implementation experiment fixture; not approved for real-model use."
+        "U.S. DOT, FMCSA, Your Rights and Responsibilities When You Move, "
+        "https://www.fmcsa.dot.gov/sites/fmcsa.dot.gov/files/2023-10/"
+        "FMCSA_R%26R_Handbook_Web_v1.pdf (rev. Oct. 2022)"
     ),
-    reviewed_at="2026-07-27",
+    reviewed_at="2026-07-30",
     freshness_guidance=(
-        "Fixture-only statement; review and source approval are required before "
-        "real-model evaluation."
+        "Review every 24 months or sooner if FMCSA revises or withdraws the "
+        "handbook; not valid for provider offerings, prices, or availability."
     ),
-    version="1.0.0",
+    version="2.0.0",
 )
 
 

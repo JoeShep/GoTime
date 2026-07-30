@@ -33,10 +33,8 @@ class ArtifactCompatibilityTests(unittest.TestCase):
 
         self.assertTrue(manifest["contract_test_eligible"])
         self.assertEqual([], manifest["contract_test_ineligibility_reasons"])
-        self.assertFalse(manifest["real_model_evaluation_eligible"])
-        self.assertGreater(
-            len(manifest["real_model_ineligibility_reasons"]), 0
-        )
+        self.assertTrue(manifest["real_model_evaluation_eligible"])
+        self.assertEqual([], manifest["real_model_ineligibility_reasons"])
 
     def test_false_readiness_requires_a_reason(self):
         self.assert_rejected(
@@ -112,13 +110,15 @@ class ArtifactCompatibilityTests(unittest.TestCase):
             )
         )
 
-    def test_knowledge_remains_explicitly_unapproved(self):
+    def test_knowledge_is_approved_only_for_the_controlled_storage_evaluation(self):
         knowledge = self.artifacts["knowledge"]
 
-        self.assertEqual("implementation_fixture", knowledge["status"])
-        self.assertFalse(knowledge["real_model_grounding_approved"])
+        self.assertEqual(
+            "reviewed_controlled_evaluation_fixture", knowledge["status"]
+        )
+        self.assertTrue(knowledge["real_model_grounding_approved"])
         self.assertIn(
-            "fake_adapter_testing",
+            "controlled_storage_question_model_evaluation",
             knowledge["valid_for"],
         )
         self.assertTrue(knowledge["limitations"])

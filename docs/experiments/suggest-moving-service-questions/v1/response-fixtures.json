@@ -1,5 +1,5 @@
 {
-  "response_fixture_version": "moving-service-response-fixtures-v1.1",
+  "response_fixture_version": "moving-service-response-fixtures-v1.2",
   "status": "contract_test_fixture",
   "cases": [
     {
@@ -18,9 +18,9 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "temporary_storage_need",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
-            "grounding_summary": "The supplied state marks temporary storage as missing, and moving-service.storage-question.fixture.v1 explains why it matters.",
+            "grounding_summary": "The supplied state marks temporary storage as missing, and moving-service.temporary-storage-planning.fmcsa.v1 explains why it matters.",
             "reason_not_deterministic": "The experiment is testing grounded question prioritization; the deterministic fallback remains available.",
             "uncertainties": [
               "The user has not confirmed a storage need."
@@ -99,7 +99,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "temporary_storage_need",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "The supplied storage gap grounds the question.",
             "reason_not_deterministic": "Contract rejection fixture.",
@@ -131,7 +131,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "willing_to_drive_rental_truck",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "Contract rejection fixture.",
             "reason_not_deterministic": "Contract rejection fixture.",
@@ -163,7 +163,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "temporary_storage_need",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "The supplied storage gap grounds the question.",
             "reason_not_deterministic": "Contract rejection fixture.",
@@ -179,7 +179,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "specialty_item_needs",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "Contract rejection fixture.",
             "reason_not_deterministic": "Contract rejection fixture.",
@@ -211,7 +211,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "temporary_storage_need",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "The supplied storage gap grounds the question.",
             "reason_not_deterministic": "Contract rejection fixture.",
@@ -227,7 +227,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "temporary_storage_need",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "The supplied storage gap grounds the question.",
             "reason_not_deterministic": "Contract rejection fixture.",
@@ -259,7 +259,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "temporary_storage_need",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "The supplied storage gap grounds the question.",
             "reason_not_deterministic": "Contract rejection fixture.",
@@ -275,7 +275,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "specialty_item_needs",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "Contract rejection fixture.",
             "reason_not_deterministic": "Contract rejection fixture.",
@@ -307,7 +307,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "temporary_storage_need",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "The supplied storage gap grounds the question.",
             "reason_not_deterministic": "Contract rejection fixture.",
@@ -342,7 +342,7 @@
             "affected_decision_id": "moving-service-model",
             "selected_missing_information_category": "temporary_storage_need",
             "relevant_knowledge_ids": [
-              "moving-service.storage-question.fixture.v1"
+              "moving-service.temporary-storage-planning.fmcsa.v1"
             ],
             "grounding_summary": "The supplied storage gap grounds the question.",
             "reason_not_deterministic": "Contract rejection fixture.",

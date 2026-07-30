@@ -6,7 +6,7 @@
 capability: suggest_moving_service_questions
 primary AI capability: State Discovery Assistance
 phase: design
-status: fake-adapter vertical slice implemented; pending review
+status: fake-adapter slice and controlled storage grounding fixture implemented
 ```
 
 This experiment tests whether bounded AI assistance can use trusted relocation
@@ -69,8 +69,9 @@ API.
 
 The implementation intentionally does not add moving-service fields to the
 current `Goal`, update trusted state, or trigger re-reasoning. It also does not
-use the older draft `v1` JSON knowledge artifacts at runtime. The implementation
-fixture remains explicitly unsuitable for real-model evaluation.
+load the `v1` JSON knowledge artifacts at runtime. Runtime and artifact
+compatibility tests instead keep the approved in-code storage item aligned with
+the documentation package.
 
 This slice proves contract enforcement and fallback behavior. It does not prove
 that AI adds product value.
@@ -94,10 +95,12 @@ Runtime code remains the schema and behavior authority. Production code does
 not load files from `docs/`; the artifacts are evaluation fixtures and contract
 examples.
 
-The manifest is contract-test eligible and explicitly not real-model-evaluation
-eligible. Its storage statement is an implementation fixture without an
-approved grounding source and does not establish that broader moving-service
-knowledge is complete.
+The manifest is contract-test eligible and eligible for one narrowly scoped
+real-model evaluation: the controlled `storage_unknown` question-suggestion
+fixture. Its storage statement has a reviewed FMCSA source. This readiness does
+not constitute production approval, establish that broader moving-service
+knowledge is complete, or authorize the later service-model comparison
+experiment.
 
 ## 1. Hypothesis
 
@@ -308,9 +311,20 @@ freshness_guidance
 version
 ```
 
-The fake-adapter contract fixture contains only the storage statement needed
-to prove request, grounding-reference, validation, and fallback behavior. It is
-an implementation fixture, not approved real-model grounding.
+The controlled fixture contains only the storage statement needed to ground
+the `storage_unknown` question-suggestion evaluation:
+
+> For an interstate move handled by a household-goods mover, a possible need
+> for temporary storage before final delivery is relevant when identifying the
+> services to request.
+
+The statement is grounded in the U.S. Department of Transportation Federal
+Motor Carrier Safety Administration handbook *Your Rights and Responsibilities
+When You Move*. The formal source review, limitations, and corroborating
+authority are recorded in
+`docs/experiments/suggest-moving-service-questions/v1/knowledge-source-review.md`.
+The statement does not apply to portable containers, rental trucks, brokers,
+or all moving-service models.
 
 The first real-model evaluation fixture needs reviewed knowledge for every
 category included in its approved evaluation scenarios. Broader

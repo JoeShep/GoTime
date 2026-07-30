@@ -15,7 +15,7 @@ const storageSuggestion = {
   allowed_enum_values: null,
   requires_user_confirmation: true as const,
   grounding_details: [
-    'A need for temporary storage can affect which moving-service models are practical to investigate.',
+    'For an interstate move handled by a household-goods mover, a possible need for temporary storage before final delivery is relevant when identifying the services to request.',
   ],
 }
 

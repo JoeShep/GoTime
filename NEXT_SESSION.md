@@ -533,6 +533,12 @@ load the package; application execution does not.
 
 # Next Session — Curate Knowledge for the First Real-Model Evaluation
 
+## Status
+
+Implementation complete and verified. The approved FMCSA-backed fixture is
+eligible only for a controlled real-model evaluation of the `storage_unknown`
+question suggestion. No real model has been connected.
+
 ## Previous Milestone
 
 The moving-service experiment artifacts have been reconciled with the approved runtime contract.
@@ -555,9 +561,11 @@ The current experiment now has:
 The artifact package is currently:
 
 * `contract_test_eligible: true`
-* `real_model_evaluation_eligible: false`
+* `real_model_evaluation_eligible: true`
 
-The package remains blocked from real-model evaluation because its curated storage statement is an implementation fixture without an approved grounding source.
+This readiness is limited to the controlled `storage_unknown` evaluation. It
+does not mean production approval, complete moving-service knowledge, or
+readiness for service-model comparison.
 
 ## Next Objective
 
