@@ -28,6 +28,15 @@ backend, or frontend. Its internal credential and constructor seams are tested
 only with explicit synthetic mappings and fake constructors; no SDK resource
 method is invoked.
 
+The separate `run_openai_control_path_dry_run.py` harness connects those seams
+end to end without changing runner admission. It first proves that the exact
+repository authorization is closed, then uses only its own fixed synthetic
+environment, concrete in-memory client constructors, and fake Responses API
+resources. This is simulation evidence, not credential, token-preflight,
+generation, or formal-evaluation authority. The harness has no command-line
+entry point and rejects subclasses or caller-provided environment mappings and
+constructors.
+
 ## 2. Frozen Inputs
 
 Any future integration must verify these exact artifacts before credential
@@ -350,6 +359,16 @@ Using only the injected fake SDK client:
 * test exact-count, budget, timeout, unavailable, refusal, incomplete, malformed,
   cache-reporting, and usage-consistency paths; and
 * prove no fake call occurs when a prior gate fails.
+
+The implemented control-path harness additionally exercises the frozen fixture
+order through request construction, synthetic credential validation, fake
+client construction, the OpenAI-specific transport, exact fake token preflight,
+fake generation, runtime response validation, cost accounting, exclusive
+bounded records, and stop-on-first-failure behavior. Every record states that
+all repository authorization flags remain false and that credential access and
+client construction were simulated. It excludes system instructions,
+serialized requests, full responses, trusted state, credentials, and
+authorization headers.
 
 ### Dry run 4 — Credential and network negative tests
 
