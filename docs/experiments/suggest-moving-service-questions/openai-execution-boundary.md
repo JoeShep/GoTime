@@ -5,22 +5,28 @@
 ```text
 capability: suggest_moving_service_questions
 design date: 2026-07-31
-credential-boundary design: draft for human review
-real-client integration design: draft for human review
+credential-boundary implementation: offline tested
+real-client construction boundary: offline tested with fake constructors
 credential access authorized: false
 network preflight authorized: false
 AI-generation execution authorized: false
 production use authorized: false
 ```
 
-This document designs the next boundary around the existing script-only OpenAI
-transport. It does not implement credential access, construct an OpenAI client,
-change runner admission, or permit a network request.
+This document defines the boundary around the existing script-only OpenAI
+transport. The capability-specific credential wrapper, validator, and client
+factory now exist, but the only public environment-to-client entry point first
+verifies the exact repository authorization artifact. Because that artifact
+denies credential access, the entry point stops before inspecting its supplied
+environment or invoking a constructor. No runner admission or network request
+is enabled.
 
 The current runner remains network-incapable and admits only
 `OfflineFakeMovingServiceTransport`. The implemented OpenAI transport accepts
-an injected client but constructs none, reads no environment variable, and is
-not imported by the runner, backend, or frontend.
+an injected client. The new client boundary is not imported by the runner,
+backend, or frontend. Its internal credential and constructor seams are tested
+only with explicit synthetic mappings and fake constructors; no SDK resource
+method is invoked.
 
 ## 2. Frozen Inputs
 
@@ -80,7 +86,7 @@ GOTIME_MOVING_SERVICE_EVAL_ENABLED
 The enablement value is intent, not authority. It must be ignored unless all
 committed authorization and artifact gates pass.
 
-A future capability-specific credential reader must:
+The capability-specific credential reader:
 
 1. Live under `scripts/experiments/suggest_moving_service_questions/`.
 2. Be imported lazily only after every non-secret gate passes.
@@ -114,14 +120,17 @@ No credential-presence check is allowed during the current dry-run milestone.
 
 ## 5. Real-Client Factory Boundary
 
-A future client factory should be capability-specific and live beside the
-transport, for example:
+The capability-specific client factory lives beside the transport at:
 
 ```text
 scripts/experiments/suggest_moving_service_questions/openai_client_factory.py
 ```
 
-It should expose one narrow operation equivalent to:
+Its public entry point is deliberately stricter than a bare constructor: it
+requires the runner's exact ordered non-secret gate result and explicit
+operator-intent result, then independently verifies repository authorization
+before it reads the explicitly supplied environment mapping. The internal
+construction seam is equivalent to:
 
 ```python
 def build_moving_service_openai_client(
@@ -130,7 +139,8 @@ def build_moving_service_openai_client(
     ...
 ```
 
-The factory would construct the synchronous pinned SDK client with:
+After a future authorization revision, the factory can construct the
+synchronous pinned SDK client with:
 
 ```python
 OpenAI(
@@ -141,8 +151,9 @@ OpenAI(
 )
 ```
 
-The exact secret-reveal mechanism needs security review before implementation;
-it must not make the credential generally stringifiable or serializable.
+The secret wrapper is redacted, lacks an instance dictionary, rejects pickle
+serialization, and exposes its value only to the module's internal construction
+seam.
 
 The factory must:
 
@@ -303,8 +314,8 @@ the run configuration digest, allowed phase, run-series ID, allowed sequences,
 maximum spend, approval date, expiration date, and approving human. It must not
 contain a credential.
 
-Until an authorizing revision is explicitly approved, the real client factory
-must remain absent and the runner must remain fake-only.
+Until an authorizing revision is explicitly approved, the public factory must
+remain unreachable through the runner and the runner must remain fake-only.
 
 ## 8. Pre-Execution Dry-Run Plan
 
