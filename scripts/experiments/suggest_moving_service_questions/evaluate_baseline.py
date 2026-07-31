@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import tomllib
@@ -83,8 +84,9 @@ def load_artifacts(directory: Path | None = None) -> dict[str, dict]:
         name: json.loads((root / filename).read_text())
         for name, filename in FILES.items()
     }
-    with (root / PROMPT_FILE).open("rb") as prompt_file:
-        artifacts["prompt"] = tomllib.load(prompt_file)
+    prompt_bytes = (root / PROMPT_FILE).read_bytes()
+    artifacts["prompt"] = tomllib.loads(prompt_bytes.decode("utf-8"))
+    artifacts["prompt_sha256"] = hashlib.sha256(prompt_bytes).hexdigest()
     return artifacts
 
 
@@ -123,6 +125,8 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
             "prompt_artifact_digest_algorithm",
             "prompt_artifact_digest",
             "prompt_artifact_digest_status",
+            "prompt_artifact_reviewed",
+            "prompt_artifact_frozen_for_adapter_implementation",
             "contract_test_eligible",
             "contract_test_ineligibility_reasons",
             "contract_artifacts_ready",
@@ -177,16 +181,20 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
         _fail("manifest: prompt artifact path is unsupported")
     if manifest["prompt_artifact_digest_algorithm"] != "sha256":
         _fail("manifest: prompt digest algorithm must be sha256")
-    if manifest["prompt_artifact_digest"] is not None:
-        _fail("manifest: draft prompt digest must remain pending")
-    if manifest["prompt_artifact_digest_status"] != "pending_review_and_freeze":
-        _fail("manifest: draft prompt digest status is unsupported")
-    if manifest["status"] != "prompt_artifact_draft_ready_for_human_review":
-        _fail("manifest: draft prompt review status is required")
+    if manifest["prompt_artifact_digest"] != artifacts["prompt_sha256"]:
+        _fail("manifest: prompt digest does not match exact artifact bytes")
+    if manifest["prompt_artifact_digest_status"] != "recorded":
+        _fail("manifest: frozen prompt digest must be recorded")
+    if manifest["prompt_artifact_reviewed"] is not True:
+        _fail("manifest: frozen prompt must be reviewed")
+    if manifest["prompt_artifact_frozen_for_adapter_implementation"] is not True:
+        _fail("manifest: prompt must be frozen for adapter implementation")
+    if manifest["status"] != "prompt_artifact_frozen_for_adapter_implementation":
+        _fail("manifest: frozen prompt status is required")
     if manifest["contract_artifacts_ready"] is not True:
         _fail("manifest: contract artifacts must remain ready")
     if manifest["prompt_artifact_ready"] is not True:
-        _fail("manifest: validated prompt artifact must be ready for review")
+        _fail("manifest: validated prompt artifact must remain ready")
     if manifest["adapter_implementation_authorized"] is not False:
         _fail("manifest: adapter implementation must not be authorized")
     if manifest["real_model_execution_authorized"] is not False:
@@ -250,8 +258,8 @@ def _validate_prompt(artifacts: dict[str, dict]) -> None:
         "evaluation_only": True,
         "production_use_prohibited": True,
         "live_research_prohibited": True,
-        "prompt_status": "draft",
-        "prompt_artifact_digest_status": "pending_review_and_freeze",
+        "prompt_status": "frozen_for_adapter_implementation",
+        "prompt_artifact_digest_status": "recorded_in_manifest",
     }
     for field, expected in expected_metadata.items():
         if metadata[field] != expected:
@@ -278,10 +286,10 @@ def _validate_prompt(artifacts: dict[str, dict]) -> None:
 
     readiness = prompt["readiness"]
     expected_readiness = {
-        "draft": True,
-        "reviewed": False,
-        "ready_for_human_review": True,
-        "frozen_for_adapter_implementation": False,
+        "draft": False,
+        "reviewed": True,
+        "ready_for_human_review": False,
+        "frozen_for_adapter_implementation": True,
         "frozen_for_real_model_execution": False,
         "adapter_implementation_authorized": False,
         "real_model_execution_authorized": False,

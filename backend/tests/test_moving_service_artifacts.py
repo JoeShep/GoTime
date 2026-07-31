@@ -22,6 +22,11 @@ def test_v1_artifacts_are_compatible_with_runtime_contracts() -> None:
 
     assert result["manifest"]["contract_test_eligible"] is True
     assert result["manifest"]["prompt_artifact_ready"] is True
+    assert result["manifest"]["prompt_artifact_reviewed"] is True
+    assert (
+        result["manifest"]["prompt_artifact_frozen_for_adapter_implementation"]
+        is True
+    )
     assert result["manifest"]["adapter_implementation_authorized"] is False
     assert result["manifest"]["real_model_execution_authorized"] is False
     assert result["manifest"]["real_model_evaluation_eligible"] is False

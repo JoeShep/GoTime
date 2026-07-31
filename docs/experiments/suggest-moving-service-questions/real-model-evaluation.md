@@ -159,13 +159,19 @@ The capability-specific prompt artifact is:
 path: docs/experiments/suggest-moving-service-questions/v1/real-model-prompt.toml
 prompt_version: moving-service-questions-prompt-v1
 digest_algorithm: SHA-256
-digest_status: pending review and freeze
+sha256: 583a4bdf59c4c4ac67c82928415710c3d5c21ac9912ebd4888a026b8fd4acbf2
+human_approval_date: 2026-07-30
+frozen_for_adapter_implementation: true
+frozen_for_real_model_execution: false
+adapter_implementation_authorized: false
+real_model_execution_authorized: false
 ```
 
 Formal run identity requires both the prompt version and the SHA-256 digest of
-the exact loaded artifact. Creating or validating this draft does not authorize
-adapter implementation or real-model execution. The digest remains pending
-until human review and freezing are complete.
+the exact bytes of the prompt artifact at the recorded path. The prompt is
+human-reviewed and frozen as an input to a separately authorized adapter
+implementation milestone. Freezing does not authorize adapter implementation
+or real-model execution, and the prompt is not frozen for execution.
 
 The prompt must direct the model to:
 
@@ -180,7 +186,10 @@ The prompt artifact must not contain credentials, user-specific secrets, raw
 conversation history, or a provider-specific response schema that diverges
 from the runtime contract.
 
-Any prompt change creates a new prompt version and a new evaluation run series.
+Any semantic prompt change requires a new prompt version, a new SHA-256 digest,
+a new formal evaluation run series, and new human review. Any byte-level digest
+change after freezing requires review even when the change is believed to be
+nonsemantic.
 
 ## 4. Provisional Adapter Boundary
 
