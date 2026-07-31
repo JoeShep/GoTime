@@ -461,9 +461,12 @@ maximum authorized formal-series spend: $0.60
 monthly evaluation ceiling: $10.00
 ```
 
-The draft structure is at
+The approved and frozen configuration is at
 `docs/experiments/suggest-moving-service-questions/v1/openai-run-configuration.toml`.
-It is not approved, frozen, or authorized for execution.
+Its SHA-256 digest is
+`e665e04b56d8aeaa01f4c9df2fd2f5f4eed37150802fdba869cba54d1e5bc782`.
+It is not authorization for transport implementation, credentials, or
+execution.
 
 For OpenAI GPT-4.1 mini, freeze:
 

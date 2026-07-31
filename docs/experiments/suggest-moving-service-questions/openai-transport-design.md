@@ -26,9 +26,11 @@ authorization, fixture selection, token and spending gates, run-series control,
 record writing, and deterministic fallback. Existing runtime validation would
 remain authoritative.
 
-The corresponding run configuration is a review draft at
+The corresponding run configuration is approved and frozen at
 `docs/experiments/suggest-moving-service-questions/v1/openai-run-configuration.toml`.
-It is neither approved nor frozen.
+Its SHA-256 digest is
+`e665e04b56d8aeaa01f4c9df2fd2f5f4eed37150802fdba869cba54d1e5bc782`.
+Freezing it does not authorize implementation, credentials, or execution.
 
 ## 2. Frozen Inputs and Non-Negotiable Boundaries
 
@@ -174,9 +176,13 @@ length limit, or array limit is not approved, even though runtime Pydantic
 validation remains authoritative. Any such incompatibility is a stop
 condition, not permission to weaken the response contract.
 
-The exact adapted schema must be captured as a reviewed offline test fixture or
-digest during implementation review. No API call is needed to test the
-transformation itself. If the pinned SDK or endpoint rejects `$defs`, `$ref`,
+The exact adapted schema is reviewed and frozen at
+`docs/experiments/suggest-moving-service-questions/v1/openai-response-schema.json`
+with SHA-256
+`9e5a3a667a1049d150734fd16669dad98cc982c2dc7a9a18f3e0b8cb3e891afb`.
+Its field review is recorded in `openai-response-schema-review.md`. No API call
+is needed to test the transformation itself. If the pinned SDK or endpoint
+rejects `$defs`, `$ref`,
 single-value enums, or any required object rule, implementation must stop; it
 must not weaken the Pydantic response schema.
 
@@ -442,10 +448,10 @@ traffic. Reviewed payload snapshots must use synthetic values only.
 The design is ready for human review, not implementation. Before a separate
 implementation authorization, all of the following remain required:
 
-1. Approve the exact SDK pin and dependency-lock change after reconfirming the
-   latest official release and Python compatibility.
-2. Approve the deterministic schema-adaptation algorithm and its exact offline
-   snapshot against the pinned SDK's Structured Outputs types.
+1. Review the dependency-lock change after reconfirming the approved SDK pin's
+   availability and Python compatibility.
+2. Verify the frozen provider-schema snapshot against the pinned SDK's typed
+   Structured Outputs interface without changing it.
 3. Amend the provider request/result and local record structures to carry exact
    preflight count, cached and uncached input tokens, provider request ID,
    returned AI model identifier, response status, and usage availability.
@@ -454,9 +460,8 @@ implementation authorization, all of the following remain required:
    from AI-generation attempts and AI-response failures.
 5. Verify the separate five-second preflight and 12-second AI-generation
    deadlines with offline clock and fake-client tests.
-6. Freeze a capability-specific run configuration containing SDK pin, exact AI
-   model identifier, parameters, schema-adaptation identity, prices and date,
-   spending limits, record schema, and retention assumption.
+6. Preserve and verify the frozen capability-specific run configuration and
+   digest before implementation work.
 7. Reconfirm AI model availability, official prices, API/SDK behavior, data
    retention, and account eligibility immediately before execution approval.
 

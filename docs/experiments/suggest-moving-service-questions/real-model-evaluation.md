@@ -656,9 +656,17 @@ actual_cost =
 If cached-token usage is not reported, record that limitation and conservatively
 price all input tokens at the uncached rate.
 
-The capability-specific configuration structure is drafted at
+The capability-specific configuration is approved and frozen at
 `docs/experiments/suggest-moving-service-questions/v1/openai-run-configuration.toml`.
-It remains unapproved and unfrozen; it is not execution authorization.
+Its SHA-256 digest is
+`e665e04b56d8aeaa01f4c9df2fd2f5f4eed37150802fdba869cba54d1e5bc782`.
+The reviewed provider-schema snapshot is
+`docs/experiments/suggest-moving-service-questions/v1/openai-response-schema.json`
+with SHA-256
+`9e5a3a667a1049d150734fd16669dad98cc982c2dc7a9a18f3e0b8cb3e891afb`.
+The snapshot is derived mechanically from the Pydantic response schema;
+runtime Pydantic and semantic validation remain authoritative. These frozen
+artifacts do not authorize implementation, credentials, or execution.
 
 Prompt-development or exploratory calls require a separate, explicitly
 approved allowance. They do not count as formal results and must not silently

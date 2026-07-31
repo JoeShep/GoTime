@@ -1,7 +1,7 @@
 [status]
-configuration_status = "draft_for_human_review"
-approved = false
-frozen = false
+configuration_status = "approved_and_frozen"
+approved = true
+frozen = true
 provider_transport_implementation_authorized = false
 credentials_authorized = false
 real_model_execution_authorized = false
@@ -27,7 +27,7 @@ digest = "583a4bdf59c4c4ac67c82928415710c3d5c21ac9912ebd4888a026b8fd4acbf2"
 request_schema_version = "moving-service-questions-schema-v1"
 response_schema_version = "moving-service-questions-schema-v1"
 knowledge_fixture_version = "moving-service-storage-fixture-v2"
-provider_schema_snapshot_status = "pending_implementation_review"
+provider_schema_snapshot_status = "reviewed_and_frozen"
 
 [model_parameters]
 temperature = 0

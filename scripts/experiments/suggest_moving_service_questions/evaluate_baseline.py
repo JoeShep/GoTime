@@ -52,6 +52,9 @@ FILES = {
     "expected": "expected-results.json",
 }
 PROMPT_FILE = "real-model-prompt.toml"
+OPENAI_RUN_CONFIGURATION_FILE = "openai-run-configuration.toml"
+OPENAI_RESPONSE_SCHEMA_FILE = "openai-response-schema.json"
+OPENAI_RESPONSE_SCHEMA_REVIEW_FILE = "openai-response-schema-review.md"
 
 
 class ArtifactValidationError(ValueError):
@@ -78,7 +81,7 @@ def default_artifact_dir() -> Path:
     )
 
 
-def load_artifacts(directory: Path | None = None) -> dict[str, dict]:
+def load_artifacts(directory: Path | None = None) -> dict[str, object]:
     root = Path(directory or default_artifact_dir())
     artifacts = {
         name: json.loads((root / filename).read_text())
@@ -87,7 +90,35 @@ def load_artifacts(directory: Path | None = None) -> dict[str, dict]:
     prompt_bytes = (root / PROMPT_FILE).read_bytes()
     artifacts["prompt"] = tomllib.loads(prompt_bytes.decode("utf-8"))
     artifacts["prompt_sha256"] = hashlib.sha256(prompt_bytes).hexdigest()
+    run_configuration_bytes = (root / OPENAI_RUN_CONFIGURATION_FILE).read_bytes()
+    artifacts["openai_run_configuration"] = tomllib.loads(
+        run_configuration_bytes.decode("utf-8")
+    )
+    artifacts["openai_run_configuration_sha256"] = hashlib.sha256(
+        run_configuration_bytes
+    ).hexdigest()
+    response_schema_bytes = (root / OPENAI_RESPONSE_SCHEMA_FILE).read_bytes()
+    artifacts["openai_response_schema"] = json.loads(response_schema_bytes)
+    artifacts["openai_response_schema_sha256"] = hashlib.sha256(
+        response_schema_bytes
+    ).hexdigest()
+    artifacts["openai_response_schema_review"] = (
+        root / OPENAI_RESPONSE_SCHEMA_REVIEW_FILE
+    ).read_text(encoding="utf-8")
     return artifacts
+
+
+def adapt_response_schema_for_openai(value: object) -> object:
+    """Remove only nonsemantic Pydantic title annotations."""
+    if isinstance(value, dict):
+        return {
+            key: adapt_response_schema_for_openai(item)
+            for key, item in value.items()
+            if key != "title"
+        }
+    if isinstance(value, list):
+        return [adapt_response_schema_for_openai(item) for item in value]
+    return value
 
 
 def _validate_readiness(
@@ -127,6 +158,17 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
             "prompt_artifact_digest_status",
             "prompt_artifact_reviewed",
             "prompt_artifact_frozen_for_adapter_implementation",
+            "openai_run_configuration_path",
+            "openai_run_configuration_digest_algorithm",
+            "openai_run_configuration_digest",
+            "openai_run_configuration_approval_date",
+            "openai_run_configuration_approved",
+            "openai_run_configuration_frozen",
+            "openai_response_schema_path",
+            "openai_response_schema_digest_algorithm",
+            "openai_response_schema_digest",
+            "openai_response_schema_review_path",
+            "openai_response_schema_status",
             "contract_test_eligible",
             "contract_test_ineligibility_reasons",
             "contract_artifacts_ready",
@@ -189,8 +231,8 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
         _fail("manifest: frozen prompt must be reviewed")
     if manifest["prompt_artifact_frozen_for_adapter_implementation"] is not True:
         _fail("manifest: prompt must be frozen for adapter implementation")
-    if manifest["status"] != "prompt_artifact_frozen_for_adapter_implementation":
-        _fail("manifest: frozen prompt status is required")
+    if manifest["status"] != "openai_run_configuration_and_response_schema_frozen":
+        _fail("manifest: frozen OpenAI artifact status is required")
     if manifest["contract_artifacts_ready"] is not True:
         _fail("manifest: contract artifacts must remain ready")
     if manifest["prompt_artifact_ready"] is not True:
@@ -201,6 +243,133 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
         _fail("manifest: real-model execution must not be authorized")
     if manifest["real_model_evaluation_eligible"]:
         _fail("manifest: draft prompt must not be real-model eligible")
+
+
+def _validate_openai_artifacts(artifacts: dict[str, object]) -> None:
+    manifest = artifacts["manifest"]
+    configuration = artifacts["openai_run_configuration"]
+    if not isinstance(manifest, dict) or not isinstance(configuration, dict):
+        _fail("OpenAI artifacts: manifest and configuration must be objects")
+
+    expected_paths = {
+        "openai_run_configuration_path": (
+            "docs/experiments/suggest-moving-service-questions/v1/"
+            "openai-run-configuration.toml"
+        ),
+        "openai_response_schema_path": (
+            "docs/experiments/suggest-moving-service-questions/v1/"
+            "openai-response-schema.json"
+        ),
+        "openai_response_schema_review_path": (
+            "docs/experiments/suggest-moving-service-questions/v1/"
+            "openai-response-schema-review.md"
+        ),
+    }
+    for field, expected in expected_paths.items():
+        if manifest[field] != expected:
+            _fail(f"manifest: {field} is unsupported")
+    if manifest["openai_run_configuration_digest_algorithm"] != "sha256":
+        _fail("manifest: run-configuration digest algorithm must be sha256")
+    if manifest["openai_run_configuration_digest"] != artifacts[
+        "openai_run_configuration_sha256"
+    ]:
+        _fail("manifest: run-configuration digest does not match exact bytes")
+    if manifest["openai_response_schema_digest_algorithm"] != "sha256":
+        _fail("manifest: provider-schema digest algorithm must be sha256")
+    if manifest["openai_response_schema_digest"] != artifacts[
+        "openai_response_schema_sha256"
+    ]:
+        _fail("manifest: provider-schema digest does not match exact bytes")
+    if manifest["openai_run_configuration_approved"] is not True:
+        _fail("manifest: run configuration must be approved")
+    if manifest["openai_run_configuration_frozen"] is not True:
+        _fail("manifest: run configuration must be frozen")
+    if manifest["openai_response_schema_status"] != "reviewed_and_frozen":
+        _fail("manifest: provider schema must be reviewed and frozen")
+    review = artifacts["openai_response_schema_review"]
+    if not isinstance(review, str) or "status: reviewed_and_frozen" not in review:
+        _fail("provider schema: review record is missing or incomplete")
+
+    status = _require(
+        configuration.get("status"),
+        (
+            "configuration_status",
+            "approved",
+            "frozen",
+            "provider_transport_implementation_authorized",
+            "credentials_authorized",
+            "real_model_execution_authorized",
+            "production_use_authorized",
+        ),
+        "OpenAI run configuration status",
+    )
+    expected_status = {
+        "configuration_status": "approved_and_frozen",
+        "approved": True,
+        "frozen": True,
+        "provider_transport_implementation_authorized": False,
+        "credentials_authorized": False,
+        "real_model_execution_authorized": False,
+        "production_use_authorized": False,
+    }
+    for field, expected in expected_status.items():
+        if status[field] != expected:
+            _fail(f"OpenAI run configuration: {field} must be {expected}")
+
+    identity = configuration.get("identity", {})
+    prompt = configuration.get("prompt", {})
+    contracts = configuration.get("contracts", {})
+    transport = configuration.get("transport", {})
+    if identity.get("capability") != CAPABILITY:
+        _fail("OpenAI run configuration: capability has drifted")
+    if identity.get("provider") != "OpenAI":
+        _fail("OpenAI run configuration: provider has drifted")
+    if identity.get("ai_model_identifier") != "gpt-4.1-mini-2025-04-14":
+        _fail("OpenAI run configuration: AI model identifier has drifted")
+    if identity.get("sdk_pin") != "openai==2.45.0":
+        _fail("OpenAI run configuration: SDK pin has drifted")
+    if prompt.get("version") != PROMPT_VERSION:
+        _fail("OpenAI run configuration: prompt version has drifted")
+    if prompt.get("digest") != artifacts["prompt_sha256"]:
+        _fail("OpenAI run configuration: prompt digest has drifted")
+    if contracts.get("request_schema_version") != SCHEMA_VERSION:
+        _fail("OpenAI run configuration: request schema version has drifted")
+    if contracts.get("response_schema_version") != SCHEMA_VERSION:
+        _fail("OpenAI run configuration: response schema version has drifted")
+    if contracts.get("knowledge_fixture_version") != KNOWLEDGE_VERSION:
+        _fail("OpenAI run configuration: knowledge version has drifted")
+    if contracts.get("provider_schema_snapshot_status") != "reviewed_and_frozen":
+        _fail("OpenAI run configuration: provider schema is not frozen")
+    expected_transport = {
+        "token_preflight_timeout_seconds": 5,
+        "generation_timeout_seconds": 12,
+        "automatic_retries": 0,
+        "structured_output_mode": "strict_json_schema",
+    }
+    for field, expected in expected_transport.items():
+        if transport.get(field) != expected:
+            _fail(f"OpenAI run configuration: {field} has drifted")
+
+    generated_schema = MovingServiceQuestionResponse.model_json_schema()
+    adapted_schema = adapt_response_schema_for_openai(generated_schema)
+    if adapted_schema != artifacts["openai_response_schema"]:
+        _fail("provider schema: snapshot has drifted from Pydantic generation")
+    if not isinstance(adapted_schema, dict):
+        _fail("provider schema: root must be an object")
+
+    def require_closed_objects(value: object, path: str = "root") -> None:
+        if isinstance(value, dict):
+            if value.get("type") == "object" and value.get(
+                "additionalProperties"
+            ) is not False:
+                _fail(f"provider schema: {path} must forbid extra fields")
+            for key, item in value.items():
+                require_closed_objects(item, f"{path}.{key}")
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                require_closed_objects(item, f"{path}[{index}]")
+
+    require_closed_objects(adapted_schema)
 
 
 def _validate_prompt(artifacts: dict[str, dict]) -> None:
@@ -583,10 +752,11 @@ def _validate_execution_expectations(
     return results
 
 
-def validate_artifacts(artifacts: dict[str, dict]) -> dict[str, object]:
+def validate_artifacts(artifacts: dict[str, object]) -> dict[str, object]:
     """Validate artifact data by passing it through runtime behavior."""
     _validate_manifest(artifacts)
     _validate_prompt(artifacts)
+    _validate_openai_artifacts(artifacts)
     knowledge_items = _validate_knowledge(artifacts)
     _validate_baseline(artifacts)
     requests = _build_scenario_requests(artifacts)
@@ -594,6 +764,12 @@ def validate_artifacts(artifacts: dict[str, dict]) -> dict[str, object]:
     execution_results = _validate_execution_expectations(artifacts)
     return {
         "manifest": artifacts["manifest"],
+        "openai_run_configuration_sha256": artifacts[
+            "openai_run_configuration_sha256"
+        ],
+        "openai_response_schema_sha256": artifacts[
+            "openai_response_schema_sha256"
+        ],
         "knowledge_item_count": len(knowledge_items),
         "request_fixtures": {
             fixture_id: request.model_dump(mode="json")
