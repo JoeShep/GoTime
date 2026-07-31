@@ -261,6 +261,33 @@ The frozen run configuration and manifest currently state that real-model
 execution is unauthorized. The runner must not reinterpret those fields or let
 an environment variable override them.
 
+The initial versioned authorization artifact is:
+
+```text
+path: docs/experiments/suggest-moving-service-questions/v1/openai-execution-authorization.toml
+version: moving-service-openai-execution-authorization-v1
+SHA-256: 6e3ca9cb4488764f012703ab77daae4f4b952895100f7d935935aeb6a0978be5
+status: closed_no_execution_authorized
+credential access: false
+token preflight: false
+AI generation: false
+formal evaluation: false
+```
+
+The manifest records the artifact path, version, digest, and closed status.
+This initial artifact supplies repository-level default denial; it cannot be
+used to enable any later phase.
+
+The runner must validate this authority before evaluating operator intent or
+approaching a secret boundary. It reads the exact bytes, verifies the manifest
+path and SHA-256, rejects unknown or missing TOML sections and fields, and then
+compares every binding with the frozen prompt, run-configuration, and provider-
+schema paths, versions, and digests. It also requires an empty scope, zero
+authorized spend, and all four authorization flags to be false. Environment
+values, command-line flags, and operator intent cannot override those results.
+Any mismatch stops before credential access, client construction, token
+preflight, or generation.
+
 Before credential integration or execution, human review must select one of
 these approaches:
 
@@ -269,14 +296,15 @@ these approaches:
 2. Keep the frozen run configuration immutable and add a separate, versioned,
    narrowly scoped execution-authorization artifact referenced by the manifest.
 
-The second approach is recommended because it separates experiment inputs from
-time-bounded operational authority. The authorization artifact should identify
+The second approach is now represented by the initial closed artifact because
+it separates experiment inputs from time-bounded operational authority. A
+future authorizing revision should identify
 the run configuration digest, allowed phase, run-series ID, allowed sequences,
 maximum spend, approval date, expiration date, and approving human. It must not
 contain a credential.
 
-Until this decision is approved and implemented, the real client factory must
-remain absent and the runner must remain fake-only.
+Until an authorizing revision is explicitly approved, the real client factory
+must remain absent and the runner must remain fake-only.
 
 ## 8. Pre-Execution Dry-Run Plan
 

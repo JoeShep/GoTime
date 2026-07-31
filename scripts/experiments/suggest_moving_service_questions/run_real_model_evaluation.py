@@ -6,9 +6,11 @@ provider or read credentials.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sys
+import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from time import perf_counter
@@ -48,6 +50,20 @@ DEFAULT_PROMPT_PATH = (
 DEFAULT_MANIFEST_PATH = (
     REPOSITORY_ROOT
     / "docs/experiments/suggest-moving-service-questions/v1/manifest.json"
+)
+DEFAULT_EXECUTION_AUTHORIZATION_PATH = (
+    REPOSITORY_ROOT
+    / "docs/experiments/suggest-moving-service-questions/v1/"
+    "openai-execution-authorization.toml"
+)
+FROZEN_EXECUTION_AUTHORIZATION_DIGEST = (
+    "6e3ca9cb4488764f012703ab77daae4f4b952895100f7d935935aeb6a0978be5"
+)
+FROZEN_RUN_CONFIGURATION_DIGEST = (
+    "e665e04b56d8aeaa01f4c9df2fd2f5f4eed37150802fdba869cba54d1e5bc782"
+)
+FROZEN_PROVIDER_SCHEMA_DIGEST = (
+    "9e5a3a667a1049d150734fd16669dad98cc982c2dc7a9a18f3e0b8cb3e891afb"
 )
 DEFAULT_OUTPUT_ROOT = (
     REPOSITORY_ROOT
@@ -125,6 +141,32 @@ def _load_verified_manifest(path: Path) -> dict[str, object]:
         "prompt_artifact_digest": FROZEN_PROMPT_DIGEST,
         "prompt_artifact_reviewed": True,
         "prompt_artifact_frozen_for_adapter_implementation": True,
+        "openai_run_configuration_path": (
+            "docs/experiments/suggest-moving-service-questions/v1/"
+            "openai-run-configuration.toml"
+        ),
+        "openai_run_configuration_digest_algorithm": "sha256",
+        "openai_run_configuration_digest": FROZEN_RUN_CONFIGURATION_DIGEST,
+        "openai_response_schema_path": (
+            "docs/experiments/suggest-moving-service-questions/v1/"
+            "openai-response-schema.json"
+        ),
+        "openai_response_schema_digest_algorithm": "sha256",
+        "openai_response_schema_digest": FROZEN_PROVIDER_SCHEMA_DIGEST,
+        "openai_execution_authorization_path": (
+            "docs/experiments/suggest-moving-service-questions/v1/"
+            "openai-execution-authorization.toml"
+        ),
+        "openai_execution_authorization_version": (
+            "moving-service-openai-execution-authorization-v1"
+        ),
+        "openai_execution_authorization_digest_algorithm": "sha256",
+        "openai_execution_authorization_digest": (
+            FROZEN_EXECUTION_AUTHORIZATION_DIGEST
+        ),
+        "openai_execution_authorization_status": (
+            "closed_no_execution_authorized"
+        ),
         "contract_artifacts_ready": True,
         "adapter_implementation_authorized": False,
         "real_model_execution_authorized": False,
@@ -134,6 +176,131 @@ def _load_verified_manifest(path: Path) -> dict[str, object]:
         if manifest.get(field) != expected_value:
             raise OfflineRunnerGateError(f"Manifest field {field} is incompatible.")
     return manifest
+
+
+def _load_verified_execution_authorization(
+    path: Path,
+    manifest: Mapping[str, object],
+) -> dict[str, object]:
+    """Verify the repository authority before any secret or network boundary."""
+    artifact_bytes = path.read_bytes()
+    digest = hashlib.sha256(artifact_bytes).hexdigest()
+    if digest != FROZEN_EXECUTION_AUTHORIZATION_DIGEST:
+        raise OfflineRunnerGateError("Execution-authorization digest is incompatible.")
+    if digest != manifest["openai_execution_authorization_digest"]:
+        raise OfflineRunnerGateError("Manifest authorization digest is incompatible.")
+
+    artifact = tomllib.loads(artifact_bytes.decode("utf-8"))
+    expected_sections = {
+        "metadata", "bindings", "authorization", "scope", "policy", "validation"
+    }
+    if set(artifact) != expected_sections:
+        raise OfflineRunnerGateError("Execution-authorization sections are incompatible.")
+
+    metadata = artifact["metadata"]
+    if metadata != {
+        "capability": CAPABILITY,
+        "authorization_version": "moving-service-openai-execution-authorization-v1",
+        "authorization_status": "closed_no_execution_authorized",
+        "created_date": "2026-07-31",
+        "evaluation_only": True,
+        "default_deny": True,
+    }:
+        raise OfflineRunnerGateError("Execution-authorization metadata is incompatible.")
+
+    bindings = artifact["bindings"]
+    expected_bindings = {
+        "prompt_artifact_path": manifest["prompt_artifact_path"],
+        "prompt_version": PROMPT_VERSION,
+        "prompt_digest_algorithm": "sha256",
+        "prompt_digest": FROZEN_PROMPT_DIGEST,
+        "run_configuration_path": manifest["openai_run_configuration_path"],
+        "run_configuration_digest_algorithm": "sha256",
+        "run_configuration_digest": FROZEN_RUN_CONFIGURATION_DIGEST,
+        "provider_schema_path": manifest["openai_response_schema_path"],
+        "provider_schema_digest_algorithm": "sha256",
+        "provider_schema_digest": FROZEN_PROVIDER_SCHEMA_DIGEST,
+        "request_schema_version": SCHEMA_VERSION,
+        "response_schema_version": SCHEMA_VERSION,
+        "knowledge_fixture_version": KNOWLEDGE_VERSION,
+        "provider": "OpenAI",
+        "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+        "sdk_pin": "openai==2.45.0",
+    }
+    if bindings != expected_bindings:
+        raise OfflineRunnerGateError("Execution-authorization bindings are incompatible.")
+    for path_field, digest_field in (
+        ("prompt_artifact_path", "prompt_digest"),
+        ("run_configuration_path", "run_configuration_digest"),
+        ("provider_schema_path", "provider_schema_digest"),
+    ):
+        bound_path = (REPOSITORY_ROOT / str(bindings[path_field])).resolve()
+        try:
+            bound_path.relative_to(REPOSITORY_ROOT.resolve())
+        except ValueError as error:
+            raise OfflineRunnerGateError(
+                "Execution-authorization binding escapes the repository."
+            ) from error
+        bound_digest = hashlib.sha256(bound_path.read_bytes()).hexdigest()
+        if bound_digest != bindings[digest_field]:
+            raise OfflineRunnerGateError(
+                f"Bound artifact {path_field} digest is incompatible."
+            )
+
+    authorization = artifact["authorization"]
+    if authorization != {
+        "credential_access_authorized": False,
+        "token_preflight_authorized": False,
+        "ai_generation_authorized": False,
+        "formal_evaluation_authorized": False,
+    }:
+        raise OfflineRunnerGateError("Execution authorization is not closed.")
+    if artifact["scope"] != {
+        "authorized_run_series_id": "",
+        "authorized_sequence_numbers": [],
+        "authorized_fixture_ids": [],
+        "maximum_authorized_spend": "0.00",
+        "approval_date": "not_authorized",
+        "expiration_date": "not_authorized",
+        "approved_by": "none",
+    }:
+        raise OfflineRunnerGateError("Execution-authorization scope is not closed.")
+
+    policy = artifact["policy"]
+    false_policy = {
+        "operator_intent_is_authority",
+        "environment_values_may_override_authorization",
+        "command_line_flags_may_override_authorization",
+    }
+    true_policy = {
+        "missing_or_unknown_fields_fail_closed",
+        "authorization_changes_require_human_review",
+        "authorization_changes_require_new_digest",
+        "authorization_changes_require_manifest_update",
+        "credential_access_requires_all_non_secret_gates",
+        "token_preflight_requires_credential_access_authorization",
+        "ai_generation_requires_successful_token_preflight",
+        "formal_evaluation_requires_ai_generation_authorization",
+    }
+    if set(policy) != false_policy | true_policy or any(policy[key] for key in false_policy):
+        raise OfflineRunnerGateError("Execution-authorization override policy is unsafe.")
+    if not all(policy[key] is True for key in true_policy):
+        raise OfflineRunnerGateError("Execution-authorization prerequisites are incomplete.")
+    if artifact["validation"] != {
+        "non_secret_gate_order": [
+            "artifact_integrity",
+            "repository_authorization",
+            "fixture_and_sequence_validation",
+            "output_path_checks",
+            "budget_checks",
+            "operator_intent_check",
+        ],
+        "first_secret_stage": "credential_access",
+        "first_network_stage": "token_preflight",
+        "generation_stage": "possible_generation",
+    }:
+        raise OfflineRunnerGateError("Execution-authorization gate order is incompatible.")
+    return artifact
 
 
 def _validate_fixture(fixture_id: str) -> ExperimentFixture:
@@ -219,9 +386,13 @@ def run_offline_evaluation(
     authorization: OfflineRunnerAuthorization,
     output_root: Path = DEFAULT_OUTPUT_ROOT,
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
+    execution_authorization_path: Path = DEFAULT_EXECUTION_AUTHORIZATION_PATH,
     allow_temporary_test_output: bool = False,
 ) -> OfflineRunResult:
     """Run one network-incapable fake invocation and write a bounded record."""
+    manifest = _load_verified_manifest(manifest_path)
+    _load_verified_execution_authorization(execution_authorization_path, manifest)
+
     if authorization.adapter_implementation_authorized is not True:
         raise OfflineRunnerGateError("Offline adapter implementation is not authorized.")
     if authorization.real_model_execution_authorized is not False:
@@ -235,7 +406,6 @@ def run_offline_evaluation(
     if adapter.prompt_artifact_path.resolve() != DEFAULT_PROMPT_PATH.resolve():
         raise OfflineRunnerGateError("Only the frozen prompt path is permitted.")
 
-    manifest = _load_verified_manifest(manifest_path)
     fixture = _validate_fixture(fixture_id)
     _validate_run_identity(run_series_id, run_sequence)
     resolved_output_root = _validate_output_root(
@@ -328,6 +498,7 @@ def run_offline_evaluation(
             else "not_available"
         ),
         hard_gate_results=(
+            "execution_authorization_verified_closed",
             "offline_authorization_passed",
             "real_model_execution_unauthorized",
             "frozen_prompt_verified",

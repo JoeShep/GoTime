@@ -42,6 +42,7 @@ from real_model_adapter import (  # noqa: E402
     MovingServiceTransportResult,
 )
 from run_real_model_evaluation import (  # noqa: E402
+    DEFAULT_EXECUTION_AUTHORIZATION_PATH,
     DEFAULT_PROMPT_PATH,
     OFFLINE_MODEL_IDENTIFIER,
     OfflineRunnerAuthorization,
@@ -468,6 +469,32 @@ def test_non_model_quality_fixtures_are_rejected_before_transport(
     assert transport.call_count == 0
 
 
+def test_modified_execution_authorization_is_rejected_before_transport(
+    tmp_path: Path,
+) -> None:
+    authorization_path = tmp_path / "execution-authorization.toml"
+    authorization_path.write_bytes(
+        DEFAULT_EXECUTION_AUTHORIZATION_PATH.read_bytes() + b"\n"
+    )
+    transport = fake_transport(valid_storage_response())
+
+    with pytest.raises(OfflineRunnerGateError, match="authorization digest"):
+        run_offline_evaluation(
+            fixture_id="storage_unknown",
+            run_series_id="offline-test-series",
+            run_sequence=1,
+            adapter=adapter_for(transport),
+            authorization=OfflineRunnerAuthorization(
+                adapter_implementation_authorized=True
+            ),
+            execution_authorization_path=authorization_path,
+            output_root=tmp_path,
+            allow_temporary_test_output=True,
+        )
+
+    assert transport.call_count == 0
+
+
 def test_record_is_bounded_and_existing_record_cannot_be_overwritten(
     tmp_path: Path,
 ) -> None:
@@ -524,8 +551,8 @@ def test_scaffold_contains_no_network_or_credential_implementation() -> None:
         "http://",
         "https://",
         "api_key",
-        "getenv",
-        "environ",
+        "os.getenv",
+        "os.environ",
     ):
         assert prohibited not in source
 

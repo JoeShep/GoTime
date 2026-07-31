@@ -55,6 +55,7 @@ PROMPT_FILE = "real-model-prompt.toml"
 OPENAI_RUN_CONFIGURATION_FILE = "openai-run-configuration.toml"
 OPENAI_RESPONSE_SCHEMA_FILE = "openai-response-schema.json"
 OPENAI_RESPONSE_SCHEMA_REVIEW_FILE = "openai-response-schema-review.md"
+OPENAI_EXECUTION_AUTHORIZATION_FILE = "openai-execution-authorization.toml"
 
 
 class ArtifactValidationError(ValueError):
@@ -105,6 +106,13 @@ def load_artifacts(directory: Path | None = None) -> dict[str, object]:
     artifacts["openai_response_schema_review"] = (
         root / OPENAI_RESPONSE_SCHEMA_REVIEW_FILE
     ).read_text(encoding="utf-8")
+    authorization_bytes = (root / OPENAI_EXECUTION_AUTHORIZATION_FILE).read_bytes()
+    artifacts["openai_execution_authorization"] = tomllib.loads(
+        authorization_bytes.decode("utf-8")
+    )
+    artifacts["openai_execution_authorization_sha256"] = hashlib.sha256(
+        authorization_bytes
+    ).hexdigest()
     return artifacts
 
 
@@ -169,6 +177,11 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
             "openai_response_schema_digest",
             "openai_response_schema_review_path",
             "openai_response_schema_status",
+            "openai_execution_authorization_path",
+            "openai_execution_authorization_version",
+            "openai_execution_authorization_digest_algorithm",
+            "openai_execution_authorization_digest",
+            "openai_execution_authorization_status",
             "contract_test_eligible",
             "contract_test_ineligibility_reasons",
             "contract_artifacts_ready",
@@ -231,8 +244,8 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
         _fail("manifest: frozen prompt must be reviewed")
     if manifest["prompt_artifact_frozen_for_adapter_implementation"] is not True:
         _fail("manifest: prompt must be frozen for adapter implementation")
-    if manifest["status"] != "openai_run_configuration_and_response_schema_frozen":
-        _fail("manifest: frozen OpenAI artifact status is required")
+    if manifest["status"] != "openai_execution_authorization_closed":
+        _fail("manifest: closed OpenAI execution authorization is required")
     if manifest["contract_artifacts_ready"] is not True:
         _fail("manifest: contract artifacts must remain ready")
     if manifest["prompt_artifact_ready"] is not True:
@@ -370,6 +383,229 @@ def _validate_openai_artifacts(artifacts: dict[str, object]) -> None:
                 require_closed_objects(item, f"{path}[{index}]")
 
     require_closed_objects(adapted_schema)
+
+
+def _require_exact_fields(
+    value: object,
+    expected_fields: tuple[str, ...],
+    context: str,
+) -> dict:
+    document = _require(value, expected_fields, context)
+    unknown = sorted(set(document) - set(expected_fields))
+    if unknown:
+        _fail(f"{context}: unknown fields fail closed: {', '.join(unknown)}")
+    return document
+
+
+def _validate_openai_execution_authorization(
+    artifacts: dict[str, object],
+) -> None:
+    manifest = artifacts["manifest"]
+    authorization = artifacts["openai_execution_authorization"]
+    if not isinstance(manifest, dict) or not isinstance(authorization, dict):
+        _fail("execution authorization: artifacts must be objects")
+    expected_top_level = (
+        "metadata",
+        "bindings",
+        "authorization",
+        "scope",
+        "policy",
+        "validation",
+    )
+    _require_exact_fields(
+        authorization,
+        expected_top_level,
+        "execution authorization",
+    )
+    expected_manifest = {
+        "openai_execution_authorization_path": (
+            "docs/experiments/suggest-moving-service-questions/v1/"
+            "openai-execution-authorization.toml"
+        ),
+        "openai_execution_authorization_version": (
+            "moving-service-openai-execution-authorization-v1"
+        ),
+        "openai_execution_authorization_digest_algorithm": "sha256",
+        "openai_execution_authorization_status": (
+            "closed_no_execution_authorized"
+        ),
+    }
+    for field, expected in expected_manifest.items():
+        if manifest.get(field) != expected:
+            _fail(f"manifest: {field} is incompatible")
+    if manifest.get("openai_execution_authorization_digest") != artifacts.get(
+        "openai_execution_authorization_sha256"
+    ):
+        _fail("manifest: execution-authorization digest does not match exact bytes")
+
+    metadata = _require_exact_fields(
+        authorization["metadata"],
+        (
+            "capability",
+            "authorization_version",
+            "authorization_status",
+            "created_date",
+            "evaluation_only",
+            "default_deny",
+        ),
+        "execution authorization metadata",
+    )
+    expected_metadata = {
+        "capability": CAPABILITY,
+        "authorization_version": (
+            "moving-service-openai-execution-authorization-v1"
+        ),
+        "authorization_status": "closed_no_execution_authorized",
+        "evaluation_only": True,
+        "default_deny": True,
+    }
+    for field, expected in expected_metadata.items():
+        if metadata[field] != expected:
+            _fail(f"execution authorization metadata: {field} is incompatible")
+
+    bindings = _require_exact_fields(
+        authorization["bindings"],
+        (
+            "prompt_artifact_path",
+            "prompt_version",
+            "prompt_digest_algorithm",
+            "prompt_digest",
+            "run_configuration_path",
+            "run_configuration_digest_algorithm",
+            "run_configuration_digest",
+            "provider_schema_path",
+            "provider_schema_digest_algorithm",
+            "provider_schema_digest",
+            "request_schema_version",
+            "response_schema_version",
+            "knowledge_fixture_version",
+            "provider",
+            "ai_model_identifier",
+            "sdk_pin",
+        ),
+        "execution authorization bindings",
+    )
+    expected_bindings = {
+        "prompt_artifact_path": manifest["prompt_artifact_path"],
+        "prompt_version": PROMPT_VERSION,
+        "prompt_digest_algorithm": "sha256",
+        "prompt_digest": artifacts["prompt_sha256"],
+        "run_configuration_path": manifest["openai_run_configuration_path"],
+        "run_configuration_digest_algorithm": "sha256",
+        "run_configuration_digest": artifacts["openai_run_configuration_sha256"],
+        "provider_schema_path": manifest["openai_response_schema_path"],
+        "provider_schema_digest_algorithm": "sha256",
+        "provider_schema_digest": artifacts["openai_response_schema_sha256"],
+        "request_schema_version": SCHEMA_VERSION,
+        "response_schema_version": SCHEMA_VERSION,
+        "knowledge_fixture_version": KNOWLEDGE_VERSION,
+        "provider": "OpenAI",
+        "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+        "sdk_pin": "openai==2.45.0",
+    }
+    for field, expected in expected_bindings.items():
+        if bindings[field] != expected:
+            _fail(f"execution authorization binding: {field} has drifted")
+
+    permissions = _require_exact_fields(
+        authorization["authorization"],
+        (
+            "credential_access_authorized",
+            "token_preflight_authorized",
+            "ai_generation_authorized",
+            "formal_evaluation_authorized",
+        ),
+        "execution authorization permissions",
+    )
+    for field, value in permissions.items():
+        if value is not False:
+            _fail(f"execution authorization permission: {field} must be False")
+
+    scope = _require_exact_fields(
+        authorization["scope"],
+        (
+            "authorized_run_series_id",
+            "authorized_sequence_numbers",
+            "authorized_fixture_ids",
+            "maximum_authorized_spend",
+            "approval_date",
+            "expiration_date",
+            "approved_by",
+        ),
+        "execution authorization scope",
+    )
+    expected_scope = {
+        "authorized_run_series_id": "",
+        "authorized_sequence_numbers": [],
+        "authorized_fixture_ids": [],
+        "maximum_authorized_spend": "0.00",
+        "approval_date": "not_authorized",
+        "expiration_date": "not_authorized",
+        "approved_by": "none",
+    }
+    for field, expected in expected_scope.items():
+        if scope[field] != expected:
+            _fail(f"execution authorization scope: {field} must remain closed")
+
+    policy = _require_exact_fields(
+        authorization["policy"],
+        (
+            "operator_intent_is_authority",
+            "environment_values_may_override_authorization",
+            "command_line_flags_may_override_authorization",
+            "missing_or_unknown_fields_fail_closed",
+            "authorization_changes_require_human_review",
+            "authorization_changes_require_new_digest",
+            "authorization_changes_require_manifest_update",
+            "credential_access_requires_all_non_secret_gates",
+            "token_preflight_requires_credential_access_authorization",
+            "ai_generation_requires_successful_token_preflight",
+            "formal_evaluation_requires_ai_generation_authorization",
+        ),
+        "execution authorization policy",
+    )
+    for field in (
+        "operator_intent_is_authority",
+        "environment_values_may_override_authorization",
+        "command_line_flags_may_override_authorization",
+    ):
+        if policy[field] is not False:
+            _fail(f"execution authorization policy: {field} must be False")
+    for field in set(policy) - {
+        "operator_intent_is_authority",
+        "environment_values_may_override_authorization",
+        "command_line_flags_may_override_authorization",
+    }:
+        if policy[field] is not True:
+            _fail(f"execution authorization policy: {field} must be True")
+
+    validation = _require_exact_fields(
+        authorization["validation"],
+        (
+            "non_secret_gate_order",
+            "first_secret_stage",
+            "first_network_stage",
+            "generation_stage",
+        ),
+        "execution authorization validation",
+    )
+    if validation["non_secret_gate_order"] != [
+        "artifact_integrity",
+        "repository_authorization",
+        "fixture_and_sequence_validation",
+        "output_path_checks",
+        "budget_checks",
+        "operator_intent_check",
+    ]:
+        _fail("execution authorization: non-secret gate order has drifted")
+    expected_stages = {
+        "first_secret_stage": "credential_access",
+        "first_network_stage": "token_preflight",
+        "generation_stage": "possible_generation",
+    }
+    for field, expected in expected_stages.items():
+        if validation[field] != expected:
+            _fail(f"execution authorization: {field} has drifted")
 
 
 def _validate_prompt(artifacts: dict[str, dict]) -> None:
@@ -757,6 +993,7 @@ def validate_artifacts(artifacts: dict[str, object]) -> dict[str, object]:
     _validate_manifest(artifacts)
     _validate_prompt(artifacts)
     _validate_openai_artifacts(artifacts)
+    _validate_openai_execution_authorization(artifacts)
     knowledge_items = _validate_knowledge(artifacts)
     _validate_baseline(artifacts)
     requests = _build_scenario_requests(artifacts)
@@ -769,6 +1006,9 @@ def validate_artifacts(artifacts: dict[str, object]) -> dict[str, object]:
         ],
         "openai_response_schema_sha256": artifacts[
             "openai_response_schema_sha256"
+        ],
+        "openai_execution_authorization_sha256": artifacts[
+            "openai_execution_authorization_sha256"
         ],
         "knowledge_item_count": len(knowledge_items),
         "request_fixtures": {
