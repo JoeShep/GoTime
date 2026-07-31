@@ -829,37 +829,101 @@ Produce a reviewed evaluation protocol that is precise enough to implement in
 a later, separately approved slice. Stop before adding a provider SDK,
 credentials, or a real-model adapter.
 
-# Moving-Service Provider Selection Decision
+# Next Session
 
-## Status
+## Current state
 
-The controlled `suggest_moving_service_questions` evaluation now has a
-provisional provider and model selection for provider-transport design only:
+The controlled real-model evaluation for
+`suggest_moving_service_questions` now has:
 
-```text
-provider: OpenAI
-model: gpt-4.1-mini-2025-04-14
-provider-transport design authorized: true
-provider-transport implementation authorized: false
-credentials authorized: false
-real-model execution authorized: false
-production use authorized: false
-```
+- A frozen, reviewed prompt artifact:
+  - `docs/experiments/suggest-moving-service-questions/v1/real-model-prompt.toml`
+- Frozen prompt SHA-256:
+  - `583a4bdf59c4c4ac67c82928415710c3d5c21ac9912ebd4888a026b8fd4acbf2`
+- A capability-specific, script-only, network-incapable adapter scaffold
+- Deterministic request serialization
+- Frozen-prompt verification
+- Existing runtime response validation and deterministic fallback ownership
+- An in-memory fake transport only
+- Bounded local evaluation records
+- A provisionally selected provider and AI model for transport design:
+  - Provider: OpenAI
+  - AI model identifier: `gpt-4.1-mini-2025-04-14`
+- A narrowly revised protocol permitting unavoidable provider-managed prompt
+  caching
 
-The evaluation protocol permits unavoidable provider-managed automatic prompt
-caching because the selected model has no documented disable control. GoTime
-must not manage cache keys or prefixes, optimize run order for caching, cache
-or reuse generated responses, or weaken validation. Every attempted call
-remains in the formal denominator, and reported cached and uncached token usage
-must be recorded and priced separately.
+The following remain unauthorized:
 
-Exact provider-specific input-token preflight remains required. Anthropic
-Claude Haiku 4.5 remains a fallback candidate but is not currently eligible
-because its official token-count documentation describes the count as an
-estimate.
+- Provider-specific transport implementation
+- OpenAI SDK installation
+- Credential creation or access
+- Network calls
+- Real-model execution
+- Browser or FastAPI exposure
+- Production use
 
-## Next Approved Scope
+## Next objective
 
-The next milestone may design the capability-specific OpenAI transport. It may
-not install the SDK, implement provider code, add or read credentials, make a
-model call, or authorize real-model execution without separate review.
+Design the provider-specific OpenAI transport for the existing script-only
+evaluation scaffold.
+
+This is a design milestone only.
+
+The design should define:
+
+- The exact OpenAI Responses API request payload
+- How the frozen system instructions and deterministic request JSON are
+  supplied
+- Strict JSON Schema adaptation for the existing response schema
+- Exact preflight token counting through `/v1/responses/input_tokens`
+- Usage and cached-token extraction
+- Conservative cost calculation
+- Twelve-second timeout behavior
+- Zero automatic retries
+- Error translation into the existing bounded adapter errors
+- `store: false`
+- Evaluation-only credential isolation
+- OpenAI Python SDK and API-version pinning
+- Offline mock and recorded-payload testing
+- Authorization gates that continue to prevent any real call
+
+## Required boundaries
+
+Do not:
+
+- Install the OpenAI SDK
+- Add provider transport code
+- Add or read credentials
+- Add environment variables to repository files
+- Modify the frozen prompt
+- Modify the prompt digest
+- Make a network request
+- Call the OpenAI API
+- Authorize provider-transport implementation
+- Authorize real-model execution
+- Expose the evaluation through FastAPI or the frontend
+- Create a generic AI provider abstraction
+
+## Terminology
+
+Use explicit terms in explanations and documentation:
+
+- **AI model** for the external generative system
+- **AI model identifier** for `gpt-4.1-mini-2025-04-14`
+- **Pydantic request schema** and **Pydantic response schema** for validated
+  Python data structures
+- **Domain object** for GoTime concepts such as Goal or Decision
+- **Database entity** for future persistence structures
+
+Avoid ambiguous phrases such as “send the request model to the model.”
+
+## Startup check
+
+At the beginning of the session:
+
+1. Read `AGENTS.md`, `NEXT_SESSION.md`, and `TODO.md`.
+2. Review the provider-selection and real-model-evaluation documents.
+3. Confirm the working tree is clean.
+4. Summarize the current authorization state.
+5. Propose the provider-transport design plan.
+6. Do not implement until the design is reviewed and approved.
