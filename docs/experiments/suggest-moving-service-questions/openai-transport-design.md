@@ -507,3 +507,8 @@ OpenAI transport is not reachable for network execution.
 
 Implementation completion does not authorize credential access, an API call,
 real-model execution, application exposure, or production use.
+
+The proposed next boundary is documented in
+`docs/experiments/suggest-moving-service-questions/openai-execution-boundary.md`.
+It remains a design for human review and does not alter runner admission or
+authorization.
