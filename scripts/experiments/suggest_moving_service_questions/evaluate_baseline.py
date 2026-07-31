@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tomllib
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -20,6 +21,8 @@ from app.moving_service_questions import (  # noqa: E402
     FALLBACK_VERSION,
     KNOWLEDGE_VERSION,
     MAXIMUM_INPUT_TOKENS,
+    MAXIMUM_OUTPUT_TOKENS,
+    MAXIMUM_QUESTIONS,
     PROMPT_VERSION,
     SCHEMA_VERSION,
     STORAGE_KNOWLEDGE,
@@ -29,6 +32,8 @@ from app.moving_service_questions import (  # noqa: E402
     MissingInformationCategory,
     MissingInformationItem,
     MovingServiceQuestionRequest,
+    MovingServiceQuestionResponse,
+    MovingServiceQuestionSuggestion,
     MovingServiceTrustedState,
     ResponseValidationError,
     construct_request,
@@ -45,6 +50,7 @@ FILES = {
     "responses": "response-fixtures.json",
     "expected": "expected-results.json",
 }
+PROMPT_FILE = "real-model-prompt.toml"
 
 
 class ArtifactValidationError(ValueError):
@@ -73,10 +79,13 @@ def default_artifact_dir() -> Path:
 
 def load_artifacts(directory: Path | None = None) -> dict[str, dict]:
     root = Path(directory or default_artifact_dir())
-    return {
+    artifacts = {
         name: json.loads((root / filename).read_text())
         for name, filename in FILES.items()
     }
+    with (root / PROMPT_FILE).open("rb") as prompt_file:
+        artifacts["prompt"] = tomllib.load(prompt_file)
+    return artifacts
 
 
 def _validate_readiness(
@@ -110,8 +119,16 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
             "response_fixture_version",
             "expectations_version",
             "status",
+            "prompt_artifact_path",
+            "prompt_artifact_digest_algorithm",
+            "prompt_artifact_digest",
+            "prompt_artifact_digest_status",
             "contract_test_eligible",
             "contract_test_ineligibility_reasons",
+            "contract_artifacts_ready",
+            "prompt_artifact_ready",
+            "adapter_implementation_authorized",
+            "real_model_execution_authorized",
             "real_model_evaluation_eligible",
             "real_model_ineligibility_reasons",
         ),
@@ -152,13 +169,126 @@ def _validate_manifest(artifacts: dict[str, dict]) -> None:
     )
     if not manifest["contract_test_eligible"]:
         _fail("manifest: reconciled v1 package must be contract-test eligible")
-    if manifest["status"] != "controlled_storage_question_evaluation_ready":
-        _fail("manifest: controlled storage evaluation status is required")
-    if not manifest["real_model_evaluation_eligible"]:
-        _fail(
-            "manifest: approved storage fixture must be eligible for its "
-            "controlled real-model evaluation"
-        )
+    expected_prompt_path = (
+        "docs/experiments/suggest-moving-service-questions/v1/"
+        "real-model-prompt.toml"
+    )
+    if manifest["prompt_artifact_path"] != expected_prompt_path:
+        _fail("manifest: prompt artifact path is unsupported")
+    if manifest["prompt_artifact_digest_algorithm"] != "sha256":
+        _fail("manifest: prompt digest algorithm must be sha256")
+    if manifest["prompt_artifact_digest"] is not None:
+        _fail("manifest: draft prompt digest must remain pending")
+    if manifest["prompt_artifact_digest_status"] != "pending_review_and_freeze":
+        _fail("manifest: draft prompt digest status is unsupported")
+    if manifest["status"] != "prompt_artifact_draft_ready_for_human_review":
+        _fail("manifest: draft prompt review status is required")
+    if manifest["contract_artifacts_ready"] is not True:
+        _fail("manifest: contract artifacts must remain ready")
+    if manifest["prompt_artifact_ready"] is not True:
+        _fail("manifest: validated prompt artifact must be ready for review")
+    if manifest["adapter_implementation_authorized"] is not False:
+        _fail("manifest: adapter implementation must not be authorized")
+    if manifest["real_model_execution_authorized"] is not False:
+        _fail("manifest: real-model execution must not be authorized")
+    if manifest["real_model_evaluation_eligible"]:
+        _fail("manifest: draft prompt must not be real-model eligible")
+
+
+def _validate_prompt(artifacts: dict[str, dict]) -> None:
+    prompt = _require(
+        artifacts["prompt"],
+        (
+            "system_instructions",
+            "metadata",
+            "serialization",
+            "structured_output",
+            "examples",
+            "versioning",
+            "readiness",
+            "human_review",
+        ),
+        "prompt",
+    )
+    if not isinstance(prompt["system_instructions"], str) or not prompt[
+        "system_instructions"
+    ].strip():
+        _fail("prompt: system instructions must be nonblank")
+
+    metadata = _require(
+        prompt["metadata"],
+        (
+            "capability",
+            "prompt_version",
+            "compatible_request_schema_version",
+            "compatible_response_schema_version",
+            "compatible_knowledge_fixture_version",
+            "maximum_questions",
+            "preferred_questions",
+            "maximum_input_tokens",
+            "maximum_output_tokens",
+            "formal_evaluation_retries",
+            "evaluation_only",
+            "production_use_prohibited",
+            "live_research_prohibited",
+            "prompt_status",
+            "prompt_artifact_digest_status",
+        ),
+        "prompt metadata",
+    )
+    expected_metadata = {
+        "capability": CAPABILITY,
+        "prompt_version": PROMPT_VERSION,
+        "compatible_request_schema_version": SCHEMA_VERSION,
+        "compatible_response_schema_version": SCHEMA_VERSION,
+        "compatible_knowledge_fixture_version": KNOWLEDGE_VERSION,
+        "maximum_questions": MAXIMUM_QUESTIONS,
+        "preferred_questions": 1,
+        "maximum_input_tokens": MAXIMUM_INPUT_TOKENS,
+        "maximum_output_tokens": MAXIMUM_OUTPUT_TOKENS,
+        "formal_evaluation_retries": 0,
+        "evaluation_only": True,
+        "production_use_prohibited": True,
+        "live_research_prohibited": True,
+        "prompt_status": "draft",
+        "prompt_artifact_digest_status": "pending_review_and_freeze",
+    }
+    for field, expected in expected_metadata.items():
+        if metadata[field] != expected:
+            _fail(f"prompt metadata: {field} does not match runtime or policy")
+
+    serialization = prompt["serialization"]
+    if serialization["top_level_field_order"] != list(
+        MovingServiceQuestionRequest.model_fields
+    ):
+        _fail("prompt serialization: request fields do not match runtime")
+    structured_output = prompt["structured_output"]
+    if structured_output["response_field_order"] != list(
+        MovingServiceQuestionResponse.model_fields
+    ):
+        _fail("prompt output: response fields do not match runtime")
+    if structured_output["suggestion_field_order"] != list(
+        MovingServiceQuestionSuggestion.model_fields
+    ):
+        _fail("prompt output: suggestion fields do not match runtime")
+    if structured_output["warnings_policy"] != "always_empty":
+        _fail("prompt output: warnings must remain empty")
+    if structured_output["fallback_recommended_policy"] != "always_false":
+        _fail("prompt output: model fallback recommendation must remain false")
+
+    readiness = prompt["readiness"]
+    expected_readiness = {
+        "draft": True,
+        "reviewed": False,
+        "ready_for_human_review": True,
+        "frozen_for_adapter_implementation": False,
+        "frozen_for_real_model_execution": False,
+        "adapter_implementation_authorized": False,
+        "real_model_execution_authorized": False,
+    }
+    for field, expected in expected_readiness.items():
+        if readiness.get(field) is not expected:
+            _fail(f"prompt readiness: {field} must be {expected}")
 
 
 def _validate_knowledge(artifacts: dict[str, dict]) -> tuple[CuratedKnowledgeItem, ...]:
@@ -448,6 +578,7 @@ def _validate_execution_expectations(
 def validate_artifacts(artifacts: dict[str, dict]) -> dict[str, object]:
     """Validate artifact data by passing it through runtime behavior."""
     _validate_manifest(artifacts)
+    _validate_prompt(artifacts)
     knowledge_items = _validate_knowledge(artifacts)
     _validate_baseline(artifacts)
     requests = _build_scenario_requests(artifacts)

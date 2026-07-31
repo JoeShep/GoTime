@@ -1,16 +1,28 @@
 {
   "capability": "suggest_moving_service_questions",
-  "artifact_version": "1.2.0",
+  "artifact_version": "1.3.0",
   "prompt_version": "moving-service-questions-prompt-v1",
+  "prompt_artifact_path": "docs/experiments/suggest-moving-service-questions/v1/real-model-prompt.toml",
+  "prompt_artifact_digest_algorithm": "sha256",
+  "prompt_artifact_digest": null,
+  "prompt_artifact_digest_status": "pending_review_and_freeze",
   "schema_version": "moving-service-questions-schema-v1",
   "knowledge_fixture_version": "moving-service-storage-fixture-v2",
   "fallback_version": "moving-service-fallback-v1",
   "scenario_version": "moving-service-scenarios-v1.2",
   "response_fixture_version": "moving-service-response-fixtures-v1.2",
   "expectations_version": "moving-service-expectations-v1.2",
-  "status": "controlled_storage_question_evaluation_ready",
+  "status": "prompt_artifact_draft_ready_for_human_review",
   "contract_test_eligible": true,
   "contract_test_ineligibility_reasons": [],
-  "real_model_evaluation_eligible": true,
-  "real_model_ineligibility_reasons": []
+  "contract_artifacts_ready": true,
+  "prompt_artifact_ready": true,
+  "adapter_implementation_authorized": false,
+  "real_model_execution_authorized": false,
+  "real_model_evaluation_eligible": false,
+  "real_model_ineligibility_reasons": [
+    "The prompt artifact has not been human-reviewed or frozen.",
+    "The prompt artifact SHA-256 digest is pending.",
+    "Adapter implementation and real-model execution require separate explicit authorization."
+  ]
 }

@@ -153,6 +153,20 @@ prompt artifact has been:
 * Assigned explicit input-token and output-token limits.
 * Assigned explicit structured-output instructions and limits.
 
+The capability-specific prompt artifact is:
+
+```text
+path: docs/experiments/suggest-moving-service-questions/v1/real-model-prompt.toml
+prompt_version: moving-service-questions-prompt-v1
+digest_algorithm: SHA-256
+digest_status: pending review and freeze
+```
+
+Formal run identity requires both the prompt version and the SHA-256 digest of
+the exact loaded artifact. Creating or validating this draft does not authorize
+adapter implementation or real-model execution. The digest remains pending
+until human review and freezing are complete.
+
 The prompt must direct the model to:
 
 * Use only supplied missing-information categories.
@@ -805,6 +819,13 @@ real-model adapter:
   statement is narrower and does not generalize to all models. Those artifacts
   are schema and fallback fixtures, not automatically approved examples of
   grounding quality.
+  Equivalent wording remains in
+  `backend/app/moving_service_questions.py`,
+  `docs/experiments/suggest-moving-service-questions/v1/response-fixtures.json`,
+  `docs/experiments/suggest-moving-service-questions/v1/deterministic-baseline.json`,
+  and `frontend/src/MovingServiceQuestionExperiment.test.tsx`. None of those
+  occurrences is an approved grounding-quality example for the real-model
+  prompt. Reconciliation, if selected, should be a separate narrow change.
 * Runtime validation confirms schema, references, categories, duplication, and
   prohibited extra fields. It cannot prove that free-text prose remains within
   the FMCSA claim; human grounding review is required.
