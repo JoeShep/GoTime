@@ -249,6 +249,11 @@ Failure writes no prompt, request, response, or credential data.
 The authenticated `/v1/responses/input_tokens` request is the first network
 operation. Before it, generation must still be impossible.
 
+The OpenAI-specific transport now exposes this as an independent `preflight()`
+operation. It returns bounded in-memory evidence containing the exact input
+count, conservative maximum cost, duration, request fingerprint, and bounded
+transport failure when applicable. It does not call the generation resource.
+
 The runner must record:
 
 ```text
@@ -270,6 +275,15 @@ Only a successful Phase D may enable one generation request. The transport
 must use the already reviewed payload, 12-second timeout, zero retries, and no
 tools, streaming, background execution, provider prompt-cache controls, or
 response reuse.
+
+Generation is a separate `generate()` operation. It rejects absent, failed,
+mismatched, or previously consumed preflight evidence before invoking the fake
+or future SDK generation resource. The runner requires an exact stage-specific
+permission pattern: preflight-only forbids both generation and formal-series
+permission; a generation pilot requires preflight and generation permission
+but forbids formal-series permission; a formal run requires all four operational
+permissions. The currently committed authorization matches none of those
+patterns because every permission remains false.
 
 After the attempt, close the client, validate the untrusted response through
 the existing runtime validator, write one bounded record, and stop immediately

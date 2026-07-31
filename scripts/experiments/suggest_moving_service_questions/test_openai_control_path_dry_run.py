@@ -22,6 +22,7 @@ from run_openai_control_path_dry_run import (  # noqa: E402
     OfflineSyntheticEnvironment,
     run_offline_openai_control_path_series,
 )
+from run_real_model_evaluation import ExecutionStage  # noqa: E402
 
 
 def storage_response() -> dict[str, object]:
@@ -77,6 +78,7 @@ def run_series(
     scenarios: tuple[OfflineOpenAIScenario, ...],
     *,
     fixture_ids: tuple[str, ...] = ("storage_unknown", "complete"),
+    stage: ExecutionStage = ExecutionStage.FORMAL_EVALUATION,
 ):
     environment = OfflineSyntheticEnvironment()
     client_constructor = OfflineFakeOpenAIClientConstructor(scenarios)
@@ -85,6 +87,7 @@ def run_series(
         fixture_ids=fixture_ids,
         run_series_id="offline-openai-control-path",
         first_sequence=1,
+        simulated_execution_stage=stage,
         environment=environment,
         client_constructor=client_constructor,
         http_client_constructor=http_constructor,
@@ -92,6 +95,47 @@ def run_series(
         allow_temporary_test_output=True,
     )
     return result, client_constructor, http_constructor
+
+
+def test_preflight_only_stage_cannot_generate(tmp_path: Path) -> None:
+    result, client_constructor, _ = run_series(
+        tmp_path,
+        (OfflineOpenAIScenario(storage_response()),),
+        fixture_ids=("storage_unknown",),
+        stage=ExecutionStage.TOKEN_PREFLIGHT,
+    )
+
+    record = result.records[0]
+    client = client_constructor.clients[0]
+    assert record.simulated_execution_stage == "token_preflight"
+    assert record.preflight_attempted is True
+    assert record.preflight_succeeded is True
+    assert record.generation_attempted is False
+    assert record.generation_succeeded is False
+    assert record.response_schema_valid is None
+    assert record.input_tokens == 100
+    assert record.estimated_cost == "$0.00000000"
+    assert record.conservative_max_cost == "$0.00084000"
+    assert len(client.responses.input_tokens.calls) == 1
+    assert client.responses.calls == []
+
+
+def test_generation_pilot_requires_and_consumes_preflight(tmp_path: Path) -> None:
+    result, client_constructor, _ = run_series(
+        tmp_path,
+        (OfflineOpenAIScenario(storage_response()),),
+        fixture_ids=("storage_unknown",),
+        stage=ExecutionStage.AI_GENERATION,
+    )
+
+    record = result.records[0]
+    client = client_constructor.clients[0]
+    assert record.simulated_execution_stage == "ai_generation"
+    assert record.preflight_succeeded is True
+    assert record.generation_attempted is True
+    assert record.generation_succeeded is True
+    assert len(client.responses.input_tokens.calls) == 1
+    assert len(client.responses.calls) == 1
 
 
 def test_complete_closed_control_path_and_budget_accounting(tmp_path: Path) -> None:
@@ -216,6 +260,7 @@ def test_arbitrary_environment_and_fixture_order_are_rejected(tmp_path: Path) ->
             fixture_ids=("storage_unknown",),
             run_series_id="offline-openai-control-path",
             first_sequence=1,
+            simulated_execution_stage=ExecutionStage.TOKEN_PREFLIGHT,
             environment={"key": "value"},  # type: ignore[arg-type]
             client_constructor=constructor,
             http_client_constructor=http_constructor,
@@ -227,6 +272,7 @@ def test_arbitrary_environment_and_fixture_order_are_rejected(tmp_path: Path) ->
             fixture_ids=("complete",),
             run_series_id="offline-openai-control-path",
             first_sequence=1,
+            simulated_execution_stage=ExecutionStage.TOKEN_PREFLIGHT,
             environment=OfflineSyntheticEnvironment(),
             client_constructor=constructor,
             http_client_constructor=http_constructor,

@@ -83,12 +83,13 @@ Official references:
 
 ### Blocking implementation gaps
 
-1. **Preflight and generation are coupled.**
-   `OpenAIMovingServiceEvaluationTransport.send()` calls
-   `responses.input_tokens.count()` and, after a successful count, immediately
-   calls `responses.create()`. A preflight-only authorization cannot be enforced
-   with this API. Split the transport into explicit preflight and generation
-   operations, or add an equally strict phase object, before authorizing either.
+1. **Resolved after the audit: preflight and generation are separated.**
+   `OpenAIMovingServiceEvaluationTransport` now exposes only explicit
+   `preflight()` and `generate()` operations. Generation requires successful,
+   matching, single-use in-memory preflight evidence. The combined `send()`
+   path was removed. Offline runner tests enforce exact, mutually exclusive
+   permission patterns for preflight-only, one-generation pilot, and formal
+   evaluation stages. Repository authorization remains fully closed.
 
 2. **The normal runner is deliberately fake-only.**
    It rejects every transport except the concrete offline fake and does not
@@ -199,8 +200,9 @@ change after approval requires review.
 
 ## 6. Stage A — One Token-Preflight Call
 
-This stage is not ready until preflight and generation are mechanically
-separated and the real runner can prove that generation is unreachable.
+This stage is not ready until the capability-specific real runner and remaining
+review gates are complete. Mechanical preflight/generation separation and
+offline proof that preflight-only cannot generate are complete.
 
 Minimum proposed permissions:
 
@@ -349,7 +351,8 @@ one AI-generation pilot ready for authorization: no
 20-slot formal evaluation ready for authorization: no
 ```
 
-The minimum next implementation milestone is to split preflight from generation
-and add a stage-aware, capability-specific real-mode runner and record path that
-remain offline-testable and default closed. No authorization artifact should be
-widened until that milestone and the other blockers in this audit are reviewed.
+The minimum next implementation milestone is to add the capability-specific
+real-mode runner, real-constructor wiring, and complete bounded record path while
+remaining offline-testable and default closed. No authorization artifact should
+be widened until that milestone and the other blockers in this audit are
+reviewed.

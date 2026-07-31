@@ -93,6 +93,25 @@ class VerifiedOpenAITransportArtifacts:
     output_price_per_million: Decimal
 
 
+@dataclass(frozen=True)
+class OpenAIPreflightResult:
+    """Bounded, in-memory evidence for one exact prepared provider request."""
+
+    request_fingerprint: str
+    input_tokens: int | None
+    duration_ms: float
+    conservative_cost: Decimal | None
+    error_classification: TransportErrorClassification | None = None
+
+    @property
+    def succeeded(self) -> bool:
+        return (
+            self.error_classification is None
+            and self.input_tokens is not None
+            and self.conservative_cost is not None
+        )
+
+
 def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -283,6 +302,7 @@ class OpenAIMovingServiceEvaluationTransport:
         self.expected_run_configuration_digest = expected_run_configuration_digest
         self.expected_response_schema_digest = expected_response_schema_digest
         self.clock = clock
+        self._consumed_preflights: list[OpenAIPreflightResult] = []
 
     def _verified(
         self, request: MovingServiceProviderRequest
@@ -307,10 +327,11 @@ class OpenAIMovingServiceEvaluationTransport:
             )
         return artifacts
 
-    def send(
-        self, request: MovingServiceProviderRequest
-    ) -> MovingServiceTransportResult:
-        artifacts = self._verified(request)
+    def _common_input(
+        self,
+        request: MovingServiceProviderRequest,
+        artifacts: VerifiedOpenAITransportArtifacts,
+    ) -> dict[str, object]:
         text_format = {
             "format": {
                 "type": "json_schema",
@@ -319,14 +340,45 @@ class OpenAIMovingServiceEvaluationTransport:
                 "schema": artifacts.response_schema,
             }
         }
-        common_input = {
+        return {
             "model": request.model_identifier,
             "instructions": request.system_instructions,
             "input": request.deterministic_request_json,
             "text": text_format,
             "truncation": "disabled",
         }
-        total_started = self.clock()
+
+    def _request_fingerprint(
+        self,
+        request: MovingServiceProviderRequest,
+        artifacts: VerifiedOpenAITransportArtifacts,
+    ) -> str:
+        fingerprint_data = {
+            "common_input": self._common_input(request, artifacts),
+            "maximum_output_tokens": request.maximum_output_tokens,
+            "temperature": 0,
+            "store": False,
+            "background": False,
+            "stream": False,
+            "generation_timeout_seconds": artifacts.generation_timeout_seconds,
+            "retry_count": request.retry_count,
+        }
+        serialized = json.dumps(
+            fingerprint_data,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+    def preflight(
+        self,
+        request: MovingServiceProviderRequest,
+    ) -> OpenAIPreflightResult:
+        """Perform only exact input-token counting and conservative gating."""
+        artifacts = self._verified(request)
+        common_input = self._common_input(request, artifacts)
+        request_fingerprint = self._request_fingerprint(request, artifacts)
         preflight_started = self.clock()
         try:
             count_response = self.client.responses.input_tokens.count(
@@ -338,13 +390,11 @@ class OpenAIMovingServiceEvaluationTransport:
             if classification is None:
                 raise
             preflight_ms = (self.clock() - preflight_started) * 1_000
-            return MovingServiceTransportResult(
-                response_content=None,
-                duration_ms=(self.clock() - total_started) * 1_000,
-                preflight_duration_ms=preflight_ms,
-                cache_status="not_available",
-                provider_name=OPENAI_PROVIDER_NAME,
-                failure_phase="preflight",
+            return OpenAIPreflightResult(
+                request_fingerprint=request_fingerprint,
+                input_tokens=None,
+                duration_ms=preflight_ms,
+                conservative_cost=None,
                 error_classification=classification,
             )
         preflight_ms = (self.clock() - preflight_started) * 1_000
@@ -370,6 +420,42 @@ class OpenAIMovingServiceEvaluationTransport:
                 "OpenAI conservative cost exceeds the frozen per-call ceiling."
             )
 
+        return OpenAIPreflightResult(
+            request_fingerprint=request_fingerprint,
+            input_tokens=input_tokens,
+            duration_ms=preflight_ms,
+            conservative_cost=conservative_cost,
+        )
+
+    def generate(
+        self,
+        request: MovingServiceProviderRequest,
+        preflight: OpenAIPreflightResult,
+    ) -> MovingServiceTransportResult:
+        """Generate once using successful evidence for this exact request."""
+        artifacts = self._verified(request)
+        if not preflight.succeeded:
+            raise OpenAIPreflightGateError(
+                "Successful OpenAI preflight evidence is required for generation."
+            )
+        if preflight.request_fingerprint != self._request_fingerprint(
+            request,
+            artifacts,
+        ):
+            raise OpenAIPreflightGateError(
+                "OpenAI preflight evidence does not match the generation request."
+            )
+        if any(item is preflight for item in self._consumed_preflights):
+            raise OpenAIPreflightGateError(
+                "OpenAI preflight evidence has already been consumed."
+            )
+        self._consumed_preflights.append(preflight)
+        input_tokens = preflight.input_tokens
+        if input_tokens is None:
+            raise OpenAIPreflightGateError(
+                "OpenAI preflight token evidence is missing."
+            )
+        common_input = self._common_input(request, artifacts)
         generation_started = self.clock()
         try:
             response = self.client.responses.create(
@@ -389,8 +475,8 @@ class OpenAIMovingServiceEvaluationTransport:
             return MovingServiceTransportResult(
                 response_content=None,
                 input_tokens=input_tokens,
-                duration_ms=(self.clock() - total_started) * 1_000,
-                preflight_duration_ms=preflight_ms,
+                duration_ms=preflight.duration_ms + generation_ms,
+                preflight_duration_ms=preflight.duration_ms,
                 generation_duration_ms=generation_ms,
                 cache_status="not_available",
                 provider_name=OPENAI_PROVIDER_NAME,
@@ -438,8 +524,8 @@ class OpenAIMovingServiceEvaluationTransport:
             cached_input_tokens=cached_tokens,
             uncached_input_tokens=uncached_tokens,
             output_tokens=usage_output_tokens,
-            duration_ms=(self.clock() - total_started) * 1_000,
-            preflight_duration_ms=preflight_ms,
+            duration_ms=preflight.duration_ms + generation_ms,
+            preflight_duration_ms=preflight.duration_ms,
             generation_duration_ms=generation_ms,
             cache_status=cache_status,
             provider_name=OPENAI_PROVIDER_NAME,

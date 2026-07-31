@@ -49,17 +49,20 @@ from openai_transport import (  # noqa: E402
 from real_model_adapter import (  # noqa: E402
     FROZEN_PROMPT_DIGEST,
     RealModelMovingServiceQuestionAdapter,
+    parse_untrusted_response,
 )
 from run_real_model_evaluation import (  # noqa: E402
     DEFAULT_EXECUTION_AUTHORIZATION_PATH,
     DEFAULT_MANIFEST_PATH,
     DEFAULT_PROMPT_PATH,
+    ExecutionStage,
     _load_verified_execution_authorization,
     _load_verified_manifest,
     _record_path,
     _validate_fixture,
     _validate_output_root,
     _validate_run_identity,
+    require_execution_stage_authorized,
 )
 
 OFFLINE_SYNTHETIC_CREDENTIAL = "gotime-offline-synthetic-not-a-real-key"
@@ -186,6 +189,7 @@ class OfflineFakeOpenAIClientConstructor:
 @dataclass(frozen=True)
 class OfflineControlPathRecord:
     dry_run_mode: str
+    simulated_execution_stage: str
     run_series_id: str
     run_sequence: int
     fixture_id: str
@@ -207,12 +211,13 @@ class OfflineControlPathRecord:
     preflight_succeeded: bool
     generation_attempted: bool
     generation_succeeded: bool
-    response_schema_valid: bool
+    response_schema_valid: bool | None
     input_tokens: int | None
     cached_input_tokens: int | None
     uncached_input_tokens: int | None
     output_tokens: int | None
     estimated_cost: str
+    conservative_max_cost: str | None
     cumulative_series_cost: str
     cache_status: str
     provider_request_id: str | None
@@ -269,6 +274,7 @@ def run_offline_openai_control_path_series(
     fixture_ids: tuple[str, ...],
     run_series_id: str,
     first_sequence: int,
+    simulated_execution_stage: ExecutionStage,
     environment: OfflineSyntheticEnvironment,
     client_constructor: OfflineFakeOpenAIClientConstructor,
     http_client_constructor: OfflineFakeHttpClientConstructor,
@@ -284,6 +290,11 @@ def run_offline_openai_control_path_series(
         raise OfflineControlPathError("Only the fake HTTP constructor is permitted.")
     if not fixture_ids:
         raise OfflineControlPathError("At least one dry-run slot is required.")
+    if (
+        simulated_execution_stage is not ExecutionStage.FORMAL_EVALUATION
+        and len(fixture_ids) != 1
+    ):
+        raise OfflineControlPathError("Pilot stages permit exactly one dry-run slot.")
 
     manifest = _load_verified_manifest(DEFAULT_MANIFEST_PATH)
     authorization = _load_verified_execution_authorization(
@@ -291,6 +302,30 @@ def run_offline_openai_control_path_series(
         manifest,
     )
     permissions = _closed_permissions(authorization)
+    simulated_permissions_by_stage = {
+        ExecutionStage.TOKEN_PREFLIGHT: {
+            "credential_access_authorized": True,
+            "token_preflight_authorized": True,
+            "ai_generation_authorized": False,
+            "formal_evaluation_authorized": False,
+        },
+        ExecutionStage.AI_GENERATION: {
+            "credential_access_authorized": True,
+            "token_preflight_authorized": True,
+            "ai_generation_authorized": True,
+            "formal_evaluation_authorized": False,
+        },
+        ExecutionStage.FORMAL_EVALUATION: {
+            "credential_access_authorized": True,
+            "token_preflight_authorized": True,
+            "ai_generation_authorized": True,
+            "formal_evaluation_authorized": True,
+        },
+    }
+    require_execution_stage_authorized(
+        {"authorization": simulated_permissions_by_stage[simulated_execution_stage]},
+        simulated_execution_stage,
+    )
     frozen_order, maximum_series_spend = _frozen_run_order_and_budget()
     final_sequence = first_sequence + len(fixture_ids) - 1
     _validate_run_identity(run_series_id, first_sequence)
@@ -349,19 +384,37 @@ def run_offline_openai_control_path_series(
         preflight_succeeded = False
         generation_attempted = False
         generation_succeeded = False
-        response_schema_valid = False
+        response_schema_valid: bool | None = None
         failure_phase: str | None = None
         failure_code: str | None = None
+        preflight = None
         try:
             prepared = adapter.prepare_request(request)
             preflight_attempted = True
-            invocation = adapter.invoke_prepared(prepared)
-            transport_result = invocation.transport_result
-            preflight_succeeded = True
-            generation_attempted = True
-            validate_response(request, invocation.raw_response)
-            response_schema_valid = True
-            generation_succeeded = True
+            preflight = transport.preflight(prepared)
+            preflight_succeeded = preflight.succeeded
+            if not preflight.succeeded:
+                failure_phase = "preflight"
+                failure_code = (
+                    f"preflight_{preflight.error_classification.value}"
+                    if preflight.error_classification is not None
+                    else "preflight_failed"
+                )
+            elif simulated_execution_stage is not ExecutionStage.TOKEN_PREFLIGHT:
+                generation_attempted = True
+                transport_result = transport.generate(prepared, preflight)
+                if transport_result.error_classification is not None:
+                    failure_phase = "generation"
+                    failure_code = (
+                        f"generation_{transport_result.error_classification.value}"
+                    )
+                else:
+                    raw_response = parse_untrusted_response(
+                        transport_result.response_content
+                    )
+                    validate_response(request, raw_response)
+                    response_schema_valid = True
+                    generation_succeeded = True
         except OpenAIPreflightGateError:
             failure_phase = "preflight"
             failure_code = "preflight_gate_rejected"
@@ -370,6 +423,7 @@ def run_offline_openai_control_path_series(
                 owned_client.client.responses.input_tokens.calls
             )
             generation_attempted = bool(owned_client.client.responses.calls)
+            response_schema_valid = False
             failure_phase = "response_validation"
             failure_code = "invalid_ai_response"
         finally:
@@ -389,6 +443,7 @@ def run_offline_openai_control_path_series(
 
         record = OfflineControlPathRecord(
             dry_run_mode=DRY_RUN_MODE,
+            simulated_execution_stage=simulated_execution_stage.value,
             run_series_id=run_series_id,
             run_sequence=sequence,
             fixture_id=fixture.value,
@@ -415,7 +470,11 @@ def run_offline_openai_control_path_series(
             generation_attempted=generation_attempted,
             generation_succeeded=generation_succeeded,
             response_schema_valid=response_schema_valid,
-            input_tokens=(transport_result.input_tokens if transport_result else None),
+            input_tokens=(
+                transport_result.input_tokens
+                if transport_result is not None
+                else preflight.input_tokens if preflight is not None else None
+            ),
             cached_input_tokens=(
                 transport_result.cached_input_tokens if transport_result else None
             ),
@@ -426,6 +485,12 @@ def run_offline_openai_control_path_series(
                 transport_result.output_tokens if transport_result else None
             ),
             estimated_cost=f"${call_cost:.8f}",
+            conservative_max_cost=(
+                f"${preflight.conservative_cost:.8f}"
+                if preflight is not None
+                and preflight.conservative_cost is not None
+                else None
+            ),
             cumulative_series_cost=f"${cumulative_cost:.8f}",
             cache_status=(
                 transport_result.cache_status

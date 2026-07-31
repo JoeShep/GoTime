@@ -43,11 +43,16 @@ from real_model_adapter import (  # noqa: E402
 )
 from run_real_model_evaluation import (  # noqa: E402
     DEFAULT_EXECUTION_AUTHORIZATION_PATH,
+    DEFAULT_MANIFEST_PATH,
     DEFAULT_PROMPT_PATH,
+    ExecutionStage,
     OFFLINE_MODEL_IDENTIFIER,
     OfflineRunnerAuthorization,
     OfflineRunnerGateError,
+    _load_verified_execution_authorization,
+    _load_verified_manifest,
     run_offline_evaluation,
+    require_execution_stage_authorized,
 )
 
 
@@ -194,6 +199,70 @@ def test_frozen_prompt_digest_is_accepted_and_schema_is_supplied() -> None:
     assert provider_request.maximum_output_tokens == 500
     assert provider_request.timeout_seconds == DEFAULT_TIMEOUT_SECONDS == 12.0
     assert provider_request.retry_count == FORMAL_RETRY_COUNT == 0
+
+
+@pytest.mark.parametrize(
+    ("stage", "permissions"),
+    (
+        (
+            ExecutionStage.TOKEN_PREFLIGHT,
+            {"credential_access_authorized": True,
+             "token_preflight_authorized": True,
+             "ai_generation_authorized": False,
+             "formal_evaluation_authorized": False},
+        ),
+        (
+            ExecutionStage.AI_GENERATION,
+            {"credential_access_authorized": True,
+             "token_preflight_authorized": True,
+             "ai_generation_authorized": True,
+             "formal_evaluation_authorized": False},
+        ),
+        (
+            ExecutionStage.FORMAL_EVALUATION,
+            {"credential_access_authorized": True,
+             "token_preflight_authorized": True,
+             "ai_generation_authorized": True,
+             "formal_evaluation_authorized": True},
+        ),
+    ),
+)
+def test_execution_stages_require_exact_permission_patterns(
+    stage: ExecutionStage,
+    permissions: dict[str, bool],
+) -> None:
+    require_execution_stage_authorized(
+        {"authorization": permissions},
+        stage,
+    )
+
+    for other_stage in ExecutionStage:
+        if other_stage is stage:
+            continue
+        with pytest.raises(OfflineRunnerGateError, match="does not permit"):
+            require_execution_stage_authorized(
+                {"authorization": permissions},
+                other_stage,
+            )
+
+    closed = {field: False for field in permissions}
+    with pytest.raises(OfflineRunnerGateError, match="does not permit"):
+        require_execution_stage_authorized(
+            {"authorization": closed},
+            stage,
+        )
+
+
+def test_committed_authorization_rejects_every_execution_stage() -> None:
+    manifest = _load_verified_manifest(DEFAULT_MANIFEST_PATH)
+    authorization = _load_verified_execution_authorization(
+        DEFAULT_EXECUTION_AUTHORIZATION_PATH,
+        manifest,
+    )
+
+    for stage in ExecutionStage:
+        with pytest.raises(OfflineRunnerGateError, match="does not permit"):
+            require_execution_stage_authorized(authorization, stage)
 
 
 def test_modified_prompt_bytes_are_rejected_before_transport(tmp_path: Path) -> None:

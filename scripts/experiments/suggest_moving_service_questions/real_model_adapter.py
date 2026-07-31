@@ -279,7 +279,7 @@ def _reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, ob
     return result
 
 
-def _parse_untrusted_response(
+def parse_untrusted_response(
     content: Mapping[str, object] | str | None,
 ) -> Mapping[str, object]:
     if isinstance(content, Mapping):
@@ -353,7 +353,7 @@ class RealModelMovingServiceQuestionAdapter:
             raise AdapterUnavailableError("The offline transport is unavailable.")
         if result.error_classification is TransportErrorClassification.TIMEOUT:
             raise AdapterTimeoutError("The offline transport timed out.")
-        raw_response = _parse_untrusted_response(result.response_content)
+        raw_response = parse_untrusted_response(result.response_content)
         return AdapterInvocation(raw_response=raw_response, transport_result=result)
 
     def invoke(

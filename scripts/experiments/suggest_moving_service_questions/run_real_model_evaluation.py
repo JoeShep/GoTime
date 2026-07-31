@@ -12,6 +12,7 @@ import re
 import sys
 import tomllib
 from dataclasses import asdict, dataclass
+from enum import StrEnum
 from pathlib import Path
 from time import perf_counter
 from typing import Mapping
@@ -79,6 +80,54 @@ MAXIMUM_RUN_SEQUENCE = 20
 
 class OfflineRunnerGateError(ValueError):
     pass
+
+
+class ExecutionStage(StrEnum):
+    TOKEN_PREFLIGHT = "token_preflight"
+    AI_GENERATION = "ai_generation"
+    FORMAL_EVALUATION = "formal_evaluation"
+
+
+def require_execution_stage_authorized(
+    authorization: Mapping[str, object],
+    stage: ExecutionStage,
+) -> None:
+    """Require the exact, minimally scoped permission pattern for one stage."""
+    permissions = authorization.get("authorization")
+    if not isinstance(permissions, Mapping):
+        raise OfflineRunnerGateError("Execution authorization is missing permissions.")
+    expected_fields = {
+        "credential_access_authorized",
+        "token_preflight_authorized",
+        "ai_generation_authorized",
+        "formal_evaluation_authorized",
+    }
+    if set(permissions) != expected_fields:
+        raise OfflineRunnerGateError("Execution permission fields are incompatible.")
+    expected_by_stage = {
+        ExecutionStage.TOKEN_PREFLIGHT: {
+            "credential_access_authorized": True,
+            "token_preflight_authorized": True,
+            "ai_generation_authorized": False,
+            "formal_evaluation_authorized": False,
+        },
+        ExecutionStage.AI_GENERATION: {
+            "credential_access_authorized": True,
+            "token_preflight_authorized": True,
+            "ai_generation_authorized": True,
+            "formal_evaluation_authorized": False,
+        },
+        ExecutionStage.FORMAL_EVALUATION: {
+            "credential_access_authorized": True,
+            "token_preflight_authorized": True,
+            "ai_generation_authorized": True,
+            "formal_evaluation_authorized": True,
+        },
+    }
+    if dict(permissions) != expected_by_stage[stage]:
+        raise OfflineRunnerGateError(
+            f"Repository authorization does not permit {stage.value}."
+        )
 
 
 @dataclass(frozen=True)

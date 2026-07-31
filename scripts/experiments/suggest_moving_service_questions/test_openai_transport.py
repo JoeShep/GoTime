@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -41,6 +42,7 @@ from openai_transport import (  # noqa: E402
 from real_model_adapter import (  # noqa: E402
     RealModelMovingServiceQuestionAdapter,
     TransportErrorClassification,
+    parse_untrusted_response,
 )
 from run_real_model_evaluation import (  # noqa: E402
     OfflineRunnerAuthorization,
@@ -194,8 +196,13 @@ def test_transport_sends_exact_count_and_generation_payloads() -> None:
     client = FakeOpenAIClient()
     adapter, request, prepared = provider_request(client)
 
-    invocation = adapter.invoke_prepared(prepared)
-    validated = validate_response(request, invocation.raw_response)
+    transport = OpenAIMovingServiceEvaluationTransport(client=client)
+    preflight = transport.preflight(prepared)
+    result = transport.generate(prepared, preflight)
+    validated = validate_response(
+        request,
+        parse_untrusted_response(result.response_content),
+    )
 
     assert len(validated.suggestions) == 1
     assert len(client.responses.input_tokens.calls) == 1
@@ -224,11 +231,67 @@ def test_transport_sends_exact_count_and_generation_payloads() -> None:
     assert generation_payload["text"]["format"]["strict"] is True
 
 
+def test_preflight_is_independently_invocable_without_generation() -> None:
+    client = FakeOpenAIClient()
+    _, _, prepared = provider_request(client)
+    transport = OpenAIMovingServiceEvaluationTransport(client=client)
+
+    preflight = transport.preflight(prepared)
+
+    assert not hasattr(transport, "send")
+    assert preflight.succeeded is True
+    assert preflight.input_tokens == 100
+    assert len(client.responses.input_tokens.calls) == 1
+    assert client.responses.calls == []
+
+
+def test_generation_rejects_missing_mismatched_and_consumed_preflight() -> None:
+    client = FakeOpenAIClient()
+    _, _, prepared = provider_request(client)
+    transport = OpenAIMovingServiceEvaluationTransport(client=client)
+    preflight = transport.preflight(prepared)
+    mismatched = replace(
+        prepared,
+        deterministic_request_json=prepared.deterministic_request_json + " ",
+    )
+
+    with pytest.raises(OpenAIPreflightGateError, match="does not match"):
+        transport.generate(mismatched, preflight)
+    assert client.responses.calls == []
+
+    result = transport.generate(prepared, preflight)
+    assert result.finish_status == "completed"
+    assert len(client.responses.calls) == 1
+
+    with pytest.raises(OpenAIPreflightGateError, match="already been consumed"):
+        transport.generate(prepared, preflight)
+    assert len(client.responses.calls) == 1
+
+
+def test_generation_rejects_failed_preflight_evidence() -> None:
+    client = FakeOpenAIClient(
+        FakeResponses(
+            count_error=APITimeoutError(
+                httpx.Request("POST", "https://offline.invalid")
+            )
+        )
+    )
+    _, _, prepared = provider_request(client)
+    transport = OpenAIMovingServiceEvaluationTransport(client=client)
+
+    preflight = transport.preflight(prepared)
+    assert preflight.succeeded is False
+    with pytest.raises(OpenAIPreflightGateError, match="Successful"):
+        transport.generate(prepared, preflight)
+    assert client.responses.calls == []
+
+
 def test_usage_cache_identity_and_cost_are_extracted() -> None:
     client = FakeOpenAIClient()
     _, _, prepared = provider_request(client)
 
-    result = OpenAIMovingServiceEvaluationTransport(client=client).send(prepared)
+    transport = OpenAIMovingServiceEvaluationTransport(client=client)
+    result = transport.generate(prepared, transport.preflight(prepared))
 
     assert result.input_tokens == 100
     assert result.cached_input_tokens == 20
@@ -251,7 +314,8 @@ def test_missing_cache_detail_is_not_inferred() -> None:
     client = FakeOpenAIClient(FakeResponses(response=response))
     _, _, prepared = provider_request(client)
 
-    result = OpenAIMovingServiceEvaluationTransport(client=client).send(prepared)
+    transport = OpenAIMovingServiceEvaluationTransport(client=client)
+    result = transport.generate(prepared, transport.preflight(prepared))
 
     assert result.cache_status == "not_available"
     assert result.cached_input_tokens == 0
@@ -272,7 +336,7 @@ def test_modified_frozen_artifact_is_rejected_before_fake_sdk_call(
     )
 
     with pytest.raises(OpenAITransportArtifactError, match="digest"):
-        transport.send(prepared)
+        transport.preflight(prepared)
 
     assert client.responses.input_tokens.calls == []
     assert client.responses.calls == []
@@ -289,7 +353,7 @@ def test_runtime_schema_drift_is_rejected_before_fake_sdk_call() -> None:
     )
 
     with pytest.raises(OpenAITransportArtifactError, match="schema drifted"):
-        OpenAIMovingServiceEvaluationTransport(client=client).send(prepared)
+        OpenAIMovingServiceEvaluationTransport(client=client).preflight(prepared)
 
     assert client.responses.input_tokens.calls == []
 
@@ -302,7 +366,7 @@ def test_oversized_exact_preflight_blocks_generation() -> None:
     _, _, prepared = provider_request(client)
 
     with pytest.raises(OpenAIPreflightGateError, match="token count"):
-        OpenAIMovingServiceEvaluationTransport(client=client).send(prepared)
+        OpenAIMovingServiceEvaluationTransport(client=client).preflight(prepared)
 
     assert len(responses.input_tokens.calls) == 1
     assert responses.calls == []
@@ -337,10 +401,14 @@ def test_bounded_sdk_errors_are_translated_without_retry(
     client = FakeOpenAIClient(responses)
     _, _, prepared = provider_request(client)
 
-    result = OpenAIMovingServiceEvaluationTransport(client=client).send(prepared)
-
-    assert result.error_classification is expected
-    assert result.failure_phase == phase
+    transport = OpenAIMovingServiceEvaluationTransport(client=client)
+    preflight = transport.preflight(prepared)
+    if phase == "preflight":
+        assert preflight.error_classification is expected
+    else:
+        result = transport.generate(prepared, preflight)
+        assert result.error_classification is expected
+        assert result.failure_phase == phase
     assert len(responses.input_tokens.calls) == 1
     assert len(responses.calls) == (1 if phase == "generation" else 0)
 
@@ -351,7 +419,8 @@ def test_unexpected_sdk_error_remains_visible() -> None:
     _, _, prepared = provider_request(client)
 
     with pytest.raises(RuntimeError, match="offline bug"):
-        OpenAIMovingServiceEvaluationTransport(client=client).send(prepared)
+        transport = OpenAIMovingServiceEvaluationTransport(client=client)
+        transport.generate(prepared, transport.preflight(prepared))
 
     assert len(responses.input_tokens.calls) == 1
     assert len(responses.calls) == 1
@@ -382,7 +451,8 @@ def test_incomplete_refusal_and_missing_text_are_rejected(response: object) -> N
     _, _, prepared = provider_request(client)
 
     with pytest.raises(ResponseValidationError):
-        OpenAIMovingServiceEvaluationTransport(client=client).send(prepared)
+        transport = OpenAIMovingServiceEvaluationTransport(client=client)
+        transport.generate(prepared, transport.preflight(prepared))
 
 
 def test_runner_remains_fake_only_and_transport_reads_no_credentials() -> None:
