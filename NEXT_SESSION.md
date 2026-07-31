@@ -492,7 +492,10 @@ knowledge is sufficient for real-model use. No real-model work may begin until
 curated statements have approved sources, the knowledge fixture is versioned
 for that purpose, and the fake-adapter contract is approved.
 
-# V1 Artifact Reconciliation — Suggest Moving-Service Questions
+# Historical Milestone — V1 Artifact Reconciliation
+
+The status below records the package before the later FMCSA knowledge-curation
+milestone. Current readiness is documented in the sections that follow.
 
 ## Status
 
