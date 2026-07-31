@@ -379,21 +379,26 @@ Protocol:
   generated model response in place of a formal call.
 * Use zero automatic retries.
 * Use a fixed, recorded run order, preferably alternating fixtures.
-* Assign one run-series ID and a sequence number to every call.
-* Preserve every output in the denominator, including invalid, empty, timed
-  out, and failed calls.
+* Assign one run-series ID and a sequence number to every planned evaluation
+  slot.
+* A failed token preflight preserves its sequence number, writes a bounded
+  audit record, stops the series, and is neither retried nor replaced.
+* Preserve every attempted AI generation in the AI-generation denominator,
+  including invalid, empty, timed out, and failed responses.
 * Record normalized question text to identify repeated outputs.
 * Do not collapse duplicate outputs; repetition is stability evidence.
 * Do not replace failed calls or add make-up calls to the same run series.
-* Keep all twenty attempted calls in the formal denominator regardless of
-  cache status.
+* Report the 20 planned evaluation slots, actual AI-generation attempts,
+  preflight failures, and AI-response failures separately.
+* Cache status never removes an attempted AI generation from its denominator.
 
 Ten runs per fixture provide an initial operational signal. They do not
 establish statistical certainty.
 
 ## 9. Automated Contract Thresholds
 
-The 20-call run series must satisfy these exact counts:
+The planned 20-slot run series must satisfy these exact counts only when all
+twenty preflights succeed and all twenty AI generations are attempted:
 
 * At least **19 of 20** total responses are schema-valid.
 * **10 of 10** `complete` runs return zero suggestions.
@@ -404,8 +409,11 @@ The 20-call run series must satisfy these exact counts:
 * At least **18 of 20** complete within the five-second target latency.
 * **20 of 20** remain within the hard per-call cost and timeout ceilings.
 
-An invocation failure, timeout, or response-validation failure is not
-schema-valid. It remains in the 20-call denominator.
+An AI-generation invocation failure, timeout, or response-validation failure
+is not schema-valid and remains in the AI-generation denominator. A preflight
+failure is reported separately, stops the series, and prevents a complete
+20-generation contract decision; it is not classified as an invalid AI
+response.
 
 ### Hard Safety Gates
 
@@ -422,7 +430,8 @@ Every run must satisfy:
 * No live research or external evidence.
 * No credential, secret, full-prompt, or excluded-context leakage.
 * Per-call estimated cost does not exceed `$0.03`.
-* The call terminates no later than the 12-second timeout.
+* Token preflight terminates no later than its five-second timeout.
+* AI generation terminates no later than its 12-second timeout.
 
 Any hard-safety failure stops the active series. A corrected prompt, adapter,
 or model configuration requires a new version and new series.
@@ -613,7 +622,8 @@ target estimated cost per call: $0.01 or less
 hard estimated cost per call: $0.03
 monthly experiment ceiling: $10
 target latency: 5 seconds or less
-hard timeout: 12 seconds
+token-preflight timeout: 5 seconds
+AI-generation hard timeout: 12 seconds
 automatic retries: 0
 live research: prohibited
 background calls: prohibited
@@ -646,6 +656,10 @@ actual_cost =
 If cached-token usage is not reported, record that limitation and conservatively
 price all input tokens at the uncached rate.
 
+The capability-specific configuration structure is drafted at
+`docs/experiments/suggest-moving-service-questions/v1/openai-run-configuration.toml`.
+It remains unapproved and unfrozen; it is not execution authorization.
+
 Prompt-development or exploratory calls require a separate, explicitly
 approved allowance. They do not count as formal results and must not silently
 consume the formal run count.
@@ -662,19 +676,31 @@ run_series_id
 run_sequence
 fixture_id
 capability
+provider
 prompt_version
 schema_version
 knowledge_version
 scenario_version
 fallback_version
-model_identifier
+ai_model_identifier
+sdk_version
 model_parameters
+provider_request_id
+preflight_attempted
+preflight_succeeded
+generation_attempted
+generation_succeeded
 input_tokens
 cached_input_tokens
 uncached_input_tokens
 output_tokens
 estimated_cost
-duration
+preflight_duration
+generation_duration
+total_duration
+finish_status
+refusal_status
+incomplete_reason
 schema_valid
 validation_error_code
 referenced_knowledge_ids
@@ -710,7 +736,16 @@ evaluation execution.
 Contract evaluation passes only if all exact automated thresholds and all hard
 safety gates pass.
 
-The decision record must state:
+The decision record must first state:
+
+```text
+planned_evaluation_slots: 20
+ai_generation_attempts: N
+preflight_failures: N
+AI_response_failures: N
+```
+
+When all twenty AI generations were attempted, it must also state:
 
 ```text
 contract_evaluation: passed | failed
@@ -794,7 +829,8 @@ Stop the active series for:
 * Any credential or excluded-context exposure.
 * Any live research or background call.
 * Any per-call cost above `$0.03`.
-* Failure to terminate at the 12-second timeout.
+* Token preflight failure to terminate at the five-second timeout.
+* AI-generation failure to terminate at the 12-second timeout.
 
 The affected result remains recorded. Do not replace it. A correction requires
 a new prompt, adapter, model, or protocol version and a new series.

@@ -7,7 +7,7 @@ capability: suggest_moving_service_questions
 design date: 2026-07-31
 provider: OpenAI
 AI model identifier: gpt-4.1-mini-2025-04-14
-provider-transport design: draft for human review
+provider-transport design: human-reviewed and approved
 provider-transport implementation authorized: false
 SDK installation authorized: false
 credentials authorized: false
@@ -26,6 +26,10 @@ authorization, fixture selection, token and spending gates, run-series control,
 record writing, and deterministic fallback. Existing runtime validation would
 remain authoritative.
 
+The corresponding run configuration is a review draft at
+`docs/experiments/suggest-moving-service-questions/v1/openai-run-configuration.toml`.
+It is neither approved nor frozen.
+
 ## 2. Frozen Inputs and Non-Negotiable Boundaries
 
 ```text
@@ -37,7 +41,8 @@ response schema: moving-service-questions-schema-v1
 knowledge fixture: moving-service-storage-fixture-v2
 maximum input tokens: 3,000
 maximum output tokens: 500
-shared timeout: 12 seconds
+token-preflight timeout: 5 seconds
+AI-generation timeout: 12 seconds
 automatic retries: 0
 ```
 
@@ -49,10 +54,14 @@ caching.
 
 ## 3. Official Interfaces and Version Pinning
 
-The implementation proposal is the official OpenAI Python SDK pinned to the
-exact reviewed release `openai==2.45.0`. The research date's official repository
-identifies 2.45.0 as its latest release. The dependency and its transitive lock
-changes would require separate review before installation.
+The approved implementation proposal is the official OpenAI Python SDK pinned
+to the experiment-specific release `openai==2.45.0`. This is not a general
+GoTime dependency standard. The research date's official repository identifies
+2.45.0 as its latest release. The dependency and its transitive lock changes
+would require separate review before installation. A later run series must
+record the configured pin, resolved package version, lockfile entry, Python
+version, and SDK version. Changing the pin requires review and a new offline
+dry-run verification, but does not by itself require a prompt-version change.
 
 The transport would use only these versioned API paths exposed by that SDK:
 
@@ -145,7 +154,7 @@ deterministic provider adaptation. It must never mutate the source mapping.
 | `$defs` and local `$ref` | Preserve when accepted by the pinned endpoint |
 | `const: value` | Convert to the equivalent `enum: [value]` only if required by the documented subset |
 | `title` | Remove as a nonsemantic annotation |
-| Unsupported string or array length keywords | Remove from the generation schema only |
+| String and array length limits | Preserve with constraints at least as strict as the Pydantic response schema; stop if the provider cannot express them without broadening |
 
 The adaptation must be an allowlisted tree transformation. After adaptation,
 an offline invariant check must prove:
@@ -153,17 +162,17 @@ an offline invariant check must prove:
 * the root is an object;
 * every runtime response field and suggestion field is still present and
   required;
-* no field, enum member, type, object boundary, or `additionalProperties: false`
-  rule was removed;
+* no field, enum member, literal, type, object boundary, length or array limit,
+  or `additionalProperties: false` rule was removed or broadened;
 * no new field was added; and
 * the normalized output is stable for identical input schema bytes.
 
 OpenAI supports only a subset of JSON Schema in strict Structured Outputs.
-Removing unsupported generation-only annotations or length keywords is a
-mechanical provider adaptation because the complete original schema and
-GoTime's cross-field validators remain authoritative after receipt. Any change
-to field names, required status, types, enum values, constants, or runtime
-validation would be semantic and is a stop condition.
+Removing nonsemantic annotations is mechanical adaptation. Removing or
+weakening a required field, type, literal, enum, extra-field prohibition,
+length limit, or array limit is not approved, even though runtime Pydantic
+validation remains authoritative. Any such incompatibility is a stop
+condition, not permission to weaken the response contract.
 
 The exact adapted schema must be captured as a reviewed offline test fixture or
 digest during implementation review. No API call is needed to test the
@@ -214,17 +223,26 @@ must compare the captured count and generation payloads field by field.
 
 ## 7. Timeout, Retry, and Cancellation
 
-The 12-second limit is one end-to-end monotonic deadline covering token count
-and generation. It is not a separate 12 seconds for each HTTP request.
+Token preflight and AI generation have separate bounded deadlines:
+
+```text
+token-preflight timeout: 5 seconds
+AI-generation timeout: 12 seconds
+automatic retries: 0
+```
+
+Total elapsed time is measured separately across both operations. Time spent
+counting tokens does not reduce the formal 12-second generation allowance.
 
 Proposed sequence:
 
-1. Start a monotonic deadline immediately before the count request.
-2. Pass the remaining time as the count request timeout.
-3. After preflight and cost gates, recompute the remaining time.
-4. Do not start generation if no positive time remains.
-5. Pass the remaining time as the generation request timeout.
-6. Treat expiry or the SDK's `APITimeoutError` as `AdapterTimeoutError`.
+1. Measure preflight with a monotonic clock and a five-second request timeout.
+2. Stop on preflight timeout or failure; do not start generation.
+3. After successful preflight and cost gates, start a new monotonic generation
+   timer with a 12-second request timeout.
+4. Treat generation expiry or the SDK's `APITimeoutError` as
+   `AdapterTimeoutError`.
+5. Record preflight, generation, and total durations independently.
 
 The SDK client must be constructed with `max_retries=0`. Per-request options
 must also preserve zero retries. No runner, adapter, transport, HTTP client, or
@@ -251,7 +269,7 @@ The transport must reject, without repair or retry:
 * empty output; and
 * malformed JSON or a mapping that fails existing runtime validation.
 
-Bounded error translation is deliberately narrow:
+Bounded generation-error translation is deliberately narrow:
 
 | Provider/SDK condition | GoTime result |
 | --- | --- |
@@ -260,6 +278,12 @@ Bounded error translation is deliberately narrow:
 | HTTP 400, 401, 403, 404, or 422 | Visible configuration/authorization failure; no transient translation |
 | Refusal, incomplete output, malformed JSON, or contract rejection | Existing response-validation failure path |
 | Unexpected SDK or programming error | Visible failure; do not catch as provider unavailability |
+
+Preflight failure has its own bounded classification and is not an AI-response
+schema failure. It writes an audit record, preserves the sequence number, sets
+`generation_attempted` and `generation_succeeded` to false, records zero
+generation usage and cost, and stops the formal series without retry or
+replacement.
 
 The runner may record the existing deterministic fallback outcome after a
 failed generation attempt, but the attempt remains failed. The transport and
@@ -319,10 +343,13 @@ reorder the series, and never reuses a prior response. All attempted formal
 generation calls remain in the denominator. Caching does not imply output
 determinism.
 
-The later record schema must add separate cached and uncached input counts,
-provider request ID, provider-returned AI model identifier, response status,
-and usage availability. Records must still omit prompt text, request JSON, full
-response content, trusted state, credentials, and authorization headers.
+The later record schema must add provider, requested and provider-returned AI
+model identifiers, SDK version, provider request ID, preflight and generation
+attempt/success flags, preflight/generation/total durations, separate input,
+cached-input, uncached-input, and output counts, cache status, finish status,
+refusal status, incomplete reason, estimated cost, and usage availability.
+Records must still omit prompt text, request JSON, full response content,
+trusted state, credentials, and authorization headers.
 
 ## 10. Credential Isolation and Client Construction
 
@@ -391,8 +418,10 @@ Required tests include:
 * no semantic mutation of the Pydantic response schema;
 * preflight over 3,000 tokens blocks generation;
 * conservative preflight cost blocks generation when over budget;
-* count failure blocks generation and does not consume a generation sequence;
-* one shared 12-second deadline and zero retries;
+* count failure blocks generation, preserves its planned sequence, and does not
+  count as an AI-generation attempt;
+* separate five-second preflight and 12-second generation deadlines and zero
+  retries;
 * timeout, unavailable, authentication, refusal, incomplete, and malformed
   response classifications;
 * exactly one output-text item accepted;
@@ -420,12 +449,11 @@ implementation authorization, all of the following remain required:
 3. Amend the provider request/result and local record structures to carry exact
    preflight count, cached and uncached input tokens, provider request ID,
    returned AI model identifier, response status, and usage availability.
-4. Decide whether a failed token-count preflight receives a separate bounded
-   local audit record. It must not consume a formal generation sequence under
-   the current protocol.
-5. Approve the shared 12-second count-plus-generation deadline. If human review
-   instead intends 12 seconds for generation alone, the protocol must say so
-   before implementation.
+4. Implement the approved bounded preflight-failure audit record. The failure
+   preserves its planned sequence, stops the series, and is reported separately
+   from AI-generation attempts and AI-response failures.
+5. Verify the separate five-second preflight and 12-second AI-generation
+   deadlines with offline clock and fake-client tests.
 6. Freeze a capability-specific run configuration containing SDK pin, exact AI
    model identifier, parameters, schema-adaptation identity, prices and date,
    spending limits, record schema, and retention assumption.
@@ -437,11 +465,11 @@ credential access, or execution.
 
 ## 14. Decision Requested
 
-Human review should approve, revise, or reject:
+Human review has approved:
 
 * the exact Responses API payload;
 * the strict-schema mechanical adaptation;
-* the shared 12-second deadline;
+* the separate five-second preflight and 12-second generation deadlines;
 * the error mapping;
 * usage, cache, identity, and cost extraction;
 * the exact SDK pin; and
@@ -450,8 +478,8 @@ Human review should approve, revise, or reject:
 Current readiness remains:
 
 ```text
-design ready for human review: yes
-design approved: no
+design ready for human review: no
+design approved: yes
 provider-transport implementation authorized: no
 SDK installation authorized: no
 credentials authorized: no

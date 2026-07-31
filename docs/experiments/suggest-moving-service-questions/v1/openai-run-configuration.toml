@@ -1,0 +1,111 @@
+[status]
+configuration_status = "draft_for_human_review"
+approved = false
+frozen = false
+provider_transport_implementation_authorized = false
+credentials_authorized = false
+real_model_execution_authorized = false
+production_use_authorized = false
+
+[identity]
+capability = "suggest_moving_service_questions"
+provider = "OpenAI"
+ai_model_identifier = "gpt-4.1-mini-2025-04-14"
+sdk_package = "openai"
+sdk_pin = "openai==2.45.0"
+sdk_resolved_version = "pending_implementation_review"
+python_version = "pending_implementation_review"
+lockfile_entry_status = "pending_implementation_review"
+
+[prompt]
+artifact_path = "docs/experiments/suggest-moving-service-questions/v1/real-model-prompt.toml"
+version = "moving-service-questions-prompt-v1"
+digest_algorithm = "sha256"
+digest = "583a4bdf59c4c4ac67c82928415710c3d5c21ac9912ebd4888a026b8fd4acbf2"
+
+[contracts]
+request_schema_version = "moving-service-questions-schema-v1"
+response_schema_version = "moving-service-questions-schema-v1"
+knowledge_fixture_version = "moving-service-storage-fixture-v2"
+provider_schema_snapshot_status = "pending_implementation_review"
+
+[model_parameters]
+temperature = 0
+maximum_output_tokens = 500
+stream = false
+background = false
+store = false
+truncation = "disabled"
+tools_enabled = false
+top_p = "omitted"
+seed = "omitted"
+
+[transport]
+token_preflight_endpoint = "/v1/responses/input_tokens"
+token_preflight_timeout_seconds = 5
+generation_endpoint = "/v1/responses"
+generation_timeout_seconds = 12
+automatic_retries = 0
+structured_output_mode = "strict_json_schema"
+schema_name = "moving_service_question_response_v1"
+exact_provider_token_preflight_required = true
+
+[pricing]
+effective_date = "2026-07-30"
+currency = "USD"
+unit_tokens = 1000000
+uncached_input_price = "0.40"
+cached_input_price = "0.10"
+output_price = "1.60"
+token_counting_fee = "no_separate_fee_documented_as_of_2026-07-30"
+request_or_platform_fee = "no_separate_fee_documented_as_of_2026-07-30"
+maximum_per_call_spend = "0.03"
+maximum_formal_series_spend = "0.60"
+monthly_evaluation_ceiling = "10.00"
+
+[fixtures]
+eligible_fixture_ids = ["storage_unknown", "complete"]
+planned_evaluation_slots = 20
+fixed_run_order = [
+  "storage_unknown",
+  "complete",
+  "storage_unknown",
+  "complete",
+  "storage_unknown",
+  "complete",
+  "storage_unknown",
+  "complete",
+  "storage_unknown",
+  "complete",
+  "storage_unknown",
+  "complete",
+  "storage_unknown",
+  "complete",
+  "storage_unknown",
+  "complete",
+  "storage_unknown",
+  "complete",
+  "storage_unknown",
+  "complete",
+]
+
+[caching]
+provider_managed_automatic_caching_permitted = true
+application_managed_caching_permitted = false
+generated_response_reuse_permitted = false
+cache_key_control_permitted = false
+run_reordering_for_cache_reuse_permitted = false
+record_provider_reported_cache_usage = true
+price_from_provider_reported_usage_categories = true
+
+[reporting]
+preserve_planned_sequence_on_preflight_failure = true
+stop_series_on_preflight_failure = true
+retry_or_replace_failed_sequence = false
+separate_planned_slots_generation_attempts_preflight_failures_and_response_failures = true
+store_full_system_instructions = false
+store_serialized_requests = false
+store_full_provider_responses = false
+store_trusted_state_payloads = false
+store_credentials = false
+store_authorization_headers = false

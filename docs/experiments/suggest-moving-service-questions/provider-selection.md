@@ -45,7 +45,8 @@ response schema: moving-service-questions-schema-v1
 knowledge fixture: moving-service-storage-fixture-v2
 maximum input tokens: 3,000
 maximum output tokens: 500
-timeout: 12 seconds
+token-preflight timeout: 5 seconds
+AI-generation timeout: 12 seconds
 automatic retries: 0
 formal calls: 20
 formal caching: no application-managed caching or response reuse;
@@ -216,6 +217,7 @@ Provisionally selected OpenAI parameters:
 
 ```text
 model: gpt-4.1-mini-2025-04-14
+SDK pin: openai==2.45.0
 temperature: 0
 top_p: omitted
 seed: omitted
@@ -225,7 +227,8 @@ tools: none
 background execution: false
 store: false
 structured output: strict JSON Schema
-timeout: 12 seconds
+token-preflight timeout: 5 seconds
+AI-generation timeout: 12 seconds
 automatic retries: 0
 prompt caching: provider-managed automatic behavior only
 application cache keys or prefix optimization: prohibited
@@ -299,17 +302,19 @@ explicitly and use a non-streaming request.
 The official Anthropic SDK follows the same Stainless client pattern and
 supports explicit retry and timeout configuration, but exact behavior must be
 confirmed against the frozen SDK version before implementation approval.
-Provider overload and 5xx errors map to unavailable; the local 12-second
-deadline maps to timeout. No provider error may trigger a replacement call.
+Provider overload and 5xx errors map to unavailable. The token-count operation
+has a separate five-second deadline; AI generation has a 12-second deadline.
+No provider error may trigger a replacement call.
 
 Google's SDK exposes HTTP options, but current official material does not state
 retry defaults clearly enough for selection. Direct HTTP could avoid hidden
 retries, but does not solve the identity or caching blockers.
 
-The 12-second boundary should cover DNS/connect, request write, response read,
-and parsing. A local monotonic deadline remains authoritative. Cancellation is
-best-effort at the HTTP layer; a timed-out request may still be processed and
-billed by the provider, so the record must remain a failed attempt.
+Each operation's boundary should cover DNS/connect, request write, response
+read, and parsing. Local monotonic measurement remains authoritative. Record
+preflight, generation, and total elapsed time separately. Cancellation is
+best-effort at the HTTP layer; a timed-out generation may still be processed
+and billed by the provider, so the record must remain a failed attempt.
 
 ## 11. Usage and Cache Reporting
 
@@ -382,9 +387,10 @@ history, credentials, or live personal information may be sent.
 | Standard-library HTTP | None | Basic | Entire mapping is manual | Good | TLS, errors, cancellation, and testing burden highest |
 
 Provisional recommendation: use the official OpenAI Python SDK in one
-capability-specific transport, pinned and reviewed, with the API key passed
-explicitly, `max_retries=0`, a 12-second timeout, non-streaming Responses API,
-and no tools. The SDK is preferable here because it exposes the exact token
+capability-specific transport pinned to `openai==2.45.0`, with the API key
+passed explicitly, `max_retries=0`, a five-second token-preflight timeout, a
+12-second AI-generation timeout, non-streaming Responses API, and no tools.
+The SDK is preferable here because it exposes the exact token
 count endpoint, structured-output request types, usage fields, and typed
 errors. It must remain behind the existing capability-specific seam; no
 provider registry or generic client should be introduced.
@@ -455,6 +461,10 @@ maximum authorized formal-series spend: $0.60
 monthly evaluation ceiling: $10.00
 ```
 
+The draft structure is at
+`docs/experiments/suggest-moving-service-questions/v1/openai-run-configuration.toml`.
+It is not approved, frozen, or authorized for execution.
+
 For OpenAI GPT-4.1 mini, freeze:
 
 ```text
@@ -504,7 +514,8 @@ Required before implementation approval:
    semantics.
 2. Confirm the selected model remains active and the exact prices remain
    current.
-3. Freeze the provider API version and SDK version.
+3. Record the `/v1` provider endpoints and freeze the experiment-specific SDK
+   pin `openai==2.45.0`, resolved version, lockfile entry, and Python version.
 4. Verify the chosen SDK's retry, timeout, proxy, and environment-variable
    behavior from its pinned source.
 5. Authorize the authenticated token-count request separately and specify how
@@ -526,8 +537,9 @@ Implementation prerequisites:
 * approval of one capability-specific transport milestone;
 * reviewed schema adaptation;
 * frozen parameters, pricing, API version, and SDK version; and
-* tests proving zero retries, 12-second timeout, explicit credential passing,
-  and no application/frontend reachability.
+* tests proving zero retries, separate five-second preflight and 12-second
+  generation timeouts, explicit credential passing, and no
+  application/frontend reachability.
 
 Execution prerequisites:
 
