@@ -828,3 +828,38 @@ Do not:
 Produce a reviewed evaluation protocol that is precise enough to implement in
 a later, separately approved slice. Stop before adding a provider SDK,
 credentials, or a real-model adapter.
+
+# Moving-Service Provider Selection Decision
+
+## Status
+
+The controlled `suggest_moving_service_questions` evaluation now has a
+provisional provider and model selection for provider-transport design only:
+
+```text
+provider: OpenAI
+model: gpt-4.1-mini-2025-04-14
+provider-transport design authorized: true
+provider-transport implementation authorized: false
+credentials authorized: false
+real-model execution authorized: false
+production use authorized: false
+```
+
+The evaluation protocol permits unavoidable provider-managed automatic prompt
+caching because the selected model has no documented disable control. GoTime
+must not manage cache keys or prefixes, optimize run order for caching, cache
+or reuse generated responses, or weaken validation. Every attempted call
+remains in the formal denominator, and reported cached and uncached token usage
+must be recorded and priced separately.
+
+Exact provider-specific input-token preflight remains required. Anthropic
+Claude Haiku 4.5 remains a fallback candidate but is not currently eligible
+because its official token-count documentation describes the count as an
+estimate.
+
+## Next Approved Scope
+
+The next milestone may design the capability-specific OpenAI transport. It may
+not install the SDK, implement provider code, add or read credentials, make a
+model call, or authorize real-model execution without separate review.

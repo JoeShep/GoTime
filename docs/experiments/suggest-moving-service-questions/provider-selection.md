@@ -6,11 +6,13 @@
 capability: suggest_moving_service_questions
 research_date: 2026-07-30
 provider research complete: yes
-provider selected: no
-model selected: no
-transport implementation authorized: no
+provider selected provisionally: yes
+model selected provisionally: yes
+provider-transport design authorized: yes
+provider-transport implementation authorized: no
 credentials authorized: no
 real-model execution authorized: no
+production use authorized: no
 ```
 
 This document records a current, first-party-source comparison for the
@@ -18,19 +20,17 @@ controlled real-model evaluation. It is capability-specific research, not a
 general provider strategy. It does not authorize a transport implementation,
 credential access, or a model call.
 
-No candidate currently satisfies every frozen execution prerequisite. The
-blocking combination is:
+OpenAI GPT-4.1 mini is provisionally selected for provider-transport design
+because it meets the contract, identity, exact-counting, cost, and bounded
+implementation requirements. The evaluation protocol now permits unavoidable
+provider-managed automatic prompt caching when a selected provider offers no
+documented disable control. This does not permit GoTime to create or optimize
+cache keys or prefixes, cache model responses, or reuse a response instead of
+making one of the twenty formal calls.
 
-* an immutable model identifier;
-* exact provider-specific input-token counting before generation; and
-* caching disabled for every formal run.
-
-OpenAI GPT-4.1 mini is the conditional leading candidate because it best meets
-the contract, identity, counting, cost, and implementation requirements.
-However, it is not selected because OpenAI documents automatic prompt caching
-for this model family and does not document a way to disable it. Anthropic
-Claude Haiku 4.5 is the fallback candidate, but Anthropic describes its
-preflight token count as an estimate rather than exact.
+Anthropic Claude Haiku 4.5 remains the fallback candidate, but it is not
+currently eligible because Anthropic describes its preflight token count as an
+estimate rather than exact.
 
 ## 2. Frozen Experiment Requirements
 
@@ -48,7 +48,8 @@ maximum output tokens: 500
 timeout: 12 seconds
 automatic retries: 0
 formal calls: 20
-formal caching: disabled
+formal caching: no application-managed caching or response reuse;
+  unavoidable provider-managed automatic prompt caching permitted
 live research and tools: prohibited
 ```
 
@@ -111,11 +112,11 @@ does not override a frozen stop condition.
 | Cost ceilings | 2 | 2 | 2 |
 | 12-second timeout / zero retries | 2 | 2 | 1 |
 | Usage reporting | 2 | 2 | 2 |
-| Caching disabled | 0 | 2 | 0 |
+| Caching protocol fit | 2 | 2 | 1 |
 | Clear standard data terms | 2 | 2 | 2 |
 | Narrow transport simplicity | 2 | 2 | 1 |
-| **Total / 20** | **18** | **18** | **12** |
-| **Stop condition** | Automatic caching | Token count is estimated | Floating ID and automatic caching |
+| **Total / 20** | **20** | **18** | **13** |
+| **Status** | Provisionally selected | Ineligible fallback | Not selected |
 
 ## 5. Structured-Output Compatibility
 
@@ -211,7 +212,7 @@ structure and schemas contribute tokens.
 No provider guarantees identical output for identical inputs. The formal
 series is intended to measure this variation.
 
-Conditional OpenAI parameters:
+Provisionally selected OpenAI parameters:
 
 ```text
 model: gpt-4.1-mini-2025-04-14
@@ -226,6 +227,9 @@ store: false
 structured output: strict JSON Schema
 timeout: 12 seconds
 automatic retries: 0
+prompt caching: provider-managed automatic behavior only
+application cache keys or prefix optimization: prohibited
+response reuse: prohibited
 ```
 
 Conditional Anthropic fallback parameters:
@@ -261,8 +265,9 @@ output assumption for both: full 500-token ceiling
 ```
 
 These are conservative character-based planning estimates, not acceptable
-formal preflight counts. Cached-input cost is shown separately and assumed
-zero for the intended uncached protocol.
+formal preflight counts. The headline calculations use uncached input pricing
+to remain conservative. Formal cost records must instead separate
+provider-reported cached input from uncached input.
 
 | Candidate | Input / MTok | Cached input / MTok | Output / MTok | Storage call | Complete call | 10 storage | 10 complete | 20-call series | Hard call (3,000 + 500) | Hard 20 calls |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -311,7 +316,11 @@ billed by the provider, so the record must remain a failed attempt.
 OpenAI responses report input and output usage, cached input tokens, model
 identity, request identity, and completion status. Prompt caching is automatic
 for eligible GPT-4o-and-newer requests and GPT-4.1 offers no documented disable
-switch. A cache hit would reduce cost and violate the current formal protocol.
+switch. Under the amended protocol, this provider-managed behavior is
+permitted but not controlled or optimized by GoTime. Every record must capture
+the reported cached-token count and cache status. A missing or undocumented
+cache signal is an evaluation limitation, not permission to infer a hit or
+miss. Caching must not be described as making output deterministic.
 
 Anthropic reports `input_tokens`, `output_tokens`,
 `cache_creation_input_tokens`, and `cache_read_input_tokens`, plus response ID,
@@ -325,7 +334,7 @@ documented off switch.
 
 ## 12. Credential Isolation
 
-If OpenAI is later approved, use:
+For the provisionally selected OpenAI design, use:
 
 ```text
 GOTIME_MOVING_SERVICE_EVAL_ENABLED
@@ -372,7 +381,7 @@ history, credentials, or live personal information may be sent.
 | Direct HTTP with an existing client | No new dependency only if already direct | Strong | Manual mapping and schema payload | Excellent | Provider contract maintenance moves into GoTime |
 | Standard-library HTTP | None | Basic | Entire mapping is manual | Good | TLS, errors, cancellation, and testing burden highest |
 
-Conditional recommendation: use the official OpenAI Python SDK in one
+Provisional recommendation: use the official OpenAI Python SDK in one
 capability-specific transport, pinned and reviewed, with the API key passed
 explicitly, `max_retries=0`, a 12-second timeout, non-streaming Responses API,
 and no tools. The SDK is preferable here because it exposes the exact token
@@ -380,19 +389,20 @@ count endpoint, structured-output request types, usage fields, and typed
 errors. It must remain behind the existing capability-specific seam; no
 provider registry or generic client should be introduced.
 
-This is a transport recommendation only. Installation and implementation are
-not authorized.
+This is a transport-design recommendation only. Installation and
+implementation are not authorized.
 
-## 15. Conditional Leading Provider
+## 15. Provisional Provider Selection
 
 ```text
 provider: OpenAI
 model: gpt-4.1-mini-2025-04-14
-selection status: blocked; not selected
-reason: no documented way to disable automatic prompt caching
+selection status: provisional; approved for provider-transport design only
+provider-transport implementation authorized: no
+real-model execution authorized: no
 ```
 
-Why it leads conditionally:
+Why it is provisionally selected:
 
 * immutable snapshot identity;
 * strict structured output;
@@ -400,12 +410,13 @@ Why it leads conditionally:
 * cost far below every ceiling;
 * explicit timeout and zero-retry controls;
 * detailed usage and error reporting; and
-* a small capability-specific official SDK integration path.
+* a small capability-specific official SDK integration path;
+* provider-reported cached-token usage that can be recorded and priced.
 
-Why it cannot yet be approved: the frozen protocol says caching must be
-disabled on every formal run, while OpenAI says caching is automatic for
-GPT-4o and newer models. Treating “no cache hit observed” or a unique cache key
-as “disabled” would silently weaken the protocol.
+The protocol amendment permits only OpenAI's unavoidable provider-managed
+automatic caching. GoTime must not set or optimize cache keys, rearrange the
+frozen prompt or request to affect cache reuse, change run order to influence
+reuse, or reuse a previously generated response.
 
 ## 16. Fallback Candidate
 
@@ -427,8 +438,8 @@ identifier with automatic implicit caching.
 
 ## 17. Proposed Frozen Pricing Rule
 
-Before any implementation or run approval, create a reviewed, capability-
-specific run configuration that records:
+Before any implementation or run approval, create a reviewed,
+capability-specific run configuration that records:
 
 ```text
 provider
@@ -444,10 +455,30 @@ maximum authorized formal-series spend: $0.60
 monthly evaluation ceiling: $10.00
 ```
 
-The runner must calculate the worst-case call cost from the exact provider
-preflight input count plus the 500-token output ceiling. Current live pricing
-must not be fetched during the formal run. A price change requires review of
-the frozen run configuration, not an automatic update.
+For OpenAI GPT-4.1 mini, freeze:
+
+```text
+pricing effective date: 2026-07-30
+uncached input: $0.40 per 1M tokens
+cached input: $0.10 per 1M tokens
+output: $1.60 per 1M tokens
+```
+
+Before generation, the runner must calculate the conservative worst-case call
+cost from the exact provider preflight input count at the uncached rate plus
+the 500-token output ceiling. After an attempted call, actual cost must use
+provider-reported categories:
+
+```text
+uncached_input_tokens = input_tokens - cached_input_tokens
+actual_cost =
+  (uncached_input_tokens × uncached_input_price)
+  + (cached_input_tokens × cached_input_price)
+  + (output_tokens × output_price)
+```
+
+Current live pricing must not be fetched during the formal run. A price change
+requires review of the frozen run configuration, not an automatic update.
 
 ## 18. Local Record Retention
 
@@ -467,36 +498,31 @@ No background cleanup job is warranted.
 
 ## 19. Known Risks and Unresolved Questions
 
-Blocking:
-
-1. Decide whether the formal “caching disabled” rule may be revised for
-   automatic provider caching. If not, OpenAI and Gemini remain ineligible.
-2. Decide whether an officially described estimate can satisfy the preflight
-   token gate. Under the current requirement it cannot, so Anthropic remains
-   ineligible.
-
 Required before implementation approval:
 
-3. Validate the mechanically adapted response schema without changing runtime
+1. Validate the mechanically adapted response schema without changing runtime
    semantics.
-4. Confirm the selected model remains active and the exact prices remain
+2. Confirm the selected model remains active and the exact prices remain
    current.
-5. Freeze the provider API version and SDK version.
-6. Verify the chosen SDK's retry, timeout, proxy, and environment-variable
+3. Freeze the provider API version and SDK version.
+4. Verify the chosen SDK's retry, timeout, proxy, and environment-variable
    behavior from its pinned source.
-7. Decide whether the authenticated token-count request is separately
-   authorized and how it is recorded without consuming a formal call.
-8. Confirm the provider account's retention controls and organization/project
+5. Authorize the authenticated token-count request separately and specify how
+   it is recorded without consuming a formal generation call.
+6. Confirm the exact Responses API structured-output parameter names supported
+   by the pinned SDK version.
+7. Confirm the provider account's retention controls and organization/project
    logging settings.
-9. Decide how structured-output grammar caching is represented separately from
-   prompt-content caching.
+8. Specify how provider-reported automatic cache usage and missing cache
+   reporting map into the evaluation record.
+9. Add distinct `cached_input_tokens` and `uncached_input_tokens` record fields.
+10. Obtain separate approval before installing or implementing the transport.
 
 ## 20. Implementation and Execution Prerequisites
 
 Implementation prerequisites:
 
-* human approval of one provider and exact immutable model;
-* resolution of the relevant stop condition;
+* the provisional provider/model decision recorded here;
 * approval of one capability-specific transport milestone;
 * reviewed schema adaptation;
 * frozen parameters, pricing, API version, and SDK version; and
@@ -517,17 +543,18 @@ Execution prerequisites:
 ## 21. Decision Record and Approval Status
 
 ```text
-research conclusion: no provider/model selected
-conditional leading candidate: OpenAI / gpt-4.1-mini-2025-04-14
+research conclusion: provider/model provisionally selected for transport design
+provider selected provisionally: OpenAI
+model selected provisionally: gpt-4.1-mini-2025-04-14
 fallback candidate: Anthropic / claude-haiku-4-5-20251001
-provider recommendation ready for approval: no
-protocol decision ready for human review: yes
-transport implementation authorized: no
+provider-transport design authorized: yes
+provider-transport implementation authorized: no
 credentials authorized: no
 real-model execution authorized: no
+production use authorized: no
 ```
 
-The next decision is narrow: preserve the current strict protocol and defer
-selection, or explicitly review one prerequisite. This document recommends
-preserving the protocol until a provider documents a configuration satisfying
-all three requirements. No frozen prompt or runtime contract change is needed.
+The next milestone may design the provider-specific transport against this
+selection and the amended cache-observation rule. It may not install the SDK,
+implement the transport, access credentials, or call the model without
+separate authorization. No frozen prompt or runtime contract change is needed.

@@ -359,7 +359,24 @@ Protocol:
 
 * Use the lowest supported temperature or equivalent randomness setting.
 * Record the exact parameter, including when the provider does not expose one.
-* Disable caching for every formal run.
+* Disable application-managed caching for every formal run.
+* Provider-managed automatic prompt caching may be used only when the selected
+  provider offers no documented disable control.
+* When provider-managed automatic caching is unavoidable:
+  * Do not create, control, or optimize cache keys or cache prefixes.
+  * Keep the frozen prompt and deterministic request serialization unchanged.
+  * Record provider-reported cache status and cached-token counts when
+    available.
+  * Freeze cached and uncached token prices in the approved run configuration.
+  * Calculate actual cost from provider-reported usage categories.
+  * Do not describe caching as making outputs deterministic.
+  * Do not change run order to increase or decrease cache reuse.
+  * Record undocumented or unreported cache behavior as an evaluation
+    limitation.
+  * Do not weaken the response contract, runtime validation, human grounding
+    review, or hard safety gates because caching occurred.
+* Do not use application-managed response caching or reuse a previously
+  generated model response in place of a formal call.
 * Use zero automatic retries.
 * Use a fixed, recorded run order, preferably alternating fixtures.
 * Assign one run-series ID and a sequence number to every call.
@@ -368,6 +385,8 @@ Protocol:
 * Record normalized question text to identify repeated outputs.
 * Do not collapse duplicate outputs; repetition is stability evidence.
 * Do not replace failed calls or add make-up calls to the same run series.
+* Keep all twenty attempted calls in the formal denominator regardless of
+  cache status.
 
 Ten runs per fixture provide an initial operational signal. They do not
 establish statistical certainty.
@@ -598,7 +617,11 @@ hard timeout: 12 seconds
 automatic retries: 0
 live research: prohibited
 background calls: prohibited
-formal-evaluation caching: disabled
+application-managed caching: prohibited
+generated-response reuse: prohibited
+provider-managed automatic prompt caching: permitted only when no documented
+  disable control exists
+exact provider-specific input-token preflight: required before generation
 ```
 
 For 20 formal calls:
@@ -606,6 +629,22 @@ For 20 formal calls:
 * Target total model cost is at most `$0.20`.
 * Hard maximum model cost is `$0.60`.
 * At least `$9.40` remains under the monthly ceiling after the formal series.
+
+The approved run configuration must freeze both cached and uncached input
+prices. Preflight cost uses the exact provider-reported input-token count at
+the uncached price plus the 500-token output ceiling. Actual cost uses the
+provider-reported usage categories:
+
+```text
+uncached_input_tokens = input_tokens - cached_input_tokens
+actual_cost =
+  (uncached_input_tokens × uncached_input_price)
+  + (cached_input_tokens × cached_input_price)
+  + (output_tokens × output_price)
+```
+
+If cached-token usage is not reported, record that limitation and conservatively
+price all input tokens at the uncached rate.
 
 Prompt-development or exploratory calls require a separate, explicitly
 approved allowance. They do not count as formal results and must not silently
@@ -631,6 +670,8 @@ fallback_version
 model_identifier
 model_parameters
 input_tokens
+cached_input_tokens
+uncached_input_tokens
 output_tokens
 estimated_cost
 duration
@@ -641,6 +682,7 @@ fallback_used
 fallback_reason
 normalized_question_text
 cache_status
+cache_reporting_limitation
 hard_gate_results
 human_review_scores
 human_review_notes
