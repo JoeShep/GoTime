@@ -56,6 +56,9 @@ OPENAI_RUN_CONFIGURATION_FILE = "openai-run-configuration.toml"
 OPENAI_RESPONSE_SCHEMA_FILE = "openai-response-schema.json"
 OPENAI_RESPONSE_SCHEMA_REVIEW_FILE = "openai-response-schema-review.md"
 OPENAI_EXECUTION_AUTHORIZATION_FILE = "openai-execution-authorization.toml"
+OPENAI_STAGE_A_AUTHORIZATION_CANDIDATE_FILE = (
+    "openai-stage-a-authorization-candidate.toml"
+)
 
 
 class ArtifactValidationError(ValueError):
@@ -113,7 +116,77 @@ def load_artifacts(directory: Path | None = None) -> dict[str, object]:
     artifacts["openai_execution_authorization_sha256"] = hashlib.sha256(
         authorization_bytes
     ).hexdigest()
+    stage_a_bytes = (
+        root / OPENAI_STAGE_A_AUTHORIZATION_CANDIDATE_FILE
+    ).read_bytes()
+    artifacts["openai_stage_a_authorization_candidate"] = tomllib.loads(
+        stage_a_bytes.decode("utf-8")
+    )
+    artifacts["openai_stage_a_authorization_candidate_sha256"] = hashlib.sha256(
+        stage_a_bytes
+    ).hexdigest()
     return artifacts
+
+
+def _validate_openai_stage_a_candidate(artifacts: dict[str, object]) -> None:
+    manifest = artifacts["manifest"]
+    candidate = artifacts["openai_stage_a_authorization_candidate"]
+    if not isinstance(manifest, dict) or not isinstance(candidate, dict):
+        _fail("Stage A candidate: artifacts must be objects")
+    expected_manifest = {
+        "openai_stage_a_authorization_candidate_path": (
+            "docs/experiments/suggest-moving-service-questions/v1/"
+            "openai-stage-a-authorization-candidate.toml"
+        ),
+        "openai_stage_a_authorization_candidate_version": (
+            "moving-service-openai-stage-a-authorization-v1"
+        ),
+        "openai_stage_a_authorization_candidate_digest_algorithm": "sha256",
+        "openai_stage_a_authorization_candidate_status": (
+            "candidate_pending_explicit_approval"
+        ),
+        "openai_stage_a_authorization_candidate_activated": False,
+    }
+    for field, expected in expected_manifest.items():
+        if manifest.get(field) != expected:
+            _fail(f"manifest: {field} is incompatible")
+    if manifest.get("openai_stage_a_authorization_candidate_digest") != artifacts.get(
+        "openai_stage_a_authorization_candidate_sha256"
+    ):
+        _fail("manifest: Stage A candidate digest does not match exact bytes")
+    metadata = candidate.get("metadata", {})
+    if metadata.get("active_repository_authority") is not False:
+        _fail("Stage A candidate must not be active repository authority")
+    if metadata.get("authorization_status") != "candidate_pending_explicit_approval":
+        _fail("Stage A candidate status is incompatible")
+    if candidate.get("authorization") != {
+        "credential_access_authorized": True,
+        "token_preflight_authorized": True,
+        "ai_generation_authorized": False,
+        "formal_evaluation_authorized": False,
+    }:
+        _fail("Stage A candidate permissions are incompatible")
+    scope = candidate.get("scope", {})
+    if scope != {
+        "authorized_run_series_id": "moving-service-stage-a-20260731",
+        "authorized_sequence_numbers": [1],
+        "authorized_fixture_ids": ["storage_unknown"],
+        "maximum_authorized_generation_spend": "0.00",
+        "maximum_credential_reads": 1,
+        "maximum_client_constructions": 1,
+        "maximum_token_preflight_requests": 1,
+        "maximum_ai_generation_requests": 0,
+    }:
+        _fail("Stage A candidate scope is incompatible")
+    approval = candidate.get("approval", {})
+    if (
+        approval.get("approval_status") != "pending_explicit_human_approval"
+        or approval.get("approved_at") != "pending"
+        or approval.get("expires_at") != "pending"
+        or approval.get("maximum_authorization_duration_seconds") != 900
+        or approval.get("activation_requires_new_final_artifact") is not True
+    ):
+        _fail("Stage A candidate approval boundary is incompatible")
 
 
 def adapt_response_schema_for_openai(value: object) -> object:
@@ -994,6 +1067,7 @@ def validate_artifacts(artifacts: dict[str, object]) -> dict[str, object]:
     _validate_prompt(artifacts)
     _validate_openai_artifacts(artifacts)
     _validate_openai_execution_authorization(artifacts)
+    _validate_openai_stage_a_candidate(artifacts)
     knowledge_items = _validate_knowledge(artifacts)
     _validate_baseline(artifacts)
     requests = _build_scenario_requests(artifacts)
@@ -1009,6 +1083,9 @@ def validate_artifacts(artifacts: dict[str, object]) -> dict[str, object]:
         ],
         "openai_execution_authorization_sha256": artifacts[
             "openai_execution_authorization_sha256"
+        ],
+        "openai_stage_a_authorization_candidate_sha256": artifacts[
+            "openai_stage_a_authorization_candidate_sha256"
         ],
         "knowledge_item_count": len(knowledge_items),
         "request_fixtures": {

@@ -200,9 +200,12 @@ change after approval requires review.
 
 ## 6. Stage A — One Token-Preflight Call
 
-This stage is not ready until the capability-specific real runner and remaining
-review gates are complete. Mechanical preflight/generation separation and
-offline proof that preflight-only cannot generate are complete.
+The exact inactive Stage A candidate, preflight-only runner, bounded record, and
+offline no-generation proof now exist. See
+`stage-a-preflight-go-no-go.md`. The decision remains no-go for a real request:
+the manifest still points to the closed authorization, candidate approval and
+expiration values are pending, and provider account/project controls require
+human attestation.
 
 Minimum proposed permissions:
 

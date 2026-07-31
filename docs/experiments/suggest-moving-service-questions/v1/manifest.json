@@ -1,6 +1,6 @@
 {
   "capability": "suggest_moving_service_questions",
-  "artifact_version": "1.5.0",
+  "artifact_version": "1.6.0",
   "prompt_version": "moving-service-questions-prompt-v1",
   "prompt_artifact_path": "docs/experiments/suggest-moving-service-questions/v1/real-model-prompt.toml",
   "prompt_artifact_digest_algorithm": "sha256",
@@ -24,6 +24,12 @@
   "openai_execution_authorization_digest_algorithm": "sha256",
   "openai_execution_authorization_digest": "6e3ca9cb4488764f012703ab77daae4f4b952895100f7d935935aeb6a0978be5",
   "openai_execution_authorization_status": "closed_no_execution_authorized",
+  "openai_stage_a_authorization_candidate_path": "docs/experiments/suggest-moving-service-questions/v1/openai-stage-a-authorization-candidate.toml",
+  "openai_stage_a_authorization_candidate_version": "moving-service-openai-stage-a-authorization-v1",
+  "openai_stage_a_authorization_candidate_digest_algorithm": "sha256",
+  "openai_stage_a_authorization_candidate_digest": "b523426249b9c697f0ad8fa5c7e3cdc0d965db35c5ab5f8f1a7dc66fd4655202",
+  "openai_stage_a_authorization_candidate_status": "candidate_pending_explicit_approval",
+  "openai_stage_a_authorization_candidate_activated": false,
   "schema_version": "moving-service-questions-schema-v1",
   "knowledge_fixture_version": "moving-service-storage-fixture-v2",
   "fallback_version": "moving-service-fallback-v1",
@@ -40,6 +46,7 @@
   "real_model_evaluation_eligible": false,
   "real_model_ineligibility_reasons": [
     "The prompt is not frozen or authorized for real-model execution.",
-    "Adapter implementation and real-model execution require separate explicit authorization."
+    "Adapter implementation and real-model execution require separate explicit authorization.",
+    "The Stage A token-preflight authorization is an inactive candidate pending explicit approval and provider-account control verification."
   ]
 }

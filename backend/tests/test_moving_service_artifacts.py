@@ -51,6 +51,12 @@ def test_v1_artifacts_are_compatible_with_runtime_contracts() -> None:
     assert result["openai_execution_authorization_sha256"] == (
         "6e3ca9cb4488764f012703ab77daae4f4b952895100f7d935935aeb6a0978be5"
     )
+    assert result["manifest"][
+        "openai_stage_a_authorization_candidate_activated"
+    ] is False
+    assert result["openai_stage_a_authorization_candidate_sha256"] == (
+        "b523426249b9c697f0ad8fa5c7e3cdc0d965db35c5ab5f8f1a7dc66fd4655202"
+    )
     assert result["knowledge_item_count"] == 1
     assert len(result["request_fixtures"]) == 3
     assert len(result["response_results"]) == 10
@@ -117,6 +123,34 @@ def test_openai_execution_authorization_rejects_digest_drift() -> None:
     with pytest.raises(
         artifact_compatibility.ArtifactValidationError,
         match="digest does not match exact bytes",
+    ):
+        artifact_compatibility.validate_artifacts(drifted)
+
+
+def test_openai_stage_a_candidate_rejects_activation_drift() -> None:
+    artifacts = artifact_compatibility.load_artifacts()
+    drifted = copy.deepcopy(artifacts)
+    drifted["manifest"][
+        "openai_stage_a_authorization_candidate_activated"
+    ] = True
+
+    with pytest.raises(
+        artifact_compatibility.ArtifactValidationError,
+        match="candidate_activated is incompatible",
+    ):
+        artifact_compatibility.validate_artifacts(drifted)
+
+
+def test_openai_stage_a_candidate_rejects_generation_permission() -> None:
+    artifacts = artifact_compatibility.load_artifacts()
+    drifted = copy.deepcopy(artifacts)
+    drifted["openai_stage_a_authorization_candidate"]["authorization"][
+        "ai_generation_authorized"
+    ] = True
+
+    with pytest.raises(
+        artifact_compatibility.ArtifactValidationError,
+        match="candidate permissions are incompatible",
     ):
         artifact_compatibility.validate_artifacts(drifted)
 

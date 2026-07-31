@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import pickle
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -70,6 +72,60 @@ def test_closed_repository_authorization_prevents_environment_access() -> None:
 
     assert client_calls == []
     assert http_calls == []
+
+
+def test_active_stage_a_window_permits_only_client_construction(
+    tmp_path: Path,
+) -> None:
+    candidate_path = (
+        SCRIPT_ROOT.parents[2]
+        / "docs/experiments/suggest-moving-service-questions/v1/"
+        "openai-stage-a-authorization-candidate.toml"
+    )
+    approved_at = datetime.now(timezone.utc) - timedelta(seconds=10)
+    expires_at = approved_at + timedelta(minutes=5)
+    active_text = candidate_path.read_text().replace(
+        'authorization_status = "candidate_pending_explicit_approval"',
+        'authorization_status = "approved_stage_a_token_preflight"',
+    ).replace(
+        "active_repository_authority = false",
+        "active_repository_authority = true",
+    ).replace(
+        'approval_status = "pending_explicit_human_approval"',
+        'approval_status = "approved"',
+    ).replace(
+        'approved_at = "pending"',
+        f'approved_at = "{approved_at.isoformat()}"',
+    ).replace(
+        'expires_at = "pending"',
+        f'expires_at = "{expires_at.isoformat()}"',
+    ).replace(
+        'approved_by = "pending"',
+        'approved_by = "offline-test-reviewer"',
+    )
+    active_path = tmp_path / "active-stage-a.toml"
+    active_path.write_text(active_text)
+    active_digest = hashlib.sha256(active_path.read_bytes()).hexdigest()
+    created_clients: list[FakeOpenAIClient] = []
+
+    def make_client(**kwargs: object) -> FakeOpenAIClient:
+        client = FakeOpenAIClient(**kwargs)
+        created_clients.append(client)
+        return client
+
+    owned = build_moving_service_openai_client_from_environment(
+        {EVALUATION_CREDENTIAL_NAME: SYNTHETIC_SECRET},
+        completed_non_secret_gates=REQUIRED_NON_SECRET_GATE_ORDER,
+        operator_intent_confirmed=True,
+        authorization_path=active_path,
+        expected_authorization_digest=active_digest,
+        client_constructor=make_client,
+        http_client_constructor=FakeHttpClient,
+    )
+
+    assert len(created_clients) == 1
+    assert not hasattr(created_clients[0], "responses")
+    owned.close()
 
 
 def test_incomplete_runner_gates_fail_before_artifact_or_environment_access(

@@ -1,0 +1,78 @@
+[metadata]
+capability = "suggest_moving_service_questions"
+authorization_version = "moving-service-openai-stage-a-authorization-v1"
+authorization_status = "candidate_pending_explicit_approval"
+created_at = "2026-07-31T22:54:07Z"
+evaluation_only = true
+default_deny = true
+active_repository_authority = false
+
+[bindings]
+prompt_artifact_path = "docs/experiments/suggest-moving-service-questions/v1/real-model-prompt.toml"
+prompt_version = "moving-service-questions-prompt-v1"
+prompt_digest_algorithm = "sha256"
+prompt_digest = "583a4bdf59c4c4ac67c82928415710c3d5c21ac9912ebd4888a026b8fd4acbf2"
+run_configuration_path = "docs/experiments/suggest-moving-service-questions/v1/openai-run-configuration.toml"
+run_configuration_digest_algorithm = "sha256"
+run_configuration_digest = "e665e04b56d8aeaa01f4c9df2fd2f5f4eed37150802fdba869cba54d1e5bc782"
+provider_schema_path = "docs/experiments/suggest-moving-service-questions/v1/openai-response-schema.json"
+provider_schema_digest_algorithm = "sha256"
+provider_schema_digest = "9e5a3a667a1049d150734fd16669dad98cc982c2dc7a9a18f3e0b8cb3e891afb"
+request_schema_version = "moving-service-questions-schema-v1"
+response_schema_version = "moving-service-questions-schema-v1"
+knowledge_fixture_version = "moving-service-storage-fixture-v2"
+provider = "OpenAI"
+ai_model_identifier = "gpt-4.1-mini-2025-04-14"
+sdk_pin = "openai==2.45.0"
+
+[authorization]
+credential_access_authorized = true
+token_preflight_authorized = true
+ai_generation_authorized = false
+formal_evaluation_authorized = false
+
+[scope]
+authorized_run_series_id = "moving-service-stage-a-20260731"
+authorized_sequence_numbers = [1]
+authorized_fixture_ids = ["storage_unknown"]
+maximum_authorized_generation_spend = "0.00"
+maximum_credential_reads = 1
+maximum_client_constructions = 1
+maximum_token_preflight_requests = 1
+maximum_ai_generation_requests = 0
+
+[approval]
+approval_status = "pending_explicit_human_approval"
+approved_at = "pending"
+expires_at = "pending"
+approved_by = "pending"
+maximum_authorization_duration_seconds = 900
+activation_requires_new_final_artifact = true
+activation_requires_new_digest = true
+activation_requires_manifest_repoint = true
+
+[policy]
+operator_intent_is_authority = false
+environment_values_may_override_authorization = false
+command_line_flags_may_override_authorization = false
+missing_or_unknown_fields_fail_closed = true
+credential_access_requires_all_non_secret_gates = true
+token_preflight_requires_credential_access_authorization = true
+ai_generation_requires_successful_token_preflight = true
+formal_evaluation_requires_ai_generation_authorization = true
+authorization_is_single_use = true
+failure_consumes_sequence = true
+generation_method_must_be_unreachable = true
+
+[validation]
+non_secret_gate_order = [
+  "artifact_integrity",
+  "repository_authorization",
+  "fixture_and_sequence_validation",
+  "output_path_checks",
+  "budget_checks",
+  "operator_intent_check",
+]
+first_secret_stage = "credential_access"
+first_network_stage = "token_preflight"
+generation_stage = "prohibited"

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import tomllib
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Mapping, Protocol
 
@@ -163,6 +164,58 @@ def _require_credential_access_authorized(
         raise CredentialAccessNotAuthorizedError(
             "Repository authorization does not permit credential access."
         )
+    metadata = artifact.get("metadata")
+    approval = artifact.get("approval")
+    if not isinstance(metadata, dict) or not isinstance(approval, dict):
+        raise CredentialAccessNotAuthorizedError(
+            "Active execution authorization metadata is missing."
+        )
+    if metadata.get("active_repository_authority") is not True:
+        raise CredentialAccessNotAuthorizedError(
+            "Execution authorization is not active repository authority."
+        )
+    if metadata.get("authorization_status") != "approved_stage_a_token_preflight":
+        raise CredentialAccessNotAuthorizedError(
+            "Execution authorization status is not approved for Stage A."
+        )
+    if approval.get("approval_status") != "approved":
+        raise CredentialAccessNotAuthorizedError(
+            "Execution authorization has not been approved."
+        )
+    approved_by = approval.get("approved_by")
+    if (
+        not isinstance(approved_by, str)
+        or not approved_by.strip()
+        or approved_by == "pending"
+    ):
+        raise CredentialAccessNotAuthorizedError(
+            "Execution authorization approving identity is invalid."
+        )
+    try:
+        approved_at = datetime.fromisoformat(
+            str(approval["approved_at"]).replace("Z", "+00:00")
+        )
+        expires_at = datetime.fromisoformat(
+            str(approval["expires_at"]).replace("Z", "+00:00")
+        )
+    except (KeyError, ValueError) as error:
+        raise CredentialAccessNotAuthorizedError(
+            "Execution authorization approval window is invalid."
+        ) from error
+    now = datetime.now(timezone.utc)
+    if approved_at.tzinfo is None or expires_at.tzinfo is None:
+        raise CredentialAccessNotAuthorizedError(
+            "Execution authorization timestamps must include UTC offsets."
+        )
+    maximum_duration = approval.get("maximum_authorization_duration_seconds")
+    if maximum_duration != 900 or not approved_at <= now < expires_at:
+        raise CredentialAccessNotAuthorizedError(
+            "Execution authorization is outside its approved window."
+        )
+    if (expires_at - approved_at).total_seconds() > maximum_duration:
+        raise CredentialAccessNotAuthorizedError(
+            "Execution authorization window is too long."
+        )
 
 
 def _read_evaluation_credential(
@@ -248,4 +301,36 @@ def build_moving_service_openai_client_from_environment(
         sdk_version=sdk_version,
         client_constructor=client_constructor,
         http_client_constructor=http_client_constructor,
+    )
+
+
+def build_moving_service_openai_client_with_pinned_sdk(
+    environment: Mapping[str, str],
+    *,
+    completed_non_secret_gates: tuple[str, ...],
+    operator_intent_confirmed: bool,
+    authorization_path: Path,
+    expected_authorization_digest: str,
+) -> MovingServiceOpenAIClient:
+    """Bind the official pinned constructors only after authorization checks."""
+    if completed_non_secret_gates != REQUIRED_NON_SECRET_GATE_ORDER:
+        raise CredentialAccessNotAuthorizedError(
+            "The ordered non-secret runner gates are incomplete."
+        )
+    if operator_intent_confirmed is not True:
+        raise CredentialAccessNotAuthorizedError(
+            "Explicit operator intent was not confirmed."
+        )
+    _require_credential_access_authorized(
+        authorization_path,
+        expected_authorization_digest,
+    )
+    from openai import DefaultHttpxClient, OpenAI
+
+    credential = _read_evaluation_credential(environment)
+    return _construct_openai_client(
+        credential,
+        sdk_version=OPENAI_SDK_VERSION,
+        client_constructor=OpenAI,
+        http_client_constructor=DefaultHttpxClient,
     )
