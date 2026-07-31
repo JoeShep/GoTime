@@ -10,3 +10,4 @@ backend/**/*.py[cod]
 # Environment and tooling
 .env
 .DS_Store
+.local/evaluations/

@@ -33,8 +33,14 @@ class ArtifactCompatibilityTests(unittest.TestCase):
 
         self.assertTrue(manifest["contract_test_eligible"])
         self.assertEqual([], manifest["contract_test_ineligibility_reasons"])
-        self.assertTrue(manifest["real_model_evaluation_eligible"])
-        self.assertEqual([], manifest["real_model_ineligibility_reasons"])
+        self.assertTrue(manifest["prompt_artifact_ready"])
+        self.assertTrue(
+            manifest["prompt_artifact_frozen_for_adapter_implementation"]
+        )
+        self.assertFalse(manifest["adapter_implementation_authorized"])
+        self.assertFalse(manifest["real_model_execution_authorized"])
+        self.assertFalse(manifest["real_model_evaluation_eligible"])
+        self.assertTrue(manifest["real_model_ineligibility_reasons"])
 
     def test_false_readiness_requires_a_reason(self):
         self.assert_rejected(
