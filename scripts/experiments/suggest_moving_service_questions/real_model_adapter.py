@@ -77,22 +77,51 @@ class MovingServiceTransportResult:
 
     response_content: Mapping[str, object] | str | None
     input_tokens: int | None = None
+    cached_input_tokens: int | None = None
+    uncached_input_tokens: int | None = None
     output_tokens: int | None = None
     duration_ms: float = 0.0
+    preflight_duration_ms: float = 0.0
+    generation_duration_ms: float = 0.0
     cache_status: str = "disabled"
+    provider_name: str | None = None
+    provider_model_identifier: str | None = None
+    provider_request_id: str | None = None
+    finish_status: str | None = None
+    refusal_status: str | None = None
+    incomplete_reason: str | None = None
+    estimated_cost: str = "$0.00"
+    failure_phase: str | None = None
     error_classification: TransportErrorClassification | None = None
 
     def __post_init__(self) -> None:
         for field, value in (
             ("input_tokens", self.input_tokens),
+            ("cached_input_tokens", self.cached_input_tokens),
+            ("uncached_input_tokens", self.uncached_input_tokens),
             ("output_tokens", self.output_tokens),
         ):
             if value is not None and value < 0:
                 raise ValueError(f"Transport {field} cannot be negative.")
-        if self.duration_ms < 0:
-            raise ValueError("Transport duration cannot be negative.")
+        for field, value in (
+            ("duration_ms", self.duration_ms),
+            ("preflight_duration_ms", self.preflight_duration_ms),
+            ("generation_duration_ms", self.generation_duration_ms),
+        ):
+            if value < 0:
+                raise ValueError(f"Transport {field} cannot be negative.")
+        if (
+            self.input_tokens is not None
+            and self.cached_input_tokens is not None
+            and self.uncached_input_tokens is not None
+            and self.cached_input_tokens + self.uncached_input_tokens
+            != self.input_tokens
+        ):
+            raise ValueError("Transport input-token categories are inconsistent.")
         if self.cache_status not in {"disabled", "hit", "miss", "not_available"}:
             raise ValueError("Transport cache status is unsupported.")
+        if self.failure_phase not in {None, "preflight", "generation"}:
+            raise ValueError("Transport failure phase is unsupported.")
 
 
 class MovingServiceEvaluationTransport(Protocol):

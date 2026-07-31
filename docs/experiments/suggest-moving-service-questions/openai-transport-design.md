@@ -490,3 +490,20 @@ SDK installation authorized: no
 credentials authorized: no
 real-model execution authorized: no
 ```
+
+## 15. Offline Implementation Status
+
+The capability-specific transport is implemented at
+`scripts/experiments/suggest_moving_service_questions/openai_transport.py`.
+Its experiment dependency is pinned in `requirements-openai.txt`; the reviewed
+Python 3.12 resolved set is recorded in `requirements-openai.lock`. The local
+installation verified OpenAI SDK version 2.45.0 on Python 3.12.13.
+
+The implementation constructs no SDK client, reads no environment variable or
+credential, and exposes no executable entry point. It accepts only an explicitly
+injected SDK-shaped client whose automatic retry count is zero. The existing
+runner continues to admit only `OfflineFakeMovingServiceTransport`, so the
+OpenAI transport is not reachable for network execution.
+
+Implementation completion does not authorize credential access, an API call,
+real-model execution, application exposure, or production use.

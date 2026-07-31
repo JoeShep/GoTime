@@ -11,3 +11,5 @@ backend/**/*.py[cod]
 .env
 .DS_Store
 .local/evaluations/
+.local/python/moving-service-openai/
+.local/venvs/moving-service-openai/
