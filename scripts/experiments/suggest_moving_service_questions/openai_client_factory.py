@@ -21,6 +21,10 @@ DEFAULT_EXECUTION_AUTHORIZATION_PATH = (
     / "docs/experiments/suggest-moving-service-questions/v1/"
     "openai-execution-authorization.toml"
 )
+DEFAULT_MANIFEST_PATH = (
+    REPOSITORY_ROOT
+    / "docs/experiments/suggest-moving-service-questions/v1/manifest.json"
+)
 EXECUTION_AUTHORIZATION_DIGEST = (
     "6e3ca9cb4488764f012703ab77daae4f4b952895100f7d935935aeb6a0978be5"
 )
@@ -131,9 +135,33 @@ class MovingServiceOpenAIClient:
 
 
 def _require_credential_access_authorized(
+    manifest_path: Path,
     authorization_path: Path,
     expected_digest: str,
 ) -> None:
+    from stage_a_authorization import (
+        StageAAuthorizationError,
+        load_manifest_bound_stage_a_authorization,
+    )
+
+    if manifest_path.resolve() != DEFAULT_MANIFEST_PATH.resolve():
+        raise CredentialAccessNotAuthorizedError(
+            "Credential access requires the repository's active manifest."
+        )
+    try:
+        verified = load_manifest_bound_stage_a_authorization(
+            manifest_path,
+            repository_root=REPOSITORY_ROOT,
+        )
+    except StageAAuthorizationError as error:
+        raise CredentialAccessNotAuthorizedError(str(error)) from error
+    if (
+        verified.path.resolve() != authorization_path.resolve()
+        or verified.digest != expected_digest
+    ):
+        raise CredentialAccessNotAuthorizedError(
+            "Credential authorization is not the manifest-bound Stage A artifact."
+        )
     artifact_bytes = authorization_path.read_bytes()
     if hashlib.sha256(artifact_bytes).hexdigest() != expected_digest:
         raise CredentialAccessNotAuthorizedError(
@@ -276,6 +304,7 @@ def build_moving_service_openai_client_from_environment(
     *,
     completed_non_secret_gates: tuple[str, ...],
     operator_intent_confirmed: bool,
+    manifest_path: Path = DEFAULT_MANIFEST_PATH,
     authorization_path: Path = DEFAULT_EXECUTION_AUTHORIZATION_PATH,
     expected_authorization_digest: str = EXECUTION_AUTHORIZATION_DIGEST,
     sdk_version: str = OPENAI_SDK_VERSION,
@@ -292,6 +321,7 @@ def build_moving_service_openai_client_from_environment(
             "Explicit operator intent was not confirmed."
         )
     _require_credential_access_authorized(
+        manifest_path,
         authorization_path,
         expected_authorization_digest,
     )
@@ -309,6 +339,7 @@ def build_moving_service_openai_client_with_pinned_sdk(
     *,
     completed_non_secret_gates: tuple[str, ...],
     operator_intent_confirmed: bool,
+    manifest_path: Path,
     authorization_path: Path,
     expected_authorization_digest: str,
 ) -> MovingServiceOpenAIClient:
@@ -322,6 +353,7 @@ def build_moving_service_openai_client_with_pinned_sdk(
             "Explicit operator intent was not confirmed."
         )
     _require_credential_access_authorized(
+        manifest_path,
         authorization_path,
         expected_authorization_digest,
     )

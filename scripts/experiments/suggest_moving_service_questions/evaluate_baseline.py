@@ -8,6 +8,7 @@ import hashlib
 import json
 import sys
 import tomllib
+from datetime import datetime
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -42,6 +43,10 @@ from app.moving_service_questions import (  # noqa: E402
     select_fallback,
     validate_response,
 )
+from stage_a_authorization import (  # noqa: E402
+    VerifiedStageAAuthorization,
+    load_manifest_bound_stage_a_authorization,
+)
 
 FILES = {
     "manifest": "manifest.json",
@@ -63,6 +68,20 @@ OPENAI_STAGE_A_AUTHORIZATION_CANDIDATE_FILE = (
 
 class ArtifactValidationError(ValueError):
     pass
+
+
+def validate_future_manifest_bound_stage_a_authorization(
+    manifest_path: Path,
+    *,
+    repository_root: Path,
+    now: datetime,
+) -> VerifiedStageAAuthorization:
+    """Validate future exact Stage A bytes without changing active artifacts."""
+    return load_manifest_bound_stage_a_authorization(
+        manifest_path,
+        repository_root=repository_root,
+        now=now,
+    )
 
 
 def _fail(message: str) -> None:

@@ -53,19 +53,22 @@ from run_real_model_evaluation import (  # noqa: E402
     _validate_output_root,
     require_execution_stage_authorized,
 )
+from stage_a_authorization import (  # noqa: E402
+    STAGE_A_AUTHORIZATION_VERSION,
+    STAGE_A_CANDIDATE_DIGEST,
+    STAGE_A_FIXTURE_ID,
+    STAGE_A_RUN_SERIES_ID,
+    STAGE_A_SEQUENCE,
+    StageAAuthorizationError,
+    VerifiedStageAAuthorization,
+    load_manifest_bound_stage_a_authorization,
+)
 
 STAGE_A_CANDIDATE_PATH = (
     REPOSITORY_ROOT
     / "docs/experiments/suggest-moving-service-questions/v1/"
     "openai-stage-a-authorization-candidate.toml"
 )
-STAGE_A_CANDIDATE_DIGEST = (
-    "b523426249b9c697f0ad8fa5c7e3cdc0d965db35c5ab5f8f1a7dc66fd4655202"
-)
-STAGE_A_AUTHORIZATION_VERSION = "moving-service-openai-stage-a-authorization-v1"
-STAGE_A_RUN_SERIES_ID = "moving-service-stage-a-20260731"
-STAGE_A_SEQUENCE = 1
-STAGE_A_FIXTURE_ID = "storage_unknown"
 STAGE_A_OPERATOR_INTENT = "AUTHORIZE_ONE_STORAGE_UNKNOWN_TOKEN_PREFLIGHT"
 STAGE_A_MAXIMUM_GENERATION_SPEND = Decimal("0.00")
 
@@ -239,31 +242,6 @@ def _load_stage_a_candidate(path: Path = STAGE_A_CANDIDATE_PATH) -> VerifiedStag
     return VerifiedStageACandidate(path=path, digest=digest, artifact=artifact)
 
 
-def _require_manifest_activation(
-    manifest_path: Path,
-    candidate: VerifiedStageACandidate,
-) -> None:
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    candidate_path = (
-        candidate.path.resolve().relative_to(REPOSITORY_ROOT.resolve()).as_posix()
-    )
-    candidate_expectations = {
-        "openai_stage_a_authorization_candidate_path": candidate_path,
-        "openai_stage_a_authorization_candidate_version": STAGE_A_AUTHORIZATION_VERSION,
-        "openai_stage_a_authorization_candidate_digest_algorithm": "sha256",
-        "openai_stage_a_authorization_candidate_digest": candidate.digest,
-        "openai_stage_a_authorization_candidate_status": "candidate_pending_explicit_approval",
-        "openai_stage_a_authorization_candidate_activated": False,
-    }
-    for field, expected in candidate_expectations.items():
-        if manifest.get(field) != expected:
-            raise OfflineRunnerGateError(f"Manifest Stage A field {field} is incompatible.")
-    if manifest.get("openai_stage_a_authorization_candidate_activated") is not True:
-        raise OfflineRunnerGateError("Stage A repository authorization is not active.")
-    # Activation intentionally cannot pass with the committed candidate. A later
-    # milestone must create a final approved artifact and repoint the manifest.
-
-
 def _validate_exact_scope(
     *, fixture_id: str, run_series_id: str, run_sequence: int
 ) -> None:
@@ -308,7 +286,8 @@ def _prepare_provider_request() -> MovingServiceProviderRequest:
 
 def _execute_verified_stage_a_preflight(
     *,
-    candidate: VerifiedStageACandidate,
+    authorization: VerifiedStageAAuthorization,
+    manifest_path: Path,
     environment: Mapping[str, str],
     output_root: Path,
     client_builder: Callable[..., MovingServiceOpenAIClient],
@@ -319,8 +298,9 @@ def _execute_verified_stage_a_preflight(
         environment,
         completed_non_secret_gates=REQUIRED_NON_SECRET_GATE_ORDER,
         operator_intent_confirmed=True,
-        authorization_path=candidate.path,
-        expected_authorization_digest=candidate.digest,
+        manifest_path=manifest_path,
+        authorization_path=authorization.path,
+        expected_authorization_digest=authorization.digest,
     ) as owned_client:
         transport = OpenAIMovingServiceEvaluationTransport(client=owned_client.client)
         preflight = transport.preflight(provider_request)
@@ -336,13 +316,13 @@ def _execute_verified_stage_a_preflight(
         fixture_id=STAGE_A_FIXTURE_ID,
         capability=CAPABILITY,
         authorization_version=STAGE_A_AUTHORIZATION_VERSION,
-        authorization_digest=candidate.digest,
-        prompt_digest=str(candidate.artifact["bindings"]["prompt_digest"]),
+        authorization_digest=authorization.digest,
+        prompt_digest=str(authorization.artifact["bindings"]["prompt_digest"]),
         run_configuration_digest=str(
-            candidate.artifact["bindings"]["run_configuration_digest"]
+            authorization.artifact["bindings"]["run_configuration_digest"]
         ),
         provider_schema_digest=str(
-            candidate.artifact["bindings"]["provider_schema_digest"]
+            authorization.artifact["bindings"]["provider_schema_digest"]
         ),
         provider="OpenAI",
         ai_model_identifier=OPENAI_MODEL_IDENTIFIER,
@@ -381,8 +361,17 @@ def run_stage_a_token_preflight(
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
 ) -> StageAPreflightResult:
     """Run Stage A only after a separately approved manifest activation."""
-    candidate = _load_stage_a_candidate()
-    _require_manifest_activation(manifest_path, candidate)
+    if manifest_path.resolve() != DEFAULT_MANIFEST_PATH.resolve():
+        raise OfflineRunnerGateError(
+            "Stage A requires the repository's active manifest."
+        )
+    try:
+        authorization = load_manifest_bound_stage_a_authorization(
+            manifest_path,
+            repository_root=REPOSITORY_ROOT,
+        )
+    except StageAAuthorizationError as error:
+        raise OfflineRunnerGateError(str(error)) from error
     _validate_exact_scope(
         fixture_id=fixture_id,
         run_series_id=run_series_id,
@@ -394,14 +383,19 @@ def run_stage_a_token_preflight(
     if _record_path(resolved_output).exists():
         raise FileExistsError("The Stage A preflight record already exists.")
     authorized_generation_spend = Decimal(
-        str(candidate.artifact["scope"]["maximum_authorized_generation_spend"])
+        str(
+            authorization.artifact["scope"][
+                "maximum_authorized_generation_spend"
+            ]
+        )
     )
     if authorized_generation_spend != STAGE_A_MAXIMUM_GENERATION_SPEND:
         raise OfflineRunnerGateError("Stage A generation budget is not zero.")
     if operator_intent != STAGE_A_OPERATOR_INTENT:
         raise OfflineRunnerGateError("Stage A operator intent is not confirmed.")
     return _execute_verified_stage_a_preflight(
-        candidate=candidate,
+        authorization=authorization,
+        manifest_path=manifest_path,
         environment=environment,
         output_root=resolved_output,
         client_builder=build_moving_service_openai_client_with_pinned_sdk,
