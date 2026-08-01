@@ -19,13 +19,17 @@ if str(SCRIPT_ROOT) not in sys.path:
 from openai_client_factory import (  # noqa: E402
     CredentialAccessNotAuthorizedError,
     EVALUATION_CREDENTIAL_NAME,
+    OPENAI_API_BASE_URL,
     REQUIRED_NON_SECRET_GATE_ORDER,
+    _construct_openai_client,
+    _read_evaluation_credential,
     build_moving_service_openai_client_from_environment,
 )
 import evaluate_baseline  # noqa: E402
 from run_openai_stage_a_preflight import (  # noqa: E402
     STAGE_A_CANDIDATE_DIGEST,
     STAGE_A_OPERATOR_INTENT,
+    StageAPreflightAttemptFailed,
     _execute_verified_stage_a_preflight,
     _load_stage_a_candidate,
     run_stage_a_token_preflight,
@@ -67,8 +71,18 @@ class FakeResponses:
 
 class FakeClient:
     def __init__(self, **kwargs: object) -> None:
+        self.arguments = kwargs
         self.max_retries = int(kwargs["max_retries"])
         self.responses = FakeResponses()
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
+
+
+class FakeHttpClient:
+    def __init__(self, **kwargs: object) -> None:
+        self.arguments = kwargs
         self.closed = False
 
     def close(self) -> None:
@@ -279,6 +293,220 @@ def test_offline_preflight_path_cannot_reach_generation(tmp_path: Path) -> None:
         "authorization_header",
     }
     assert prohibited.isdisjoint(record_data)
+
+
+def test_exact_credential_injection_reaches_only_fake_preflight(
+    tmp_path: Path,
+) -> None:
+    manifest_path, _, now = _write_future_stage_a_package(
+        tmp_path,
+        approved_at=datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc),
+    )
+    authorization = load_manifest_bound_stage_a_authorization(
+        manifest_path,
+        repository_root=tmp_path,
+        now=now,
+    )
+    synthetic_secret = "synthetic-stage-a-secret-not-a-real-key"
+    clients: list[FakeClient] = []
+    http_clients: list[FakeHttpClient] = []
+
+    def exact_fake_builder(
+        environment: dict[str, str], **kwargs: object
+    ) -> object:
+        assert environment == {EVALUATION_CREDENTIAL_NAME: synthetic_secret}
+        assert kwargs["completed_non_secret_gates"] == (
+            REQUIRED_NON_SECRET_GATE_ORDER
+        )
+        assert kwargs["operator_intent_confirmed"] is True
+        credential = _read_evaluation_credential(environment)
+
+        def make_http_client(**arguments: object) -> FakeHttpClient:
+            client = FakeHttpClient(**arguments)
+            http_clients.append(client)
+            return client
+
+        def make_client(**arguments: object) -> FakeClient:
+            client = FakeClient(**arguments)
+            clients.append(client)
+            return client
+
+        return _construct_openai_client(
+            credential,
+            sdk_version="2.45.0",
+            client_constructor=make_client,
+            http_client_constructor=make_http_client,
+        )
+
+    result = _execute_verified_stage_a_preflight(
+        authorization=authorization,
+        manifest_path=manifest_path,
+        environment={EVALUATION_CREDENTIAL_NAME: synthetic_secret},
+        output_root=tmp_path / "records",
+        client_builder=exact_fake_builder,  # type: ignore[arg-type]
+    )
+
+    assert http_clients[0].arguments == {"trust_env": False}
+    assert clients[0].arguments == {
+        "api_key": synthetic_secret,
+        "base_url": OPENAI_API_BASE_URL,
+        "max_retries": 0,
+        "http_client": http_clients[0],
+    }
+    assert len(clients[0].responses.input_tokens.calls) == 1
+    assert clients[0].responses.generation_calls == 0
+    assert clients[0].closed is True
+    assert http_clients[0].closed is True
+    assert result.record.credential_access_attempted is True
+    assert result.record.credential_accessed is True
+    assert result.record.client_construction_attempted is True
+    assert result.record.client_constructed is True
+    assert result.record.preflight_attempted is True
+    assert result.record.generation_attempted is False
+    assert synthetic_secret not in result.record_path.read_text()
+
+
+def test_missing_credential_writes_bounded_record_before_preflight(
+    tmp_path: Path,
+) -> None:
+    manifest_path, _, now = _write_future_stage_a_package(
+        tmp_path,
+        approved_at=datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc),
+    )
+    authorization = load_manifest_bound_stage_a_authorization(
+        manifest_path,
+        repository_root=tmp_path,
+        now=now,
+    )
+
+    def missing_credential_builder(
+        environment: dict[str, str], **_: object
+    ) -> object:
+        _read_evaluation_credential(environment)
+        raise AssertionError("unreachable")
+
+    with pytest.raises(StageAPreflightAttemptFailed) as caught:
+        _execute_verified_stage_a_preflight(
+            authorization=authorization,
+            manifest_path=manifest_path,
+            environment={},
+            output_root=tmp_path / "records",
+            client_builder=missing_credential_builder,  # type: ignore[arg-type]
+        )
+
+    assert caught.value.classification == "credential_validation_failed"
+    record = json.loads(caught.value.record_path.read_text())
+    assert record["credential_access_attempted"] is True
+    assert record["credential_accessed"] is False
+    assert record["client_construction_attempted"] is False
+    assert record["client_constructed"] is False
+    assert record["preflight_attempted"] is False
+    assert record["preflight_succeeded"] is False
+    assert record["preflight_duration_ms"] == 0.0
+    assert record["input_tokens"] is None
+    assert record["bounded_failure_classification"] == (
+        "credential_validation_failed"
+    )
+    assert record["generation_attempted"] is False
+    assert record["generation_spend"] == "0.00"
+    prohibited = {
+        "system_instructions",
+        "serialized_request",
+        "full_response",
+        "trusted_state",
+        "credential",
+        "authorization_header",
+    }
+    assert prohibited.isdisjoint(record)
+
+    with pytest.raises(FileExistsError):
+        _execute_verified_stage_a_preflight(
+            authorization=authorization,
+            manifest_path=manifest_path,
+            environment={},
+            output_root=tmp_path / "records",
+            client_builder=missing_credential_builder,  # type: ignore[arg-type]
+        )
+
+
+def test_client_construction_failure_records_completed_credential_access(
+    tmp_path: Path,
+) -> None:
+    manifest_path, _, now = _write_future_stage_a_package(
+        tmp_path,
+        approved_at=datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc),
+    )
+    authorization = load_manifest_bound_stage_a_authorization(
+        manifest_path,
+        repository_root=tmp_path,
+        now=now,
+    )
+
+    def failed_constructor_builder(
+        environment: dict[str, str], **_: object
+    ) -> object:
+        credential = _read_evaluation_credential(environment)
+        return _construct_openai_client(
+            credential,
+            sdk_version="2.45.0",
+            client_constructor=lambda **__: (_ for _ in ()).throw(
+                RuntimeError("synthetic constructor failure")
+            ),
+            http_client_constructor=FakeHttpClient,
+        )
+
+    with pytest.raises(StageAPreflightAttemptFailed) as caught:
+        _execute_verified_stage_a_preflight(
+            authorization=authorization,
+            manifest_path=manifest_path,
+            environment={EVALUATION_CREDENTIAL_NAME: "synthetic-not-a-real-key"},
+            output_root=tmp_path / "records",
+            client_builder=failed_constructor_builder,  # type: ignore[arg-type]
+        )
+
+    assert caught.value.classification == "client_construction_failed"
+    record = json.loads(caught.value.record_path.read_text())
+    assert record["credential_access_attempted"] is True
+    assert record["credential_accessed"] is True
+    assert record["client_construction_attempted"] is True
+    assert record["client_constructed"] is False
+    assert record["preflight_attempted"] is False
+    assert record["generation_attempted"] is False
+
+
+def test_authorization_recheck_failure_is_recorded_before_credential_access(
+    tmp_path: Path,
+) -> None:
+    manifest_path, _, now = _write_future_stage_a_package(
+        tmp_path,
+        approved_at=datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc),
+    )
+    authorization = load_manifest_bound_stage_a_authorization(
+        manifest_path,
+        repository_root=tmp_path,
+        now=now,
+    )
+
+    def failed_recheck_builder(*_: object, **__: object) -> object:
+        raise CredentialAccessNotAuthorizedError("synthetic recheck failure")
+
+    with pytest.raises(StageAPreflightAttemptFailed) as caught:
+        _execute_verified_stage_a_preflight(
+            authorization=authorization,
+            manifest_path=manifest_path,
+            environment=EnvironmentThatMustNotBeRead(),
+            output_root=tmp_path / "records",
+            client_builder=failed_recheck_builder,  # type: ignore[arg-type]
+        )
+
+    assert caught.value.classification == (
+        "credential_authorization_recheck_failed"
+    )
+    record = json.loads(caught.value.record_path.read_text())
+    assert record["credential_access_attempted"] is False
+    assert record["credential_accessed"] is False
+    assert record["client_construction_attempted"] is False
+    assert record["preflight_attempted"] is False
 
 
 def test_future_authorization_rejects_manifest_digest_drift(tmp_path: Path) -> None:

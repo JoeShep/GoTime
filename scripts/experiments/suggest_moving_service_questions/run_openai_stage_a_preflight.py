@@ -31,7 +31,11 @@ from app.moving_service_questions import (  # noqa: E402
 )
 from openai_client_factory import (  # noqa: E402
     REQUIRED_NON_SECRET_GATE_ORDER,
+    CredentialAccessNotAuthorizedError,
+    CredentialBoundaryError,
+    EvaluationCredentialError,
     MovingServiceOpenAIClient,
+    OpenAIClientConstructionError,
     build_moving_service_openai_client_with_pinned_sdk,
 )
 from openai_transport import (  # noqa: E402
@@ -100,7 +104,9 @@ class StageAPreflightAuditRecord:
     input_tokens: int | None
     conservative_max_generation_cost: str | None
     bounded_failure_classification: str | None
+    credential_access_attempted: bool
     credential_accessed: bool
+    client_construction_attempted: bool
     client_constructed: bool
     generation_attempted: bool
     generation_succeeded: bool
@@ -115,6 +121,15 @@ class StageAPreflightAuditRecord:
 class StageAPreflightResult:
     record: StageAPreflightAuditRecord
     record_path: Path
+
+
+class StageAPreflightAttemptFailed(RuntimeError):
+    """An authorized attempt failed and was recorded exclusively."""
+
+    def __init__(self, classification: str, record_path: Path) -> None:
+        super().__init__(f"Stage A failed with {classification}; see audit record.")
+        self.classification = classification
+        self.record_path = record_path
 
 
 def _load_stage_a_candidate(path: Path = STAGE_A_CANDIDATE_PATH) -> VerifiedStageACandidate:
@@ -284,33 +299,31 @@ def _prepare_provider_request() -> MovingServiceProviderRequest:
     return adapter.prepare_request(request)
 
 
-def _execute_verified_stage_a_preflight(
+def _failure_classification(error: CredentialBoundaryError) -> str:
+    if isinstance(error, CredentialAccessNotAuthorizedError):
+        return "credential_authorization_recheck_failed"
+    if isinstance(error, EvaluationCredentialError):
+        return "credential_validation_failed"
+    if isinstance(error, OpenAIClientConstructionError):
+        return "client_construction_failed"
+    raise TypeError("Unsupported credential-boundary failure.")
+
+
+def _build_audit_record(
     *,
     authorization: VerifiedStageAAuthorization,
-    manifest_path: Path,
-    environment: Mapping[str, str],
-    output_root: Path,
-    client_builder: Callable[..., MovingServiceOpenAIClient],
-) -> StageAPreflightResult:
-    provider_request = _prepare_provider_request()
-    preflight: OpenAIPreflightResult | None = None
-    with client_builder(
-        environment,
-        completed_non_secret_gates=REQUIRED_NON_SECRET_GATE_ORDER,
-        operator_intent_confirmed=True,
-        manifest_path=manifest_path,
-        authorization_path=authorization.path,
-        expected_authorization_digest=authorization.digest,
-    ) as owned_client:
-        transport = OpenAIMovingServiceEvaluationTransport(client=owned_client.client)
-        preflight = transport.preflight(provider_request)
-
-    failure = (
-        preflight.error_classification.value
-        if preflight.error_classification is not None
-        else None
-    )
-    record = StageAPreflightAuditRecord(
+    preflight_attempted: bool,
+    preflight_succeeded: bool,
+    preflight_duration_ms: float,
+    input_tokens: int | None,
+    conservative_max_generation_cost: str | None,
+    bounded_failure_classification: str | None,
+    credential_access_attempted: bool,
+    credential_accessed: bool,
+    client_construction_attempted: bool,
+    client_constructed: bool,
+) -> StageAPreflightAuditRecord:
+    return StageAPreflightAuditRecord(
         run_series_id=STAGE_A_RUN_SERIES_ID,
         run_sequence=STAGE_A_SEQUENCE,
         fixture_id=STAGE_A_FIXTURE_ID,
@@ -327,6 +340,75 @@ def _execute_verified_stage_a_preflight(
         provider="OpenAI",
         ai_model_identifier=OPENAI_MODEL_IDENTIFIER,
         sdk_version="2.45.0",
+        preflight_attempted=preflight_attempted,
+        preflight_succeeded=preflight_succeeded,
+        preflight_duration_ms=preflight_duration_ms,
+        input_tokens=input_tokens,
+        conservative_max_generation_cost=conservative_max_generation_cost,
+        bounded_failure_classification=bounded_failure_classification,
+        credential_access_attempted=credential_access_attempted,
+        credential_accessed=credential_accessed,
+        client_construction_attempted=client_construction_attempted,
+        client_constructed=client_constructed,
+        generation_attempted=False,
+        generation_succeeded=False,
+        generation_spend="0.00",
+        formal_evaluation_attempted=False,
+    )
+
+
+def _execute_verified_stage_a_preflight(
+    *,
+    authorization: VerifiedStageAAuthorization,
+    manifest_path: Path,
+    environment: Mapping[str, str],
+    output_root: Path,
+    client_builder: Callable[..., MovingServiceOpenAIClient],
+) -> StageAPreflightResult:
+    provider_request = _prepare_provider_request()
+    preflight: OpenAIPreflightResult | None = None
+    try:
+        with client_builder(
+            environment,
+            completed_non_secret_gates=REQUIRED_NON_SECRET_GATE_ORDER,
+            operator_intent_confirmed=True,
+            manifest_path=manifest_path,
+            authorization_path=authorization.path,
+            expected_authorization_digest=authorization.digest,
+        ) as owned_client:
+            transport = OpenAIMovingServiceEvaluationTransport(
+                client=owned_client.client
+            )
+            preflight = transport.preflight(provider_request)
+    except CredentialBoundaryError as error:
+        classification = _failure_classification(error)
+        record = _build_audit_record(
+            authorization=authorization,
+            preflight_attempted=False,
+            preflight_succeeded=False,
+            preflight_duration_ms=0.0,
+            input_tokens=None,
+            conservative_max_generation_cost=None,
+            bounded_failure_classification=classification,
+            credential_access_attempted=not isinstance(
+                error, CredentialAccessNotAuthorizedError
+            ),
+            credential_accessed=isinstance(error, OpenAIClientConstructionError),
+            client_construction_attempted=isinstance(
+                error, OpenAIClientConstructionError
+            ),
+            client_constructed=False,
+        )
+        record_path = _write_record_exclusively(record, output_root)
+        raise StageAPreflightAttemptFailed(classification, record_path) from None
+
+    failure = (
+        preflight.error_classification.value
+        if preflight.error_classification is not None
+        else None
+    )
+    record = _build_audit_record(
+        authorization=authorization,
         preflight_attempted=True,
         preflight_succeeded=preflight.succeeded,
         preflight_duration_ms=preflight.duration_ms,
@@ -337,12 +419,10 @@ def _execute_verified_stage_a_preflight(
             else None
         ),
         bounded_failure_classification=failure,
+        credential_access_attempted=True,
         credential_accessed=True,
+        client_construction_attempted=True,
         client_constructed=True,
-        generation_attempted=False,
-        generation_succeeded=False,
-        generation_spend="0.00",
-        formal_evaluation_attempted=False,
     )
     return StageAPreflightResult(
         record=record,
