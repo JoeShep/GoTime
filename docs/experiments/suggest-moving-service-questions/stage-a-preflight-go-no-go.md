@@ -44,6 +44,13 @@ This reconciliation does not activate Stage A. Credential access, token
 preflight, AI generation, and formal evaluation remain closed until a new,
 exact sequence-2 artifact and manifest switch receive separate review.
 
+Sequence `2` was subsequently authorized and completed its one exact token
+preflight successfully. The provider reported `2176` input tokens; AI
+generation was not attempted. The manifest was returned to the permanent
+closed authorization and sequence `2` is now consumed. Any future Stage A
+authorization must use the next contiguous sequence, `3`, and requires a new
+review decision; this does not itself authorize another preflight.
+
 ## Candidate Authorization
 
 The exact candidate is:

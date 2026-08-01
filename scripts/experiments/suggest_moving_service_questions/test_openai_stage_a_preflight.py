@@ -286,8 +286,8 @@ def test_offline_preflight_path_cannot_reach_generation(tmp_path: Path) -> None:
     assert owned.closed is True
     assert result.record.preflight_attempted is True
     assert result.record.preflight_succeeded is True
-    assert result.record.run_sequence == 2
-    assert result.record_path.name == "002-storage_unknown-preflight.json"
+    assert result.record.run_sequence == 3
+    assert result.record_path.name == "003-storage_unknown-preflight.json"
     assert result.record.input_tokens == 777
     assert result.record.generation_attempted is False
     assert result.record.generation_spend == "0.00"
@@ -403,7 +403,7 @@ def test_missing_credential_writes_bounded_record_before_preflight(
         )
 
     assert caught.value.classification == "credential_validation_failed"
-    assert caught.value.record_path.name == "002-storage_unknown-preflight.json"
+    assert caught.value.record_path.name == "003-storage_unknown-preflight.json"
     record = json.loads(caught.value.record_path.read_text())
     assert record["credential_access_attempted"] is True
     assert record["credential_accessed"] is False
@@ -438,7 +438,7 @@ def test_missing_credential_writes_bounded_record_before_preflight(
         )
 
 
-def test_sequence_two_is_the_only_next_authorizable_sequence(
+def test_sequence_three_is_the_only_next_authorizable_sequence(
     tmp_path: Path,
 ) -> None:
     manifest_path, _, now = _write_future_stage_a_package(
@@ -451,7 +451,7 @@ def test_sequence_two_is_the_only_next_authorizable_sequence(
         now=now,
     )
 
-    assert authorization.authorized_sequence == 2
+    assert authorization.authorized_sequence == 3
     _validate_exact_scope(
         fixture_id="storage_unknown",
         run_series_id="moving-service-stage-a-20260731",
@@ -461,23 +461,27 @@ def test_sequence_two_is_the_only_next_authorizable_sequence(
     _validate_exact_scope(
         fixture_id="storage_unknown",
         run_series_id="moving-service-stage-a-20260731",
-        requested_sequence=2,
+        requested_sequence=3,
         authorized_sequence=authorization.authorized_sequence,
     )
     with pytest.raises(OfflineRunnerGateError, match="outside Stage A scope"):
         _validate_exact_scope(
             fixture_id="storage_unknown",
             run_series_id="moving-service-stage-a-20260731",
-            requested_sequence=1,
+            requested_sequence=2,
             authorized_sequence=authorization.authorized_sequence,
         )
 
 
-def test_consumed_sequence_one_authorization_is_rejected(tmp_path: Path) -> None:
+@pytest.mark.parametrize("consumed_sequence", (1, 2))
+def test_consumed_authorization_sequence_is_rejected(
+    tmp_path: Path,
+    consumed_sequence: int,
+) -> None:
     manifest_path, _, now = _write_future_stage_a_package(
         tmp_path,
         approved_at=datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc),
-        authorized_sequence=1,
+        authorized_sequence=consumed_sequence,
     )
 
     with pytest.raises(StageAAuthorizationError, match="already been consumed"):
@@ -492,7 +496,7 @@ def test_arbitrary_future_sequence_is_rejected(tmp_path: Path) -> None:
     manifest_path, _, now = _write_future_stage_a_package(
         tmp_path,
         approved_at=datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc),
-        authorized_sequence=3,
+        authorized_sequence=4,
     )
 
     with pytest.raises(StageAAuthorizationError, match="exact next slot"):
