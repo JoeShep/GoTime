@@ -20,6 +20,30 @@ No credential was read, no network request was made, and no AI model was called.
 The next milestone may decide whether to create and activate a final Stage A
 authorization; the committed candidate is not itself activatable.
 
+## Sequence-2 Reconciliation
+
+Sequence `1` was later activated for one bounded attempt. That attempt stopped
+at credential validation because the evaluation credential was absent. No
+client was constructed and no provider request was made, but the authorization
+policy states that a failure consumes the sequence. The manifest was restored
+to the permanent closed authorization afterward.
+
+The next eligible Stage A artifact must therefore authorize exactly sequence
+`2` in run series `moving-service-stage-a-20260731`. The manifest-bound
+validator extracts the single sequence from that artifact and rejects consumed
+sequence `1`, skipped sequence `3`, multiple sequences, and non-integer values.
+The runner derives its sequence from the verified artifact and rejects any
+caller-supplied mismatch. Its exclusive record for the next slot is:
+
+```text
+.local/evaluations/suggest-moving-service-questions/
+  moving-service-stage-a-20260731/002-storage_unknown-preflight.json
+```
+
+This reconciliation does not activate Stage A. Credential access, token
+preflight, AI generation, and formal evaluation remain closed until a new,
+exact sequence-2 artifact and manifest switch receive separate review.
+
 ## Candidate Authorization
 
 The exact candidate is:

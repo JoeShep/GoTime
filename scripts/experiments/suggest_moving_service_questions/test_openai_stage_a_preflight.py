@@ -32,11 +32,13 @@ from run_openai_stage_a_preflight import (  # noqa: E402
     StageAPreflightAttemptFailed,
     _execute_verified_stage_a_preflight,
     _load_stage_a_candidate,
+    _validate_exact_scope,
     run_stage_a_token_preflight,
 )
 from run_real_model_evaluation import OfflineRunnerGateError  # noqa: E402
 from stage_a_authorization import (  # noqa: E402
     STAGE_A_FINAL_ARTIFACT_PATH,
+    STAGE_A_NEXT_SEQUENCE,
     StageAAuthorizationError,
     load_manifest_bound_stage_a_authorization,
 )
@@ -105,6 +107,7 @@ def _write_future_stage_a_package(
     root: Path,
     *,
     approved_at: datetime,
+    authorized_sequence: int = STAGE_A_NEXT_SEQUENCE,
 ) -> tuple[Path, Path, datetime]:
     repository_root = SCRIPT_ROOT.parents[2]
     artifact_root = root / "docs/experiments/suggest-moving-service-questions/v1"
@@ -134,6 +137,9 @@ def _write_future_stage_a_package(
     ).replace(
         "active_repository_authority = false",
         "active_repository_authority = true",
+    ).replace(
+        "authorized_sequence_numbers = [1]",
+        f"authorized_sequence_numbers = [{authorized_sequence}]",
     ).replace(
         'approval_status = "pending_explicit_human_approval"',
         'approval_status = "approved"',
@@ -280,6 +286,8 @@ def test_offline_preflight_path_cannot_reach_generation(tmp_path: Path) -> None:
     assert owned.closed is True
     assert result.record.preflight_attempted is True
     assert result.record.preflight_succeeded is True
+    assert result.record.run_sequence == 2
+    assert result.record_path.name == "002-storage_unknown-preflight.json"
     assert result.record.input_tokens == 777
     assert result.record.generation_attempted is False
     assert result.record.generation_spend == "0.00"
@@ -395,6 +403,7 @@ def test_missing_credential_writes_bounded_record_before_preflight(
         )
 
     assert caught.value.classification == "credential_validation_failed"
+    assert caught.value.record_path.name == "002-storage_unknown-preflight.json"
     record = json.loads(caught.value.record_path.read_text())
     assert record["credential_access_attempted"] is True
     assert record["credential_accessed"] is False
@@ -426,6 +435,71 @@ def test_missing_credential_writes_bounded_record_before_preflight(
             environment={},
             output_root=tmp_path / "records",
             client_builder=missing_credential_builder,  # type: ignore[arg-type]
+        )
+
+
+def test_sequence_two_is_the_only_next_authorizable_sequence(
+    tmp_path: Path,
+) -> None:
+    manifest_path, _, now = _write_future_stage_a_package(
+        tmp_path,
+        approved_at=datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc),
+    )
+    authorization = load_manifest_bound_stage_a_authorization(
+        manifest_path,
+        repository_root=tmp_path,
+        now=now,
+    )
+
+    assert authorization.authorized_sequence == 2
+    _validate_exact_scope(
+        fixture_id="storage_unknown",
+        run_series_id="moving-service-stage-a-20260731",
+        requested_sequence=None,
+        authorized_sequence=authorization.authorized_sequence,
+    )
+    _validate_exact_scope(
+        fixture_id="storage_unknown",
+        run_series_id="moving-service-stage-a-20260731",
+        requested_sequence=2,
+        authorized_sequence=authorization.authorized_sequence,
+    )
+    with pytest.raises(OfflineRunnerGateError, match="outside Stage A scope"):
+        _validate_exact_scope(
+            fixture_id="storage_unknown",
+            run_series_id="moving-service-stage-a-20260731",
+            requested_sequence=1,
+            authorized_sequence=authorization.authorized_sequence,
+        )
+
+
+def test_consumed_sequence_one_authorization_is_rejected(tmp_path: Path) -> None:
+    manifest_path, _, now = _write_future_stage_a_package(
+        tmp_path,
+        approved_at=datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc),
+        authorized_sequence=1,
+    )
+
+    with pytest.raises(StageAAuthorizationError, match="already been consumed"):
+        load_manifest_bound_stage_a_authorization(
+            manifest_path,
+            repository_root=tmp_path,
+            now=now,
+        )
+
+
+def test_arbitrary_future_sequence_is_rejected(tmp_path: Path) -> None:
+    manifest_path, _, now = _write_future_stage_a_package(
+        tmp_path,
+        approved_at=datetime(2030, 1, 1, 12, 0, tzinfo=timezone.utc),
+        authorized_sequence=3,
+    )
+
+    with pytest.raises(StageAAuthorizationError, match="exact next slot"):
+        load_manifest_bound_stage_a_authorization(
+            manifest_path,
+            repository_root=tmp_path,
+            now=now,
         )
 
 

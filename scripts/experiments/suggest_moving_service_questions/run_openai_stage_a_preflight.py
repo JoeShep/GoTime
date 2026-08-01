@@ -14,7 +14,7 @@ import tomllib
 from dataclasses import asdict, dataclass
 from decimal import Decimal
 from pathlib import Path
-from typing import Callable, Mapping
+from typing import Callable, Mapping, TextIO
 
 SCRIPT_ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -60,9 +60,9 @@ from run_real_model_evaluation import (  # noqa: E402
 from stage_a_authorization import (  # noqa: E402
     STAGE_A_AUTHORIZATION_VERSION,
     STAGE_A_CANDIDATE_DIGEST,
+    STAGE_A_CANDIDATE_SEQUENCE,
     STAGE_A_FIXTURE_ID,
     STAGE_A_RUN_SERIES_ID,
-    STAGE_A_SEQUENCE,
     StageAAuthorizationError,
     VerifiedStageAAuthorization,
     load_manifest_bound_stage_a_authorization,
@@ -212,7 +212,7 @@ def _load_stage_a_candidate(path: Path = STAGE_A_CANDIDATE_PATH) -> VerifiedStag
     require_execution_stage_authorized(artifact, ExecutionStage.TOKEN_PREFLIGHT)
     if artifact["scope"] != {
         "authorized_run_series_id": STAGE_A_RUN_SERIES_ID,
-        "authorized_sequence_numbers": [STAGE_A_SEQUENCE],
+        "authorized_sequence_numbers": [STAGE_A_CANDIDATE_SEQUENCE],
         "authorized_fixture_ids": [STAGE_A_FIXTURE_ID],
         "maximum_authorized_generation_spend": "0.00",
         "maximum_credential_reads": 1,
@@ -258,29 +258,37 @@ def _load_stage_a_candidate(path: Path = STAGE_A_CANDIDATE_PATH) -> VerifiedStag
 
 
 def _validate_exact_scope(
-    *, fixture_id: str, run_series_id: str, run_sequence: int
+    *,
+    fixture_id: str,
+    run_series_id: str,
+    requested_sequence: int | None,
+    authorized_sequence: int,
 ) -> None:
     if (
         fixture_id != STAGE_A_FIXTURE_ID
         or run_series_id != STAGE_A_RUN_SERIES_ID
-        or run_sequence != STAGE_A_SEQUENCE
+        or (
+            requested_sequence is not None
+            and requested_sequence != authorized_sequence
+        )
     ):
         raise OfflineRunnerGateError("Requested operation is outside Stage A scope.")
 
 
-def _record_path(output_root: Path) -> Path:
-    return output_root / STAGE_A_RUN_SERIES_ID / "001-storage_unknown-preflight.json"
+def _record_path(output_root: Path, authorized_sequence: int) -> Path:
+    return (
+        output_root
+        / STAGE_A_RUN_SERIES_ID
+        / f"{authorized_sequence:03d}-storage_unknown-preflight.json"
+    )
 
 
-def _write_record_exclusively(
-    record: StageAPreflightAuditRecord, output_root: Path
-) -> Path:
-    path = _record_path(output_root)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("x", encoding="utf-8") as output:
-        json.dump(record.as_json_data(), output, indent=2, sort_keys=True)
-        output.write("\n")
-    return path
+def _write_reserved_record(
+    record: StageAPreflightAuditRecord, output: TextIO
+) -> None:
+    json.dump(record.as_json_data(), output, indent=2, sort_keys=True)
+    output.write("\n")
+    output.flush()
 
 
 def _prepare_provider_request() -> MovingServiceProviderRequest:
@@ -325,7 +333,7 @@ def _build_audit_record(
 ) -> StageAPreflightAuditRecord:
     return StageAPreflightAuditRecord(
         run_series_id=STAGE_A_RUN_SERIES_ID,
-        run_sequence=STAGE_A_SEQUENCE,
+        run_sequence=authorization.authorized_sequence,
         fixture_id=STAGE_A_FIXTURE_ID,
         capability=CAPABILITY,
         authorization_version=STAGE_A_AUTHORIZATION_VERSION,
@@ -366,68 +374,73 @@ def _execute_verified_stage_a_preflight(
     client_builder: Callable[..., MovingServiceOpenAIClient],
 ) -> StageAPreflightResult:
     provider_request = _prepare_provider_request()
+    record_path = _record_path(output_root, authorization.authorized_sequence)
+    record_path.parent.mkdir(parents=True, exist_ok=True)
     preflight: OpenAIPreflightResult | None = None
-    try:
-        with client_builder(
-            environment,
-            completed_non_secret_gates=REQUIRED_NON_SECRET_GATE_ORDER,
-            operator_intent_confirmed=True,
-            manifest_path=manifest_path,
-            authorization_path=authorization.path,
-            expected_authorization_digest=authorization.digest,
-        ) as owned_client:
-            transport = OpenAIMovingServiceEvaluationTransport(
-                client=owned_client.client
+    with record_path.open("x", encoding="utf-8") as output:
+        try:
+            with client_builder(
+                environment,
+                completed_non_secret_gates=REQUIRED_NON_SECRET_GATE_ORDER,
+                operator_intent_confirmed=True,
+                manifest_path=manifest_path,
+                authorization_path=authorization.path,
+                expected_authorization_digest=authorization.digest,
+            ) as owned_client:
+                transport = OpenAIMovingServiceEvaluationTransport(
+                    client=owned_client.client
+                )
+                preflight = transport.preflight(provider_request)
+        except CredentialBoundaryError as error:
+            classification = _failure_classification(error)
+            record = _build_audit_record(
+                authorization=authorization,
+                preflight_attempted=False,
+                preflight_succeeded=False,
+                preflight_duration_ms=0.0,
+                input_tokens=None,
+                conservative_max_generation_cost=None,
+                bounded_failure_classification=classification,
+                credential_access_attempted=not isinstance(
+                    error, CredentialAccessNotAuthorizedError
+                ),
+                credential_accessed=isinstance(
+                    error, OpenAIClientConstructionError
+                ),
+                client_construction_attempted=isinstance(
+                    error, OpenAIClientConstructionError
+                ),
+                client_constructed=False,
             )
-            preflight = transport.preflight(provider_request)
-    except CredentialBoundaryError as error:
-        classification = _failure_classification(error)
+            _write_reserved_record(record, output)
+            raise StageAPreflightAttemptFailed(
+                classification, record_path
+            ) from None
+
+        failure = (
+            preflight.error_classification.value
+            if preflight.error_classification is not None
+            else None
+        )
         record = _build_audit_record(
             authorization=authorization,
-            preflight_attempted=False,
-            preflight_succeeded=False,
-            preflight_duration_ms=0.0,
-            input_tokens=None,
-            conservative_max_generation_cost=None,
-            bounded_failure_classification=classification,
-            credential_access_attempted=not isinstance(
-                error, CredentialAccessNotAuthorizedError
+            preflight_attempted=True,
+            preflight_succeeded=preflight.succeeded,
+            preflight_duration_ms=preflight.duration_ms,
+            input_tokens=preflight.input_tokens,
+            conservative_max_generation_cost=(
+                str(preflight.conservative_cost)
+                if preflight.conservative_cost is not None
+                else None
             ),
-            credential_accessed=isinstance(error, OpenAIClientConstructionError),
-            client_construction_attempted=isinstance(
-                error, OpenAIClientConstructionError
-            ),
-            client_constructed=False,
+            bounded_failure_classification=failure,
+            credential_access_attempted=True,
+            credential_accessed=True,
+            client_construction_attempted=True,
+            client_constructed=True,
         )
-        record_path = _write_record_exclusively(record, output_root)
-        raise StageAPreflightAttemptFailed(classification, record_path) from None
-
-    failure = (
-        preflight.error_classification.value
-        if preflight.error_classification is not None
-        else None
-    )
-    record = _build_audit_record(
-        authorization=authorization,
-        preflight_attempted=True,
-        preflight_succeeded=preflight.succeeded,
-        preflight_duration_ms=preflight.duration_ms,
-        input_tokens=preflight.input_tokens,
-        conservative_max_generation_cost=(
-            str(preflight.conservative_cost)
-            if preflight.conservative_cost is not None
-            else None
-        ),
-        bounded_failure_classification=failure,
-        credential_access_attempted=True,
-        credential_accessed=True,
-        client_construction_attempted=True,
-        client_constructed=True,
-    )
-    return StageAPreflightResult(
-        record=record,
-        record_path=_write_record_exclusively(record, output_root),
-    )
+        _write_reserved_record(record, output)
+    return StageAPreflightResult(record=record, record_path=record_path)
 
 
 def run_stage_a_token_preflight(
@@ -436,7 +449,7 @@ def run_stage_a_token_preflight(
     operator_intent: str,
     fixture_id: str = STAGE_A_FIXTURE_ID,
     run_series_id: str = STAGE_A_RUN_SERIES_ID,
-    run_sequence: int = STAGE_A_SEQUENCE,
+    run_sequence: int | None = None,
     output_root: Path = DEFAULT_OUTPUT_ROOT,
     manifest_path: Path = DEFAULT_MANIFEST_PATH,
 ) -> StageAPreflightResult:
@@ -455,12 +468,13 @@ def run_stage_a_token_preflight(
     _validate_exact_scope(
         fixture_id=fixture_id,
         run_series_id=run_series_id,
-        run_sequence=run_sequence,
+        requested_sequence=run_sequence,
+        authorized_sequence=authorization.authorized_sequence,
     )
     resolved_output = _validate_output_root(
         output_root, allow_temporary_test_output=False
     )
-    if _record_path(resolved_output).exists():
+    if _record_path(resolved_output, authorization.authorized_sequence).exists():
         raise FileExistsError("The Stage A preflight record already exists.")
     authorized_generation_spend = Decimal(
         str(

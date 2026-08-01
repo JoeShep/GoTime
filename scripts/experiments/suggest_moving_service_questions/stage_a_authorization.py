@@ -33,7 +33,9 @@ STAGE_A_CANDIDATE_DIGEST = (
 )
 STAGE_A_RUN_SERIES_ID = "moving-service-stage-a-20260731"
 STAGE_A_FIXTURE_ID = "storage_unknown"
-STAGE_A_SEQUENCE = 1
+STAGE_A_CANDIDATE_SEQUENCE = 1
+STAGE_A_CONSUMED_THROUGH_SEQUENCE = 1
+STAGE_A_NEXT_SEQUENCE = STAGE_A_CONSUMED_THROUGH_SEQUENCE + 1
 STAGE_A_APPROVER = "Joe Shepherd"
 STAGE_A_DURATION_SECONDS = 900
 FROZEN_PROMPT_DIGEST = (
@@ -59,6 +61,7 @@ class VerifiedStageAAuthorization:
     artifact: Mapping[str, object]
     approved_at: datetime
     expires_at: datetime
+    authorized_sequence: int
 
 
 def _parse_exact_utc(value: object, field: str) -> datetime:
@@ -252,9 +255,48 @@ def load_manifest_bound_stage_a_authorization(
         "formal_evaluation_authorized": False,
     }:
         raise StageAAuthorizationError("Stage A permissions are incompatible.")
-    if artifact["scope"] != {
+    scope = artifact["scope"]
+    if set(scope) != {
+        "authorized_run_series_id",
+        "authorized_sequence_numbers",
+        "authorized_fixture_ids",
+        "maximum_authorized_generation_spend",
+        "maximum_credential_reads",
+        "maximum_client_constructions",
+        "maximum_token_preflight_requests",
+        "maximum_ai_generation_requests",
+    }:
+        raise StageAAuthorizationError("Stage A scope is incompatible.")
+    authorized_sequences = scope.get("authorized_sequence_numbers")
+    if (
+        not isinstance(authorized_sequences, list)
+        or len(authorized_sequences) != 1
+        or type(authorized_sequences[0]) is not int
+    ):
+        raise StageAAuthorizationError(
+            "Stage A must authorize exactly one integer sequence."
+        )
+    authorized_sequence = authorized_sequences[0]
+    if authorized_sequence <= STAGE_A_CONSUMED_THROUGH_SEQUENCE:
+        raise StageAAuthorizationError("Stage A sequence has already been consumed.")
+    if authorized_sequence != STAGE_A_NEXT_SEQUENCE:
+        raise StageAAuthorizationError("Stage A sequence is not the exact next slot.")
+    if {
+        "authorized_run_series_id": scope.get("authorized_run_series_id"),
+        "authorized_fixture_ids": scope.get("authorized_fixture_ids"),
+        "maximum_authorized_generation_spend": scope.get(
+            "maximum_authorized_generation_spend"
+        ),
+        "maximum_credential_reads": scope.get("maximum_credential_reads"),
+        "maximum_client_constructions": scope.get("maximum_client_constructions"),
+        "maximum_token_preflight_requests": scope.get(
+            "maximum_token_preflight_requests"
+        ),
+        "maximum_ai_generation_requests": scope.get(
+            "maximum_ai_generation_requests"
+        ),
+    } != {
         "authorized_run_series_id": STAGE_A_RUN_SERIES_ID,
-        "authorized_sequence_numbers": [STAGE_A_SEQUENCE],
         "authorized_fixture_ids": [STAGE_A_FIXTURE_ID],
         "maximum_authorized_generation_spend": "0.00",
         "maximum_credential_reads": 1,
@@ -327,4 +369,5 @@ def load_manifest_bound_stage_a_authorization(
         artifact=artifact,
         approved_at=approved_at,
         expires_at=expires_at,
+        authorized_sequence=authorized_sequence,
     )
