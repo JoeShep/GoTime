@@ -366,3 +366,50 @@ def build_moving_service_openai_client_with_pinned_sdk(
         client_constructor=OpenAI,
         http_client_constructor=DefaultHttpxClient,
     )
+
+
+def build_stage_b_moving_service_openai_client_with_pinned_sdk(
+    environment: Mapping[str, str],
+    *,
+    completed_non_secret_gates: tuple[str, ...],
+    operator_intent_confirmed: bool,
+    manifest_path: Path,
+    authorization_path: Path,
+    expected_authorization_digest: str,
+) -> MovingServiceOpenAIClient:
+    """Construct only after the exact manifest-bound Stage B authorization."""
+    if completed_non_secret_gates != REQUIRED_NON_SECRET_GATE_ORDER:
+        raise CredentialAccessNotAuthorizedError(
+            "The ordered non-secret runner gates are incomplete."
+        )
+    if operator_intent_confirmed is not True:
+        raise CredentialAccessNotAuthorizedError(
+            "Explicit operator intent was not confirmed."
+        )
+    from stage_b_authorization import (
+        StageBAuthorizationError,
+        load_manifest_bound_stage_b_authorization,
+    )
+
+    try:
+        verified = load_manifest_bound_stage_b_authorization(
+            manifest_path, repository_root=REPOSITORY_ROOT
+        )
+    except StageBAuthorizationError as error:
+        raise CredentialAccessNotAuthorizedError(str(error)) from error
+    if (
+        verified.path.resolve() != authorization_path.resolve()
+        or verified.digest != expected_authorization_digest
+    ):
+        raise CredentialAccessNotAuthorizedError(
+            "Credential authorization is not the manifest-bound Stage B artifact."
+        )
+    from openai import DefaultHttpxClient, OpenAI
+
+    credential = _read_evaluation_credential(environment)
+    return _construct_openai_client(
+        credential,
+        sdk_version=OPENAI_SDK_VERSION,
+        client_constructor=OpenAI,
+        http_client_constructor=DefaultHttpxClient,
+    )

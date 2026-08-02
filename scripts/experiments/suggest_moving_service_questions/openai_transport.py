@@ -65,6 +65,22 @@ class OpenAIPreflightGateError(ValueError):
     """Exact input-token or conservative cost preflight failed closed."""
 
 
+class OpenAIBudgetGateError(OpenAIPreflightGateError):
+    """A frozen token or cost ceiling was exceeded."""
+
+
+class OpenAIRefusalError(ResponseValidationError):
+    """The provider returned a refusal instead of structured output."""
+
+
+class OpenAIIncompleteResponseError(ResponseValidationError):
+    """The provider reported incomplete generation."""
+
+
+class OpenAIProviderSchemaError(ResponseValidationError):
+    """The provider envelope or usage violated the reviewed contract."""
+
+
 class OpenAIInputTokenCounter(Protocol):
     def count(self, **kwargs: object) -> object:
         ...
@@ -249,29 +265,29 @@ def _extract_one_output_text(response: object) -> tuple[str, str | None]:
     if status != "completed":
         incomplete = _read_attribute(response, "incomplete_details")
         reason = _read_attribute(incomplete, "reason")
-        raise ResponseValidationError(
+        raise OpenAIIncompleteResponseError(
             f"OpenAI response was not complete ({reason or status})."
         )
     texts: list[str] = []
     for output_item in _read_attribute(response, "output", ()) or ():
         if _read_attribute(output_item, "type") != "message":
-            raise ResponseValidationError(
+            raise OpenAIProviderSchemaError(
                 "OpenAI response contains an unexpected output item."
             )
         for content_item in _read_attribute(output_item, "content", ()) or ():
             content_type = _read_attribute(content_item, "type")
             if content_type == "refusal":
-                raise ResponseValidationError("OpenAI response was refused.")
+                raise OpenAIRefusalError("OpenAI response was refused.")
             if content_type == "output_text":
                 text = _read_attribute(content_item, "text")
                 if isinstance(text, str):
                     texts.append(text)
                 continue
-            raise ResponseValidationError(
+            raise OpenAIProviderSchemaError(
                 "OpenAI response contains an unexpected content item."
             )
     if len(texts) != 1:
-        raise ResponseValidationError(
+        raise OpenAIProviderSchemaError(
             "OpenAI response must contain exactly one output-text value."
         )
     return texts[0], str(status)
@@ -404,7 +420,7 @@ class OpenAIMovingServiceEvaluationTransport:
                 "OpenAI preflight did not return a valid exact token count."
             )
         if input_tokens > MAXIMUM_INPUT_TOKENS:
-            raise OpenAIPreflightGateError(
+            raise OpenAIBudgetGateError(
                 "OpenAI exact input-token count exceeds the frozen ceiling."
             )
         conservative_cost = (
@@ -416,7 +432,7 @@ class OpenAIMovingServiceEvaluationTransport:
             / Decimal(1_000_000)
         )
         if conservative_cost > artifacts.maximum_per_call_spend:
-            raise OpenAIPreflightGateError(
+            raise OpenAIBudgetGateError(
                 "OpenAI conservative cost exceeds the frozen per-call ceiling."
             )
 

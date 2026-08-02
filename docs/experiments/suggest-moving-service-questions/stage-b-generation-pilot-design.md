@@ -5,8 +5,9 @@
 ```text
 design date: 2026-08-01
 capability: suggest_moving_service_questions
-Stage B design approved: false
-Stage B implementation authorized: false
+Stage B design approved: true
+offline Stage B implementation authorized: true
+offline Stage B implementation complete: true
 credential access authorized: false
 token preflight authorized: false
 AI generation authorized: false
