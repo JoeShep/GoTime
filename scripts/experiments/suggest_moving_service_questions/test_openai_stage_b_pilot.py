@@ -183,7 +183,7 @@ def test_exact_authorization_scope_is_required(tmp_path, mutation):
     now = datetime.now(timezone.utc).replace(microsecond=0)
     artifact = _artifact(now - timedelta(seconds=1))
     replacements = {
-        "series": (RUN_SERIES_ID, "wrong"), "sequence": ("authorized_sequence_numbers = [1]", "authorized_sequence_numbers = [2]"),
+        "series": (RUN_SERIES_ID, "wrong"), "sequence": (f"authorized_sequence_numbers = [{SEQUENCE}]", "authorized_sequence_numbers = [1]"),
         "fixture": (FIXTURE_ID, "complete"), "provider": ('provider = "OpenAI"', 'provider = "Other"'),
         "model": ("gpt-4.1-mini-2025-04-14", "wrong-model"), "sdk": ("openai==2.45.0", "openai==9"),
         "generation": ("ai_generation_authorized = true", "ai_generation_authorized = false"),
@@ -235,6 +235,9 @@ def test_offline_success_writes_bounded_owner_only_records(tmp_path):
     record = _execute_stage_b(authorization=authorization, manifest_path=manifest, environment={"fake": "value"}, output_root=tmp_path / "out", client_builder=lambda *a, **k: owned, now=lambda: now)
     audit, evidence = _paths(tmp_path / "out")
     assert record.generation_succeeded and record.pydantic_validation_succeeded and record.semantic_validation_succeeded
+    assert record.run_sequence == 2
+    assert audit.name == "002-storage_unknown-generation-pilot.json"
+    assert evidence.name == "002-storage_unknown-reviewed-response.json"
     assert owned.client.responses.count_calls == owned.client.responses.create_calls == 1
     assert audit.exists() and evidence.exists() and (evidence.stat().st_mode & 0o777) == 0o600
     text = audit.read_text() + evidence.read_text()
@@ -252,6 +255,17 @@ def test_offline_success_writes_bounded_owner_only_records(tmp_path):
     assert record.conservative_preflight_cost is not None
     assert record.authorization_closed is False
     assert record.closure_status == "pending"
+    with pytest.raises(FileExistsError):
+        _execute_stage_b(
+            authorization=authorization,
+            manifest_path=manifest,
+            environment={"fake": "value"},
+            output_root=tmp_path / "out",
+            client_builder=lambda *args, **kwargs: owned,
+            now=lambda: now,
+        )
+    assert owned.client.responses.count_calls == 1
+    assert owned.client.responses.create_calls == 1
 
 
 def test_failure_writes_tombstone_and_prevents_overwrite(tmp_path):

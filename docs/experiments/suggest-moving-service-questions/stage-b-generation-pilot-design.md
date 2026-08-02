@@ -28,7 +28,7 @@ promoted into the Stage C denominator.
 
 ```text
 run-series ID: moving-service-stage-b-pilot-20260801
-sequence: 1
+sequence: 2
 fixture: storage_unknown
 maximum credential reads: 1
 maximum client constructions: 1
@@ -45,8 +45,9 @@ production use authorized: false
 ```
 
 The pilot uses a new series because Stage A sequences belong to a different
-preflight-only authorization history. Stage B sequence `1` has no relationship
-to the consumed Stage A sequences. Only `storage_unknown` is eligible. A fresh
+preflight-only authorization history. Stage B sequence `1` was consumed by the
+failed credential-stage attempt on 2026-08-01; sequence `2` is now the only
+eligible next slot. Only `storage_unknown` is eligible. A fresh
 preflight and its one generation are one indivisible pilot attempt.
 
 ## 3. Proposed Authorization Artifact
@@ -256,7 +257,7 @@ reliability, or a production decision.
 
 ## 8. Failure Behavior
 
-Every failure consumes Stage B sequence `1`, is never retried or replaced,
+Every failure consumes its Stage B sequence, is never retried or replaced,
 prevents another generation, and produces or finalizes the exclusive bounded
 record. The repository must be restored to closed authorization afterward.
 
@@ -288,7 +289,7 @@ Proposed path:
 ```text
 .local/evaluations/suggest-moving-service-questions/
   moving-service-stage-b-pilot-20260801/
-  001-storage_unknown-generation-pilot.json
+  002-storage_unknown-generation-pilot.json
 ```
 
 The record may contain:
@@ -328,7 +329,7 @@ Proposed path:
 ```text
 .local/evaluations/suggest-moving-service-questions/
   moving-service-stage-b-pilot-20260801/
-  001-storage_unknown-reviewed-response.json
+  002-storage_unknown-reviewed-response.json
 ```
 
 The evidence file should be ignored by Git, created exclusively with owner-only

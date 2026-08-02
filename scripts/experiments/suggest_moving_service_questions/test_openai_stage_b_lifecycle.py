@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -12,6 +14,7 @@ from openai_client_factory import EvaluationCredentialError
 from run_openai_stage_b_pilot import (
     ENABLEMENT_ENVIRONMENT_NAME,
     OPERATOR_INTENT,
+    SEQUENCE,
     StageBPilotError,
     _execute_stage_b,
     _require_exact_enablement,
@@ -29,6 +32,7 @@ from stage_b_lifecycle import (
     finalize_stage_b_human_review,
     lifecycle_paths,
 )
+from stage_b_authorization import CONSUMED_THROUGH_SEQUENCE
 from test_openai_stage_b_pilot import Owned, _package, _provider_response
 
 REPO = Path(__file__).resolve().parents[3]
@@ -76,7 +80,7 @@ def test_exact_live_entry_point_rejects_closed_authorization(monkeypatch):
             "--run-series",
             "moving-service-stage-b-pilot-20260801",
             "--sequence",
-            "1",
+            str(SEQUENCE),
             "--fixture",
             "storage_unknown",
             "--operator-intent",
@@ -96,7 +100,7 @@ def test_exact_live_entry_point_rejects_wrong_operator_literal(monkeypatch):
             "--run-series",
             "moving-service-stage-b-pilot-20260801",
             "--sequence",
-            "1",
+            str(SEQUENCE),
             "--fixture",
             "storage_unknown",
             "--operator-intent",
@@ -124,6 +128,51 @@ def test_operator_intent_cannot_override_closed_authorization():
         run_stage_b_generation_pilot(
             environment=ExplodingEnvironment(), operator_intent=OPERATOR_INTENT
         )
+
+
+def test_sequence_one_is_consumed_and_sequence_two_is_the_only_next_slot():
+    assert CONSUMED_THROUGH_SEQUENCE == 1
+    assert SEQUENCE == 2
+
+
+def test_exact_docker_launch_forwards_only_named_evaluation_variables(tmp_path):
+    capture = tmp_path / "docker-arguments.txt"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_docker = fake_bin / "docker"
+    fake_docker.write_text(
+        '#!/bin/sh\nprintf "%s\\n" "$@" > "$GOTIME_DOCKER_ARGUMENT_CAPTURE"\n',
+        encoding="utf-8",
+    )
+    fake_docker.chmod(0o700)
+    environment = {
+        **os.environ,
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        "GOTIME_DOCKER_ARGUMENT_CAPTURE": str(capture),
+        "GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY": "synthetic-secret-not-for-recording",
+    }
+    script = (
+        REPO
+        / "scripts/experiments/suggest_moving_service_questions/"
+        "run_openai_stage_b_pilot_docker.sh"
+    )
+    completed = subprocess.run(
+        ["sh", str(script)],
+        cwd=REPO,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.returncode == 0
+    arguments = capture.read_text(encoding="utf-8").splitlines()
+    assert "GOTIME_MOVING_SERVICE_EVAL_ENABLED=1" in arguments
+    assert "GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY" in arguments
+    assert "synthetic-secret-not-for-recording" not in arguments
+    assert arguments[arguments.index("--sequence") + 1] == "2"
+    assert arguments.count("GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY") == 1
+    assert "--user" in arguments
+    assert "--read-only" in arguments
 
 
 def test_cli_rejects_wrong_fixed_values():

@@ -49,7 +49,7 @@ validation
 The proposal binds the frozen prompt, run configuration, provider schema,
 request and response schema versions, knowledge version, OpenAI provider,
 `gpt-4.1-mini-2025-04-14`, and `openai==2.45.0`. It permits exactly one
-`storage_unknown` attempt at sequence `1` in
+`storage_unknown` attempt at sequence `2` in
 `moving-service-stage-b-pilot-20260801`, with one credential read, one client
 construction, one input-token preflight, one generation, zero retries, and a
 maximum total pilot spend of `$0.03`. Formal evaluation and production use
@@ -104,7 +104,7 @@ The validated response evidence path is exactly:
 ```text
 .local/evaluations/suggest-moving-service-questions/
 moving-service-stage-b-pilot-20260801/
-001-storage_unknown-reviewed-response.json
+002-storage_unknown-reviewed-response.json
 ```
 
 It is Git-ignored, exclusively created with owner-only mode `0600`, and contains
@@ -154,19 +154,28 @@ deletion record.
 
 ## 5. Exact Live Command
 
-The exact future command from the project root is:
+Build the capability-specific image from the project root before activation:
 
 ```sh
-GOTIME_MOVING_SERVICE_EVAL_ENABLED=1 \
-python scripts/experiments/suggest_moving_service_questions/run_openai_stage_b_pilot.py \
-  --run-series moving-service-stage-b-pilot-20260801 \
-  --sequence 1 \
-  --fixture storage_unknown \
-  --operator-intent AUTHORIZE_ONE_STORAGE_UNKNOWN_STAGE_B_PREFLIGHT_AND_GENERATION
+docker build \
+  --file scripts/experiments/suggest_moving_service_questions/Dockerfile.stage-b-evaluation \
+  --tag gotime-moving-service-stage-b:openai-2.45.0 \
+  .
 ```
 
-The credential is intentionally omitted. It must already exist only in the
-bounded process environment under its separately approved name. The CLI
+The exact future launch command from the project root is:
+
+```sh
+sh scripts/experiments/suggest_moving_service_questions/run_openai_stage_b_pilot_docker.sh
+```
+
+The credential value is intentionally omitted. Docker receives exactly
+`--env GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY`, which forwards that one
+host variable by name into the container without placing its value in the
+command line. The launch path also supplies exact enablement, fixed sequence
+`2`, the repository mount, the caller's UID/GID, a read-only container root,
+and the frozen evaluation image. The key must already exist only in the bounded
+host process environment under its separately approved name. The CLI
 accepts no provider, AI model identifier, artifact, endpoint, timeout, retry,
 budget, count, or output-path override. Missing enablement or any value other
 than exact string `1` fails after non-secret gates and before credential
@@ -205,7 +214,7 @@ The pilot audit path is exactly:
 ```text
 .local/evaluations/suggest-moving-service-questions/
 moving-service-stage-b-pilot-20260801/
-001-storage_unknown-generation-pilot.json
+002-storage_unknown-generation-pilot.json
 ```
 
 It is reserved exclusively with mode `0600` before environment access. An
@@ -235,7 +244,8 @@ core usage required for validation or cost still fails closed.
 Closure must occur after every outcome, including expiration or an unexpected
 failure:
 
-1. Do not retry or replace sequence `1`.
+1. Preserve consumed sequence `1`; do not retry or replace sequence `2` after
+   any attempt begins.
 2. Remove `GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY` from the bounded process
    environment and terminate that process.
 3. Restore `v1/manifest.json` to the committed permanent closed binding.

@@ -206,7 +206,8 @@ class StageBAuditRecord:
 
 def _paths(output_root: Path) -> tuple[Path, Path]:
     directory = output_root / RUN_SERIES_ID
-    return directory / "001-storage_unknown-generation-pilot.json", directory / "001-storage_unknown-reviewed-response.json"
+    prefix = f"{SEQUENCE:03d}-storage_unknown"
+    return directory / f"{prefix}-generation-pilot.json", directory / f"{prefix}-reviewed-response.json"
 
 
 def _provider_request() -> tuple[object, MovingServiceProviderRequest]:
@@ -243,7 +244,9 @@ def _execute_stage_b(*, authorization: VerifiedStageBAuthorization, manifest_pat
     descriptor = os.open(audit_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     output = os.fdopen(descriptor, "w", encoding="utf-8")
     attempt_token = object()
-    closure_path = audit_path.with_name("001-storage_unknown-generation-pilot-closure.json")
+    closure_path = audit_path.with_name(
+        f"{SEQUENCE:03d}-storage_unknown-generation-pilot-closure.json"
+    )
     state: dict[str, object] = {
         "operator_intent_confirmed": True,
         "credential_lookup_attempted": False,

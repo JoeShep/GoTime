@@ -13,7 +13,7 @@ from typing import Mapping
 from pydantic import ValidationError
 
 from real_model_adapter import MovingServiceQuestionResponse
-from run_openai_stage_b_pilot import RUN_SERIES_ID, _paths
+from run_openai_stage_b_pilot import FIXTURE_ID, RUN_SERIES_ID, SEQUENCE, _paths
 from run_real_model_evaluation import DEFAULT_MANIFEST_PATH, DEFAULT_OUTPUT_ROOT
 from stage_b_authorization import (
     AUTHORIZATION_STATUS,
@@ -60,9 +60,9 @@ def lifecycle_paths(output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Path]:
     return {
         "audit": audit,
         "evidence": evidence,
-        "review": directory / "001-storage_unknown-human-review.json",
-        "deletion": directory / "001-storage_unknown-evidence-deletion.json",
-        "closure": directory / "001-storage_unknown-generation-pilot-closure.json",
+        "review": directory / f"{SEQUENCE:03d}-storage_unknown-human-review.json",
+        "deletion": directory / f"{SEQUENCE:03d}-storage_unknown-evidence-deletion.json",
+        "closure": directory / f"{SEQUENCE:03d}-storage_unknown-generation-pilot-closure.json",
     }
 
 
@@ -87,11 +87,13 @@ def _load_object(path: Path, label: str) -> dict[str, object]:
     return value
 
 
-def _write_exclusive(path: Path, value: Mapping[str, object]) -> None:
+def _write_exclusive(
+    path: Path, value: Mapping[str, object], *, sort_keys: bool = True
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as output:
-        json.dump(value, output, indent=2, sort_keys=True)
+        json.dump(value, output, indent=2, sort_keys=sort_keys)
         output.write("\n")
 
 
@@ -194,8 +196,8 @@ def delete_stage_b_response_evidence(
         paths["evidence"].unlink()
     record = {
         "run_series_id": RUN_SERIES_ID,
-        "run_sequence": 1,
-        "fixture_id": "storage_unknown",
+        "run_sequence": SEQUENCE,
+        "fixture_id": FIXTURE_ID,
         "evidence_path_identifier": paths["evidence"].name,
         "deletion_reason": reason,
         "deleted_at": _stamp(current),
@@ -239,8 +241,8 @@ def finalize_stage_b_human_review(
     reviewed_at = _stamp(_utc_now(now))
     record = {
         "run_series_id": RUN_SERIES_ID,
-        "run_sequence": 1,
-        "fixture_id": "storage_unknown",
+        "run_sequence": SEQUENCE,
+        "fixture_id": FIXTURE_ID,
         **validated,
         "reviewed_at": reviewed_at,
         "response_evidence_sha256": audit["response_evidence_sha256"],
@@ -331,7 +333,7 @@ def close_stage_b_authorization(
             }
         )
         temporary = manifest_path.with_name(f".{manifest_path.name}.stage-b-close")
-        _write_exclusive(temporary, manifest)
+        _write_exclusive(temporary, manifest, sort_keys=False)
         os.replace(temporary, manifest_path)
         active_path.unlink()
     elif active_path.exists():
@@ -339,8 +341,8 @@ def close_stage_b_authorization(
     current = _utc_now(now)
     record = {
         "run_series_id": RUN_SERIES_ID,
-        "run_sequence": 1,
-        "fixture_id": "storage_unknown",
+        "run_sequence": SEQUENCE,
+        "fixture_id": FIXTURE_ID,
         "closure_reason": reason,
         "closure_status": "closed_and_verified",
         "closed_at": _stamp(current),

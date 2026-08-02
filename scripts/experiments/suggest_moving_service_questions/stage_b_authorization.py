@@ -21,7 +21,8 @@ FINAL_ARTIFACT_PATH = (
 )
 RUN_SERIES_ID = "moving-service-stage-b-pilot-20260801"
 FIXTURE_ID = "storage_unknown"
-SEQUENCE = 1
+CONSUMED_THROUGH_SEQUENCE = 1
+SEQUENCE = CONSUMED_THROUGH_SEQUENCE + 1
 APPROVER = "Joe Shepherd"
 DURATION_SECONDS = 900
 PROMPT_DIGEST = "583a4bdf59c4c4ac67c82928415710c3d5c21ac9912ebd4888a026b8fd4acbf2"
@@ -140,7 +141,16 @@ def load_manifest_bound_stage_b_authorization(
         "production_use_authorized": False,
     }:
         raise StageBAuthorizationError("Stage B permission pattern drifted.")
-    if artifact["scope"] != {
+    scope = artifact["scope"]
+    authorized_sequences = scope.get("authorized_sequence_numbers", [])
+    if not isinstance(authorized_sequences, list) or any(
+        not isinstance(value, int) or isinstance(value, bool)
+        for value in authorized_sequences
+    ):
+        raise StageBAuthorizationError("Stage B authorized sequence is invalid.")
+    if any(value <= CONSUMED_THROUGH_SEQUENCE for value in authorized_sequences):
+        raise StageBAuthorizationError("Stage B sequence has already been consumed.")
+    if scope != {
         "authorized_run_series_id": RUN_SERIES_ID,
         "authorized_sequence_numbers": [SEQUENCE],
         "authorized_fixture_ids": [FIXTURE_ID],
