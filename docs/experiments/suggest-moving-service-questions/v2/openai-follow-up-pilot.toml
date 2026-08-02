@@ -1,0 +1,38 @@
+[status]
+configuration_status = "draft_offline_structure_only"
+approved = false
+frozen = false
+follow_up_pilot_authorized = false
+credential_access_authorized = false
+token_preflight_authorized = false
+ai_generation_authorized = false
+formal_evaluation_authorized = false
+stage_c_authorized = false
+production_use_authorized = false
+
+[identity]
+capability = "suggest_moving_service_questions"
+run_series_id = "moving-service-stage-b-v2-pilot-20260802"
+sequence = 1
+fixture_id = "storage_unknown"
+provider = "OpenAI"
+ai_model_identifier = "gpt-4.1-mini-2025-04-14"
+
+[contracts]
+prompt_path = "docs/experiments/suggest-moving-service-questions/v2/real-model-prompt.toml"
+prompt_version = "moving-service-questions-prompt-v2"
+prompt_digest = "pending_not_frozen"
+request_schema_version = "moving-service-questions-schema-v2"
+response_schema_version = "moving-service-questions-schema-v2"
+knowledge_fixture_version = "moving-service-storage-fixture-v2"
+fallback_version = "moving-service-fallback-v2"
+deterministic_baseline_path = "docs/experiments/suggest-moving-service-questions/v2/deterministic-baseline.json"
+provider_schema_status = "draft_not_generated_not_reviewed_not_frozen"
+
+[limits]
+maximum_token_preflight_requests = 1
+maximum_ai_generation_requests = 1
+automatic_retries = 0
+maximum_output_tokens = 500
+maximum_total_spend_usd = "0.03"
+human_grounding_review_required = true

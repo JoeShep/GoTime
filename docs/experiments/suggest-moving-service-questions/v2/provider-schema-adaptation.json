@@ -1,0 +1,19 @@
+{
+  "artifact_version": "moving-service-openai-schema-adaptation-v2-draft",
+  "status": "draft_input_not_generated_not_reviewed_not_frozen",
+  "source_model": "MovingServiceQuestionResponseV2",
+  "source_method": "model_json_schema",
+  "provider": "OpenAI",
+  "structured_output_mode": "strict_json_schema",
+  "mechanical_adaptation": {
+    "remove_nonsemantic_titles_only": true,
+    "required_fields_may_be_removed": false,
+    "types_may_be_broadened": false,
+    "allowed_values_may_be_broadened": false,
+    "length_or_array_limits_may_be_weakened": false,
+    "extra_field_prohibitions_may_be_removed": false
+  },
+  "provider_snapshot_created": false,
+  "provider_snapshot_reviewed": false,
+  "provider_snapshot_frozen": false
+}

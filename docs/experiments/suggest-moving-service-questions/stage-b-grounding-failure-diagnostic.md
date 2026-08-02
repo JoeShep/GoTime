@@ -263,9 +263,9 @@ retain human grounding review for every later pilot or formal response.
 * Necessity terms are reliable for this missing boolean, but could reject a
   grammatically harmless phrase such as “whether storage is required.” That is
   intentional for prompt v2 because the approved policy prefers possible-need
-  wording. The existing deterministic fallback also says “Will you need”; it
-  is not a gold-standard cautious-language example and should be reconciled in
-  a separate, explicitly scoped change.
+  wording. The historical v1 fallback still says “Will you need” and remains
+  unchanged. The v2 package defines a separate possible-need fallback and the
+  exact conditional knowledge statement without rewriting that evidence.
 * Selection-adjective checks catch the observed broadening but synonyms can
   evade them, and words such as `practical` may be legitimate elsewhere. Keep
   the check restricted to adjacent service/provider nouns and retain human

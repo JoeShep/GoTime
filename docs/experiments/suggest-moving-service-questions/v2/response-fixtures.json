@@ -1,0 +1,93 @@
+{
+  "fixture_version": "moving-service-response-fixtures-v2-draft",
+  "status": "draft_pending_human_review",
+  "response_model": "MovingServiceQuestionResponseV2",
+  "cases": [
+    {
+      "response_fixture_id": "valid_storage_suggestion_v2",
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v2",
+        "schema_version": "moving-service-questions-schema-v2",
+        "suggestions": [
+          {
+            "question_id": "ai-temporary_storage_need-v2",
+            "question": "Might temporary storage be needed before final delivery?",
+            "why_it_matters": "A possible need for temporary storage is relevant when identifying services to request.",
+            "information_it_would_clarify": "Whether temporary storage may be needed",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.temporary-storage-planning.fmcsa.v1"
+            ],
+            "grounding_summary": "For an interstate move handled by a household-goods mover, a possible need for temporary storage before final delivery is relevant when identifying the services to request.",
+            "reason_not_deterministic": "The information is not present in trusted state and must be confirmed by the user.",
+            "uncertainties": [
+              "The possible need for temporary storage is unconfirmed."
+            ],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": true,
+      "human_grounding_review_required": true
+    },
+    {
+      "response_fixture_id": "valid_zero_suggestions_v2",
+      "request_fixture_id": "complete",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v2",
+        "schema_version": "moving-service-questions-schema-v2",
+        "suggestions": [],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": true,
+      "human_grounding_review_required": false
+    },
+    {
+      "response_fixture_id": "invalid_multiple_prose_violations_v2",
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "prompt_version": "moving-service-questions-prompt-v2",
+        "schema_version": "moving-service-questions-schema-v2",
+        "suggestions": [
+          {
+            "question_id": "ai-temporary_storage_need-v2",
+            "question": "Will storage be required at your new home in Northern California?",
+            "why_it_matters": "This identifies appropriate moving services.",
+            "information_it_would_clarify": "Whether storage will be required",
+            "affected_decision_id": "moving-service-model",
+            "selected_missing_information_category": "temporary_storage_need",
+            "relevant_knowledge_ids": [
+              "moving-service.temporary-storage-planning.fmcsa.v1"
+            ],
+            "grounding_summary": "Broadened grounding.",
+            "reason_not_deterministic": "The user must confirm the missing value.",
+            "uncertainties": [],
+            "suggested_answer_type": "boolean",
+            "requires_user_confirmation": true
+          }
+        ],
+        "fallback_recommended": false,
+        "warnings": []
+      },
+      "expected_valid": false,
+      "expected_violation_codes": [
+        "irrelevant_location_reference",
+        "unsupported_home_or_property_assertion",
+        "storage_modality_overstatement",
+        "unsupported_service_selection_language",
+        "grounding_summary_mismatch"
+      ],
+      "expected_fallback_question_id": "fallback-temporary-storage-v2",
+      "human_grounding_review_required": true
+    }
+  ]
+}

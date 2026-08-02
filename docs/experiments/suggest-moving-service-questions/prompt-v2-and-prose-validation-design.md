@@ -8,8 +8,8 @@ capability: suggest_moving_service_questions
 recommended prompt version: moving-service-questions-prompt-v2
 Prompt v2 approved: false
 Prompt v2 frozen: false
-Prose checks approved: false
-Prose checks implemented: false
+Prose checks approved: true
+Prose checks implemented: true
 Follow-up pilot authorized: false
 Credential access authorized: false
 Token preflight authorized: false
@@ -307,18 +307,15 @@ responsible for unforeseen implied facts, indirect selection language,
 semantic relevance, clarity, usefulness, and comparison with the deterministic
 fallback.
 
-## 7. Deterministic fallback comparison caveat
+## 7. Deterministic fallback reconciliation
 
-The current frozen fallback asks, “Will you need temporary storage between
-homes?” and says storage can affect which moving-service models are practical.
-Those phrases are less cautious and broader than the proposed prompt-v2 policy.
-They do not authorize similar AI prose and should not be used as prompt-v2
-positive examples.
-
-A separate narrow milestone should reconcile the fallback and its fixtures
-before the follow-up product comparison. That change must not be hidden inside
-prompt or prose-validator implementation. Until then, the fallback remains the
-safe deterministic product behavior, but not a lexical gold standard.
+This implementation milestone defines a separate deterministic fallback as
+`moving-service-fallback-v2` inside the v2 package. It asks whether temporary
+storage may be needed and uses the exact conditional knowledge statement as
+its rationale. The historical v1 fallback and fixtures remain unchanged. The
+v2 fallback remains distinct from `grounding_summary`: model grounding is
+always compared with the knowledge statement supplied in the validated
+request, never with fallback prose or identity.
 
 ## 8. Follow-up single-generation pilot
 
@@ -368,13 +365,12 @@ this order:
 2. Draft, review, token-check, and freeze prompt v2 without changing prompt v1.
 3. Add versioned Pydantic contracts and capability-specific prose validation;
    preserve all v1 artifact tests.
-4. Reconcile the deterministic fallback in a separate reviewed change.
-5. Generate and review a v2 OpenAI response-schema snapshot and run
+4. Generate and review a v2 OpenAI response-schema snapshot and run
    configuration with new digests.
-6. Add fake-response tests for each violation, multiple violations, complete
+5. Add fake-response tests for each violation, multiple violations, complete
    response rejection, fallback ownership, and false-positive boundaries.
-7. Run all network-disabled suites and artifact drift checks.
-8. Stop for a separate follow-up-pilot authorization decision.
+6. Run all network-disabled suites and artifact drift checks.
+7. Stop for a separate follow-up-pilot authorization decision.
 
 No stronger AI model is proposed. The v1 prompt left relevance and paraphrase
 boundaries insufficiently testable, so changing the AI model before testing
@@ -382,17 +378,15 @@ those boundaries would confound the experiment.
 
 ## 10. Remaining human decisions
 
-Before implementation, approve or reject:
+The contract identity, exact grounding rule, phrase sets, failure codes,
+multi-code recording, and follow-up pilot identity were approved for offline
+implementation. Human review must still decide whether to:
 
-* `moving-service-questions-prompt-v2` as the prompt identifier;
-* the separate `moving-service-questions-schema-v2` request/response contract;
-* exact grounding equality with no whitespace or punctuation normalization;
-* exactly one required temporary-storage knowledge ID for this path;
-* the five failure-code names and multi-code recording;
-* contextual prohibition of `required` rather than a global word ban;
-* the small location, home/property, and selection phrase rules;
-* separate deterministic-fallback reconciliation; and
-* `moving-service-stage-b-v2-pilot-20260802` as the follow-up pilot series.
+* approve and freeze the exact prompt-v2 artifact;
+* approve the schema-v2 contract artifacts;
+* generate, review, and freeze the provider response-schema snapshot;
+* approve and freeze a v2 run configuration; and
+* later authorize a single follow-up pilot.
 
-Until those decisions are approved, every status in Section 1 remains false.
-
+Prompt-v2 and schema-v2 artifact approval, freezing, and every execution status
+remain false until those separate reviews.
