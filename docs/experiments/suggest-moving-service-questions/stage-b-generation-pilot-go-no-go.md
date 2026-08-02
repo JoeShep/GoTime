@@ -1,0 +1,284 @@
+# Stage B Generation Pilot Go/No-Go — Suggest Moving-Service Questions
+
+## 1. Decision
+
+```text
+review date: 2026-08-01 America/Chicago / 2026-08-02 UTC
+decision: NO-GO
+Stage B implementation review complete: yes
+Stage B repository activation authorized: false
+credential access authorized: false
+token preflight authorized: false
+AI generation authorized: false
+formal evaluation authorized: false
+production use authorized: false
+```
+
+The offline Stage B boundary is substantially implemented and its closed-state
+tests pass, but the live pilot is not ready to activate. This review does not
+change the manifest, create repository authority, inspect an environment,
+construct an OpenAI client, or make a network request.
+
+The inactive final-shape proposal created for this review is outside the
+repository at:
+
+```text
+/tmp/gotime-stage-b-authorization-candidate-20260802T025938Z.toml
+```
+
+It is manifest-unbound and therefore has no authority. It expires at
+`2026-08-02T03:14:38Z` and must be discarded after that time.
+
+## 2. Exact Authorization Shape
+
+The Stage B validator accepts exactly seven TOML sections:
+
+```text
+metadata
+bindings
+authorization
+scope
+approval
+policy
+validation
+```
+
+The proposal binds the frozen prompt, run configuration, provider schema,
+request and response schema versions, knowledge version, OpenAI provider,
+`gpt-4.1-mini-2025-04-14`, and `openai==2.45.0`. It permits exactly one
+`storage_unknown` attempt at sequence `1` in
+`moving-service-stage-b-pilot-20260801`, with one credential read, one client
+construction, one input-token preflight, one generation, zero retries, and a
+maximum total pilot spend of `$0.03`. Formal evaluation and production use
+remain false.
+
+Unknown, missing, broadened, or changed fields fail closed. The artifact alone
+is not authority: the repository manifest must reference its exact path,
+version, status, and SHA-256 digest, and the artifact must be unexpired.
+
+Candidate identity:
+
+```text
+approved_at: 2026-08-02T02:59:38Z
+expires_at: 2026-08-02T03:14:38Z
+duration: 900 seconds
+approver: Joe Shepherd
+SHA-256: f2e958930ab35698393ac6b53b3bb43eb396d0282b243aa943bc4c3744e19615
+```
+
+## 3. Human-Review Fields
+
+The current audit record supplies these exact nullable placeholders:
+
+```text
+grounding_supported
+invented_user_facts
+scope_overstatement
+provider_or_service_recommendation
+storage_required_claim
+clarity
+usefulness
+fallback_comparison
+reviewer
+review_timestamp
+bounded_notes
+```
+
+The intended `fallback_comparison` values are `materially_better`,
+`slightly_better`, `equivalent`, `slightly_worse`, and `materially_worse`.
+
+Blocking gap: the runner creates placeholders but does not provide a reviewed,
+bounded sign-off operation that validates boolean fields, the comparison enum,
+reviewer identity, timestamp, or note length. It also does not record one
+explicit aggregate `human_review_status`. Activation must wait for that
+offline-only review/finalization boundary and its tests.
+
+## 4. Response Evidence and Deletion
+
+The validated response evidence path is exactly:
+
+```text
+.local/evaluations/suggest-moving-service-questions/
+moving-service-stage-b-pilot-20260801/
+001-storage_unknown-reviewed-response.json
+```
+
+It is Git-ignored, exclusively created with owner-only mode `0600`, and contains
+only the validated Pydantic response object. The bounded audit record stores
+its SHA-256 and a deletion deadline set to generation time plus 30 days.
+
+The approved retention rule is deletion immediately after human review sign-off
+and aggregate capture, or no later than the recorded 30-day deadline, whichever
+comes first. The procedure must be:
+
+1. Complete and validate the bounded human-review fields.
+2. Create the reviewed aggregate outcome without copying the full response.
+3. Verify the evidence digest one final time.
+4. Delete the exact reviewed-response file and the local raw pilot audit record.
+5. Confirm neither path exists and record deletion in the reviewed aggregate.
+
+Blocking gap: deadline recording exists, but there is no reviewed deletion or
+human-review finalization command. Deletion remains manual and unaudited.
+
+## 5. Exact Live Command
+
+There is currently **no approved exact live command**. The Stage B module
+exposes a Python function but has no `__main__` entry point, argument parser, or
+reviewed command-line flags. The documented
+`GOTIME_MOVING_SERVICE_EVAL_ENABLED` operator-intent variable is not consumed
+by the runner. Supplying a Python `-c` expression would bypass the intended
+reviewable CLI boundary and is not approved.
+
+Before activation, add and offline-test one capability-specific CLI accepting
+only these fixed values:
+
+```text
+run series: moving-service-stage-b-pilot-20260801
+sequence: 1
+fixture: storage_unknown
+operator intent: AUTHORIZE_ONE_STORAGE_UNKNOWN_STAGE_B_PREFLIGHT_AND_GENERATION
+```
+
+It must pass the process environment explicitly to the runner only after all
+non-secret gates, require the exact enablement intent, print no secret or full
+payload, and expose no caller-selected provider, model, artifact path, base
+URL, timeout, retry, budget, or output path. The exact command can be frozen
+only after that entry point exists.
+
+## 6. Account and Credential Controls
+
+The repository boundary requires:
+
+* a dedicated non-production OpenAI project;
+* one project-scoped credential with only input-token counting and Responses
+  generation permissions needed by this pilot, with unrelated permissions
+  disabled where available;
+* `gpt-4.1-mini-2025-04-14` enabled for that project;
+* low project spend controls or alerts and an appropriate model rate limit;
+* API data sharing and training opt-in disabled;
+* accepted standard abuse-monitoring retention of up to 30 days;
+* the key present only as
+  `GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY` in the bounded process; and
+* `OPENAI_API_KEY`, `OPENAI_PROJECT_ID`, `OPENAI_ORG_ID`, and all other
+  conventional OpenAI configuration absent.
+
+Joe Shepherd previously attested to the dedicated project, project-scoped key,
+model access, spend/rate controls, training opt-out, conventional-variable
+exclusion, and accepted 30-day retention for Stage A. That attestation covered
+the narrowest token-count permission and does not prove that the credential
+now has the Responses-generation permission required for Stage B. Repository
+inspection also cannot verify current provider-side settings. Immediate human
+reconfirmation of all items above is required before a fresh proposal.
+
+## 7. Audit Path and Budget Gate
+
+The pilot audit path is exactly:
+
+```text
+.local/evaluations/suggest-moving-service-questions/
+moving-service-stage-b-pilot-20260801/
+001-storage_unknown-generation-pilot.json
+```
+
+It is reserved exclusively with mode `0600` before environment access. An
+existing audit or evidence file stops the attempt. Every post-reservation
+failure writes a bounded tombstone and consumes the sequence.
+
+Budget enforcement occurs twice:
+
+1. Fresh exact preflight tokens plus the full 500-token output allowance must
+   have conservative cost no greater than `$0.03`.
+2. Provider-reported cached input, uncached input, and output usage must produce
+   actual estimated cost no greater than `$0.03`.
+
+Missing core token usage, inconsistent preflight/generation input counts,
+invalid cached-token categories, or unparseable cost data fail closed. There
+is one preflight, one generation, zero retry, and no formal-series budget.
+
+Blocking audit gaps relative to the approved design are explicit
+credential/client attempted-and-succeeded fields, cache status, referenced
+knowledge IDs, conservative preflight cost, pilot status, explicit closure
+status, and the permanent closed-authorization digest.
+
+## 8. Closure After Success or Failure
+
+Closure must occur after every outcome, including expiration or an unexpected
+failure:
+
+1. Do not retry or replace sequence `1`.
+2. Remove `GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY` from the bounded process
+   environment and terminate that process.
+3. Restore `v1/manifest.json` to the committed permanent closed binding.
+4. Remove only
+   `v1/openai-stage-b-execution-authorization.toml`.
+5. Verify the permanent closed artifact SHA-256 is
+   `6e3ca9cb4488764f012703ab77daae4f4b952895100f7d935935aeb6a0978be5`.
+6. Verify the manifest references that exact path and digest and all credential,
+   preflight, generation, and formal-evaluation permissions are false.
+7. Run focused authorization/artifact tests and `git diff --check`.
+8. Preserve the bounded local evidence only through human review, then apply
+   the deletion procedure above.
+9. Commit only the closed-state reviewed outcome; never commit active authority.
+
+Blocking gap: closure is documented but has no capability-specific,
+offline-tested command, and the current audit is finalized before closure so it
+cannot record verified closure status. This must be reconciled before go.
+
+## 9. Proposed Manifest Diff — Not Applied
+
+The candidate would require this exact conceptual manifest switch after a new,
+unexpired candidate is generated and separately approved:
+
+```diff
+-  "artifact_version": "1.6.0",
++  "artifact_version": "1.8.0",
+-  "openai_execution_authorization_path": "docs/experiments/suggest-moving-service-questions/v1/openai-execution-authorization.toml",
+-  "openai_execution_authorization_version": "moving-service-openai-execution-authorization-v1",
++  "openai_execution_authorization_path": "docs/experiments/suggest-moving-service-questions/v1/openai-stage-b-execution-authorization.toml",
++  "openai_execution_authorization_version": "moving-service-openai-stage-b-authorization-v1",
+   "openai_execution_authorization_digest_algorithm": "sha256",
+-  "openai_execution_authorization_digest": "6e3ca9cb4488764f012703ab77daae4f4b952895100f7d935935aeb6a0978be5",
+-  "openai_execution_authorization_status": "closed_no_execution_authorized",
++  "openai_execution_authorization_digest": "f2e958930ab35698393ac6b53b3bb43eb396d0282b243aa943bc4c3744e19615",
++  "openai_execution_authorization_status": "approved_stage_b_generation_pilot",
+-  "status": "openai_execution_authorization_closed",
++  "status": "openai_stage_b_generation_pilot_authorized",
+```
+
+All application-level authorization fields remain false:
+
+```json
+"adapter_implementation_authorized": false,
+"real_model_execution_authorized": false,
+"real_model_evaluation_eligible": false
+```
+
+This diff is not applied. Because the candidate is already expiring, a later
+activation review must generate new timestamps, new bytes, a new digest, and a
+corresponding new exact diff.
+
+## 10. Final Go/No-Go Checklist
+
+Ready:
+
+* exact Stage B validator and one-attempt scope;
+* frozen artifact bindings;
+* same-attempt, nonserializable, single-use preflight evidence;
+* exclusive audit/evidence paths;
+* layered provider/Pydantic/semantic validation;
+* two-stage `$0.03` budget gate;
+* closed active repository authority;
+* fake-client and network-disabled offline tests.
+
+Blocking before a live proposal can be approved:
+
+* implement and review the exact CLI/operator-enablement boundary;
+* complete the approved bounded audit fields;
+* implement offline-tested human-review finalization and deletion procedure;
+* implement or test the exact closure procedure and closure evidence;
+* reconcile contradictory historical readiness text in the Stage B design;
+* rerun complete offline tests after those changes; and
+* immediately reconfirm project, credential, generation permission, model,
+  spending/rate, training, and retention controls.
+
+Decision: **NO-GO**. Do not activate this candidate or make a provider request.
