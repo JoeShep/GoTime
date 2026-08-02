@@ -10,6 +10,8 @@ from app.moving_service_questions import (
     SCHEMA_VERSION,
     STORAGE_KNOWLEDGE,
     ExperimentFixture,
+    InformationStatus,
+    InformationValue,
     MovingServiceQuestionRequest,
     MovingServiceQuestionResponse,
     build_trusted_fixture,
@@ -32,10 +34,12 @@ from moving_service_questions_v2 import (  # noqa: E402
     MovingServiceQuestionRequestV2,
     MovingServiceQuestionResponseV2,
     ProseValidationError,
+    UnsupportedV2RequestError,
     collect_fallback_prose_violation_codes,
     construct_request_v2,
     select_fallback_v2,
     validate_response_v2,
+    validate_request_v2_scope,
     validate_v2_response_with_fallback,
 )
 
@@ -54,7 +58,7 @@ def valid_v2_response() -> dict[str, object]:
         "suggestions": [
             {
                 "question_id": "ai-temporary_storage_need-v2",
-                "question": "Might temporary storage be needed before final delivery?",
+                "question": "Might you need temporary storage before final delivery?",
                 "why_it_matters": (
                     "A possible need for temporary storage is relevant when "
                     "identifying services to request."
@@ -167,6 +171,25 @@ def test_v1_and_v2_response_literals_cannot_be_mixed(
 def test_exact_grounding_statement_and_may_be_needed_pass() -> None:
     response = validate_response_v2(storage_request_v2(), valid_v2_response())
     assert response.suggestions[0].grounding_summary == STORAGE_KNOWLEDGE.statement
+
+
+def test_v2_request_scope_allows_empty_or_temporary_storage_only() -> None:
+    validate_request_v2_scope(storage_request_v2())
+    validate_request_v2_scope(
+        construct_request_v2(build_trusted_fixture(ExperimentFixture.COMPLETE))
+    )
+
+
+def test_v2_request_scope_rejects_any_other_nonempty_category() -> None:
+    trusted = build_trusted_fixture(ExperimentFixture.STORAGE_UNKNOWN).model_copy(
+        update={
+            "specialty_item_needs": InformationValue(
+                status=InformationStatus.MISSING
+            )
+        }
+    )
+    with pytest.raises(UnsupportedV2RequestError):
+        construct_request_v2(trusted)
 
 
 @pytest.mark.parametrize(
@@ -318,7 +341,7 @@ def test_reconciled_fallback_passes_user_facing_prose_checks() -> None:
     assert fallback is not None
     assert collect_fallback_prose_violation_codes(request, fallback) == ()
     assert fallback.question == (
-        "Might temporary storage be needed before final delivery?"
+        "Might you need temporary storage before final delivery?"
     )
     assert fallback.why_it_matters == STORAGE_KNOWLEDGE.statement
 

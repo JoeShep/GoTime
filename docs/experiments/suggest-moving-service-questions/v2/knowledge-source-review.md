@@ -21,7 +21,7 @@ validated request, not this document or the deterministic fallback.
 
 The v2 deterministic storage fallback asks:
 
-> Might temporary storage be needed before final delivery?
+> Might you need temporary storage before final delivery?
 
 This v2 reference does not modify the historical v1 review or broaden its
 knowledge scope.

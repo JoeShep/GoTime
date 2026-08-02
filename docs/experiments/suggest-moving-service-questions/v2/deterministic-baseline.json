@@ -52,7 +52,7 @@
       "question_id": "fallback-temporary-storage-v2",
       "category_id": "temporary_storage_need",
       "priority": 10,
-      "question": "Might temporary storage be needed before final delivery?",
+      "question": "Might you need temporary storage before final delivery?",
       "why_it_matters": "For an interstate move handled by a household-goods mover, a possible need for temporary storage before final delivery is relevant when identifying the services to request.",
       "relevant_knowledge_ids": [
         "moving-service.temporary-storage-planning.fmcsa.v1"

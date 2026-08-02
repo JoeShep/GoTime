@@ -310,12 +310,18 @@ fallback.
 ## 7. Deterministic fallback reconciliation
 
 This implementation milestone defines a separate deterministic fallback as
-`moving-service-fallback-v2` inside the v2 package. It asks whether temporary
-storage may be needed and uses the exact conditional knowledge statement as
-its rationale. The historical v1 fallback and fixtures remain unchanged. The
-v2 fallback remains distinct from `grounding_summary`: model grounding is
-always compared with the knowledge statement supplied in the validated
-request, never with fallback prose or identity.
+`moving-service-fallback-v2` inside the v2 package. Its reviewed question is
+"Might you need temporary storage before final delivery?" and it uses the
+exact conditional knowledge statement as its rationale. The historical v1
+fallback and fixtures remain unchanged. The v2 fallback remains distinct from
+`grounding_summary`: model grounding is always compared with the knowledge
+statement supplied in the validated request, never with fallback prose or
+identity.
+
+Prompt v2 supports `temporary_storage_need` as its only nonempty
+missing-information category. The system instructions state this explicitly,
+and an offline deterministic request gate rejects a v2 request containing any
+other nonempty category before response validation or future invocation.
 
 ## 8. Follow-up single-generation pilot
 
@@ -327,9 +333,13 @@ sequence: 1
 fixture: storage_unknown
 provider: OpenAI
 AI model identifier: gpt-4.1-mini-2025-04-14
+SDK pin: openai==2.45.0
 maximum token-preflight requests: 1
 maximum AI-generation requests: 1
 automatic retries: 0
+token-preflight timeout: 5 seconds
+AI-generation timeout: 12 seconds
+maximum output tokens: 500
 maximum total spend: $0.03
 human grounding review: required
 formal evaluation authorized: false

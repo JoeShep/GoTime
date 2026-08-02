@@ -32,7 +32,7 @@ STORAGE_FALLBACK_V2 = FallbackQuestion(
     question_id="fallback-temporary-storage-v2",
     category_id=MissingInformationCategory.TEMPORARY_STORAGE_NEED,
     priority=10,
-    question="Might temporary storage be needed before final delivery?",
+    question="Might you need temporary storage before final delivery?",
     why_it_matters=STORAGE_KNOWLEDGE.statement,
     relevant_knowledge_ids=(STORAGE_KNOWLEDGE.knowledge_id,),
 )
@@ -93,6 +93,10 @@ class ProseValidationError(ResponseValidationError):
         super().__init__("The response failed capability-specific prose validation.")
 
 
+class UnsupportedV2RequestError(ValueError):
+    """Reject a v2 request outside the single reviewed nonempty category."""
+
+
 @dataclass(frozen=True)
 class V2ValidationResult:
     """Bounded result proving prose rejection precedes fallback selection."""
@@ -108,7 +112,23 @@ def construct_request_v2(trusted_state) -> MovingServiceQuestionRequestV2:
     document = request_v1.model_dump(mode="python")
     document["prompt_version"] = PROMPT_VERSION_V2
     document["schema_version"] = SCHEMA_VERSION_V2
-    return MovingServiceQuestionRequestV2.model_validate(document)
+    request = MovingServiceQuestionRequestV2.model_validate(document)
+    validate_request_v2_scope(request)
+    return request
+
+
+def validate_request_v2_scope(request: MovingServiceQuestionRequestV2) -> None:
+    """Allow an empty request or temporary_storage_need as its only category."""
+    unsupported = tuple(
+        item.category_id
+        for item in request.missing_information
+        if item.category_id is not MissingInformationCategory.TEMPORARY_STORAGE_NEED
+    )
+    if unsupported:
+        raise UnsupportedV2RequestError(
+            "Prompt v2 supports only temporary_storage_need as a nonempty "
+            "missing-information category."
+        )
 
 
 def _normalized_phrase_text(value: str) -> str:
@@ -308,6 +328,7 @@ def validate_response_v2(
     raw_response: Mapping[str, object],
 ) -> MovingServiceQuestionResponseV2:
     """Validate structure, existing semantics, then all v2 prose checks."""
+    validate_request_v2_scope(request)
     try:
         if len(json.dumps(raw_response, separators=(",", ":"))) > (
             MAXIMUM_RESPONSE_CHARACTERS

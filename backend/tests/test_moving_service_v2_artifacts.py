@@ -152,6 +152,11 @@ def test_v2_prompt_is_parseable_bounded_draft_without_examples() -> None:
     }
     assert prompt["examples"]["positive_examples_included"] is False
     assert prompt["structured_output"]["human_grounding_review_required"] is True
+    assert (
+        "For prompt v2, `temporary_storage_need` is the only supported nonempty\n"
+        "missing-information category. Do not suggest a question for any other\n"
+        "category."
+    ) in prompt["system_instructions"]
     assert prompt["readiness"] == {
         "draft": True,
         "reviewed": False,
@@ -247,6 +252,8 @@ def test_v2_manifest_and_pilot_structure_remain_closed() -> None:
         "fixture_id": "storage_unknown",
         "provider": "OpenAI",
         "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+        "sdk_package": "openai",
+        "sdk_pin": "openai==2.45.0",
     }
     assert all(
         value is False
@@ -258,6 +265,37 @@ def test_v2_manifest_and_pilot_structure_remain_closed() -> None:
     assert pilot["limits"]["automatic_retries"] == 0
     assert pilot["limits"]["maximum_total_spend_usd"] == "0.03"
     assert pilot["contracts"]["fallback_version"] == FALLBACK_VERSION_V2
+    assert pilot["comparison"] == {
+        "changed_elements": [
+            "prompt",
+            "request_and_response_schema_literals",
+            "deterministic_fallback",
+            "capability_specific_prose_validation",
+        ],
+        "provider_transport_unchanged": True,
+        "ai_generation_parameters_unchanged": True,
+    }
+    assert pilot["transport"] == {
+        "token_preflight_endpoint": "/v1/responses/input_tokens",
+        "token_preflight_timeout_seconds": 5,
+        "generation_endpoint": "/v1/responses",
+        "ai_generation_timeout_seconds": 12,
+        "automatic_retries": 0,
+        "structured_output_mode": "strict_json_schema",
+        "exact_provider_token_preflight_required": True,
+        "fresh_preflight_for_exact_generation_request_required": True,
+    }
+    assert pilot["model_parameters"] == {
+        "temperature": 0,
+        "top_p": "omitted",
+        "seed": "omitted",
+        "maximum_output_tokens": 500,
+        "store": False,
+        "stream": False,
+        "background": False,
+        "truncation": "disabled",
+        "tools": [],
+    }
 
 
 def test_expected_results_record_stable_codes_and_human_review() -> None:

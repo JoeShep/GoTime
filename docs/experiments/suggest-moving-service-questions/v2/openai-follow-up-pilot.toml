@@ -17,6 +17,18 @@ sequence = 1
 fixture_id = "storage_unknown"
 provider = "OpenAI"
 ai_model_identifier = "gpt-4.1-mini-2025-04-14"
+sdk_package = "openai"
+sdk_pin = "openai==2.45.0"
+
+[comparison]
+changed_elements = [
+  "prompt",
+  "request_and_response_schema_literals",
+  "deterministic_fallback",
+  "capability_specific_prose_validation",
+]
+provider_transport_unchanged = true
+ai_generation_parameters_unchanged = true
 
 [contracts]
 prompt_path = "docs/experiments/suggest-moving-service-questions/v2/real-model-prompt.toml"
@@ -28,6 +40,27 @@ knowledge_fixture_version = "moving-service-storage-fixture-v2"
 fallback_version = "moving-service-fallback-v2"
 deterministic_baseline_path = "docs/experiments/suggest-moving-service-questions/v2/deterministic-baseline.json"
 provider_schema_status = "draft_not_generated_not_reviewed_not_frozen"
+
+[transport]
+token_preflight_endpoint = "/v1/responses/input_tokens"
+token_preflight_timeout_seconds = 5
+generation_endpoint = "/v1/responses"
+ai_generation_timeout_seconds = 12
+automatic_retries = 0
+structured_output_mode = "strict_json_schema"
+exact_provider_token_preflight_required = true
+fresh_preflight_for_exact_generation_request_required = true
+
+[model_parameters]
+temperature = 0
+top_p = "omitted"
+seed = "omitted"
+maximum_output_tokens = 500
+store = false
+stream = false
+background = false
+truncation = "disabled"
+tools = []
 
 [limits]
 maximum_token_preflight_requests = 1

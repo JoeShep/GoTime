@@ -13,7 +13,7 @@
         "suggestions": [
           {
             "question_id": "ai-temporary_storage_need-v2",
-            "question": "Might temporary storage be needed before final delivery?",
+            "question": "Might you need temporary storage before final delivery?",
             "why_it_matters": "A possible need for temporary storage is relevant when identifying services to request.",
             "information_it_would_clarify": "Whether temporary storage may be needed",
             "affected_decision_id": "moving-service-model",
