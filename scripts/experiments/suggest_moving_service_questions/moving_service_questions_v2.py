@@ -131,6 +131,19 @@ def validate_request_v2_scope(request: MovingServiceQuestionRequestV2) -> None:
         )
 
 
+def adapt_response_schema_for_openai_v2(value: object) -> object:
+    """Remove only nonsemantic title annotations for strict Structured Outputs."""
+    if isinstance(value, dict):
+        return {
+            key: adapt_response_schema_for_openai_v2(item)
+            for key, item in value.items()
+            if key != "title"
+        }
+    if isinstance(value, list):
+        return [adapt_response_schema_for_openai_v2(item) for item in value]
+    return value
+
+
 def _normalized_phrase_text(value: str) -> str:
     return " ".join(value.casefold().split())
 

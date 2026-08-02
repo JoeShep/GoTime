@@ -1,7 +1,7 @@
 # V2 Temporary-Storage Knowledge Reference
 
 ```text
-status: draft_v2_reference_pending_human_review
+status: reviewed_v2_reference
 source review preserved at:
   docs/experiments/suggest-moving-service-questions/v1/knowledge-source-review.md
 knowledge fixture: moving-service-storage-fixture-v2

@@ -1,7 +1,7 @@
 [status]
-configuration_status = "draft_offline_structure_only"
-approved = false
-frozen = false
+configuration_status = "approved_and_frozen"
+approved = true
+frozen = true
 follow_up_pilot_authorized = false
 credential_access_authorized = false
 token_preflight_authorized = false
@@ -33,13 +33,15 @@ ai_generation_parameters_unchanged = true
 [contracts]
 prompt_path = "docs/experiments/suggest-moving-service-questions/v2/real-model-prompt.toml"
 prompt_version = "moving-service-questions-prompt-v2"
-prompt_digest = "pending_not_frozen"
+prompt_digest = "9bcc190f9c4c51fba1caed8c5d284de9d29d6fe8d675132a04f741cc9a1af7a6"
 request_schema_version = "moving-service-questions-schema-v2"
 response_schema_version = "moving-service-questions-schema-v2"
 knowledge_fixture_version = "moving-service-storage-fixture-v2"
 fallback_version = "moving-service-fallback-v2"
 deterministic_baseline_path = "docs/experiments/suggest-moving-service-questions/v2/deterministic-baseline.json"
-provider_schema_status = "draft_not_generated_not_reviewed_not_frozen"
+provider_schema_path = "docs/experiments/suggest-moving-service-questions/v2/openai-response-schema.json"
+provider_schema_digest = "822f23e6c0fc9845626e05bd8131fd5e30a0933f8fd268296ae688cc67ebf411"
+provider_schema_status = "reviewed_and_frozen"
 
 [transport]
 token_preflight_endpoint = "/v1/responses/input_tokens"

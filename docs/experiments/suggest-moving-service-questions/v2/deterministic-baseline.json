@@ -1,6 +1,6 @@
 {
   "fallback_version": "moving-service-fallback-v2",
-  "status": "draft_pending_human_review",
+  "status": "reviewed_and_frozen",
   "inherits_unchanged_non_storage_questions_from": "moving-service-fallback-v1",
   "missing_information_contracts": [
     {

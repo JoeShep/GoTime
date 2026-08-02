@@ -1,6 +1,6 @@
 {
-  "expectations_version": "moving-service-expectations-v2-draft",
-  "status": "draft_pending_human_review",
+  "expectations_version": "moving-service-expectations-v2",
+  "status": "reviewed_and_frozen",
   "prose_validation": {
     "complete_response_rejection": true,
     "record_all_violation_codes": true,

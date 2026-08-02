@@ -1,6 +1,6 @@
 {
-  "artifact_version": "moving-service-openai-schema-adaptation-v2-draft",
-  "status": "draft_input_not_generated_not_reviewed_not_frozen",
+  "artifact_version": "moving-service-openai-schema-adaptation-v2",
+  "status": "reviewed_and_frozen",
   "source_model": "MovingServiceQuestionResponseV2",
   "source_method": "model_json_schema",
   "provider": "OpenAI",
@@ -13,7 +13,10 @@
     "length_or_array_limits_may_be_weakened": false,
     "extra_field_prohibitions_may_be_removed": false
   },
-  "provider_snapshot_created": false,
-  "provider_snapshot_reviewed": false,
-  "provider_snapshot_frozen": false
+  "provider_snapshot_path": "docs/experiments/suggest-moving-service-questions/v2/openai-response-schema.json",
+  "provider_snapshot_review_path": "docs/experiments/suggest-moving-service-questions/v2/openai-response-schema-review.md",
+  "provider_snapshot_created": true,
+  "provider_snapshot_reviewed": true,
+  "provider_snapshot_frozen": true,
+  "runtime_pydantic_validation_authoritative": true
 }

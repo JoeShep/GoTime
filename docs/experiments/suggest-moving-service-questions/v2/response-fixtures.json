@@ -1,6 +1,6 @@
 {
-  "fixture_version": "moving-service-response-fixtures-v2-draft",
-  "status": "draft_pending_human_review",
+  "fixture_version": "moving-service-response-fixtures-v2",
+  "status": "reviewed_and_frozen",
   "response_model": "MovingServiceQuestionResponseV2",
   "cases": [
     {

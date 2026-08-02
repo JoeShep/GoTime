@@ -133,8 +133,8 @@ formal_evaluation_retries = 0
 evaluation_only = true
 production_use_prohibited = true
 live_research_prohibited = true
-prompt_status = "draft_pending_human_review"
-prompt_artifact_digest_status = "not_computed_not_frozen"
+prompt_status = "approved_and_frozen"
+prompt_artifact_digest_status = "authoritative_digest_in_v2_manifest"
 
 [serialization]
 request_format = "deterministic_compact_json"
@@ -205,16 +205,16 @@ semantic_change_requires_new_formal_run_series = true
 
 [versioning]
 artifact_identity = "prompt_version_plus_sha256_after_freezing"
-digest_status = "pending_human_review_and_freeze"
+digest_status = "authoritative_digest_in_v2_manifest"
 semantic_changes_require_new_prompt_version = true
 semantic_changes_require_new_formal_run_series = true
 
 [readiness]
-draft = true
-reviewed = false
-ready_for_human_review = true
-prompt_v2_approved = false
-frozen_for_adapter_implementation = false
+draft = false
+reviewed = true
+ready_for_human_review = false
+prompt_v2_approved = true
+frozen_for_adapter_implementation = true
 frozen_for_real_model_execution = false
 prose_checks_implemented = true
 follow_up_pilot_authorized = false
