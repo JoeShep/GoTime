@@ -28,7 +28,7 @@ promoted into the Stage C denominator.
 
 ```text
 run-series ID: moving-service-stage-b-pilot-20260801
-sequence: 2
+sequence: 3
 fixture: storage_unknown
 maximum credential reads: 1
 maximum client constructions: 1
@@ -45,9 +45,9 @@ production use authorized: false
 ```
 
 The pilot uses a new series because Stage A sequences belong to a different
-preflight-only authorization history. Stage B sequence `1` was consumed by the
-failed credential-stage attempt on 2026-08-01; sequence `2` is now the only
-eligible next slot. Only `storage_unknown` is eligible. A fresh
+preflight-only authorization history. Stage B sequences `1` and `2` were
+consumed by credential-stage failures on 2026-08-01; sequence `3` is now the
+only eligible next slot. Only `storage_unknown` is eligible. A fresh
 preflight and its one generation are one indivisible pilot attempt.
 
 ## 3. Proposed Authorization Artifact
@@ -289,7 +289,7 @@ Proposed path:
 ```text
 .local/evaluations/suggest-moving-service-questions/
   moving-service-stage-b-pilot-20260801/
-  002-storage_unknown-generation-pilot.json
+  003-storage_unknown-generation-pilot.json
 ```
 
 The record may contain:
@@ -329,7 +329,7 @@ Proposed path:
 ```text
 .local/evaluations/suggest-moving-service-questions/
   moving-service-stage-b-pilot-20260801/
-  002-storage_unknown-reviewed-response.json
+  003-storage_unknown-reviewed-response.json
 ```
 
 The evidence file should be ignored by Git, created exclusively with owner-only
