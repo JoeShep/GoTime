@@ -172,6 +172,7 @@ class StageBAuditRecord:
     estimated_cost: str | None
     cache_status: str
     provider_request_id: str | None
+    provider_status_code: int | None
     finish_status: str | None
     refusal_status: str | None
     incomplete_reason: str | None
@@ -268,6 +269,7 @@ def _execute_stage_b(*, authorization: VerifiedStageBAuthorization, manifest_pat
         "estimated_cost": None,
         "cache_status": "not_available",
         "provider_request_id": None,
+        "provider_status_code": None,
         "provider_reported_model_identifier": None,
         "finish_status": None,
         "refusal_status": None,
@@ -321,7 +323,7 @@ def _execute_stage_b(*, authorization: VerifiedStageBAuthorization, manifest_pat
             consumed = evidence.consume(authorization=authorization, request=provider_request, audit_record_path=audit_path, attempt_token=attempt_token, now=now())
             state["generation_attempted"] = True
             result = transport.generate(provider_request, consumed)
-            state.update(generation_duration_ms=result.generation_duration_ms, total_duration_ms=result.duration_ms, input_tokens=result.input_tokens, output_tokens=result.output_tokens, cached_input_tokens=result.cached_input_tokens, uncached_input_tokens=result.uncached_input_tokens, estimated_cost=result.estimated_cost, cache_status=result.cache_status, provider_request_id=result.provider_request_id, provider_reported_model_identifier=result.provider_model_identifier, finish_status=result.finish_status, refusal_status=result.refusal_status, incomplete_reason=result.incomplete_reason)
+            state.update(generation_duration_ms=result.generation_duration_ms, total_duration_ms=result.duration_ms, input_tokens=result.input_tokens, output_tokens=result.output_tokens, cached_input_tokens=result.cached_input_tokens, uncached_input_tokens=result.uncached_input_tokens, estimated_cost=result.estimated_cost, cache_status=result.cache_status, provider_request_id=result.provider_request_id, provider_status_code=result.provider_status_code, provider_reported_model_identifier=result.provider_model_identifier, finish_status=result.finish_status, refusal_status=result.refusal_status, incomplete_reason=result.incomplete_reason)
             if result.error_classification is not None:
                 classification = f"generation_{result.error_classification.value}"
                 failure_stage = "generation"

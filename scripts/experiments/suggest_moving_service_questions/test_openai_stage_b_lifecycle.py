@@ -146,7 +146,8 @@ def test_sequences_one_through_three_are_consumed_and_four_is_next():
 def test_exact_docker_launcher_rejects_missing_or_empty_host_credential(
     tmp_path, credential
 ):
-    assert not lifecycle_paths()["audit"].exists()
+    audit_path = lifecycle_paths()["audit"]
+    audit_before = audit_path.read_bytes() if audit_path.exists() else None
     docker_started = tmp_path / "docker-started"
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
@@ -178,13 +179,14 @@ def test_exact_docker_launcher_rejects_missing_or_empty_host_credential(
 
     assert completed.returncode == 3
     assert not docker_started.exists()
-    assert not lifecycle_paths()["audit"].exists()
+    assert (audit_path.read_bytes() if audit_path.exists() else None) == audit_before
     assert "credential" in completed.stderr.lower()
 
 
 @pytest.mark.parametrize("credential", [None, ""])
 def test_container_wrapper_rejects_before_python_runner(tmp_path, credential):
-    assert not lifecycle_paths()["audit"].exists()
+    audit_path = lifecycle_paths()["audit"]
+    audit_before = audit_path.read_bytes() if audit_path.exists() else None
     runner_started = tmp_path / "runner-started"
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
@@ -216,7 +218,7 @@ def test_container_wrapper_rejects_before_python_runner(tmp_path, credential):
 
     assert completed.returncode == 3
     assert not runner_started.exists()
-    assert not lifecycle_paths()["audit"].exists()
+    assert (audit_path.read_bytes() if audit_path.exists() else None) == audit_before
     assert "credential" in completed.stderr.lower()
 
 

@@ -17,7 +17,19 @@ from time import perf_counter
 from typing import Callable, Mapping, Protocol
 
 import openai
-from openai import APIConnectionError, APIStatusError, APITimeoutError, RateLimitError
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    AuthenticationError,
+    BadRequestError,
+    ConflictError,
+    InternalServerError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+    UnprocessableEntityError,
+)
 
 SCRIPT_ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -251,13 +263,48 @@ def _read_attribute(value: object, name: str, default: object = None) -> object:
 def _error_classification(error: Exception) -> TransportErrorClassification | None:
     if isinstance(error, APITimeoutError):
         return TransportErrorClassification.TIMEOUT
-    if isinstance(error, (APIConnectionError, RateLimitError)):
-        return TransportErrorClassification.UNAVAILABLE
+    if isinstance(error, AuthenticationError):
+        return TransportErrorClassification.AUTHENTICATION_FAILED
+    if isinstance(error, PermissionDeniedError):
+        return TransportErrorClassification.PERMISSION_DENIED
+    if isinstance(error, NotFoundError):
+        return TransportErrorClassification.MODEL_UNAVAILABLE
+    if isinstance(error, RateLimitError):
+        return TransportErrorClassification.RATE_LIMITED
+    if isinstance(
+        error,
+        (BadRequestError, ConflictError, UnprocessableEntityError),
+    ):
+        return TransportErrorClassification.INVALID_REQUEST
+    if isinstance(error, InternalServerError):
+        return TransportErrorClassification.PROVIDER_UNAVAILABLE
+    if isinstance(error, APIConnectionError):
+        return TransportErrorClassification.CONNECTION_FAILED
     if isinstance(error, APIStatusError):
         status_code = error.status_code
-        if status_code == 429 or status_code >= 500:
-            return TransportErrorClassification.UNAVAILABLE
+        if status_code == 401:
+            return TransportErrorClassification.AUTHENTICATION_FAILED
+        if status_code == 403:
+            return TransportErrorClassification.PERMISSION_DENIED
+        if status_code == 404:
+            return TransportErrorClassification.MODEL_UNAVAILABLE
+        if status_code == 429:
+            return TransportErrorClassification.RATE_LIMITED
+        if status_code in {400, 409, 422}:
+            return TransportErrorClassification.INVALID_REQUEST
+        if status_code >= 500:
+            return TransportErrorClassification.PROVIDER_UNAVAILABLE
     return None
+
+
+def _safe_error_metadata(error: Exception) -> tuple[str | None, int | None]:
+    request_id = getattr(error, "request_id", None)
+    if not isinstance(request_id, str) or not 1 <= len(request_id) <= 200:
+        request_id = None
+    status_code = getattr(error, "status_code", None)
+    if not isinstance(status_code, int) or not 100 <= status_code <= 599:
+        status_code = None
+    return request_id, status_code
 
 
 def _extract_one_output_text(response: object) -> tuple[str, str | None]:
@@ -487,6 +534,9 @@ class OpenAIMovingServiceEvaluationTransport:
             classification = _error_classification(error)
             if classification is None:
                 raise
+            provider_request_id, provider_status_code = _safe_error_metadata(
+                error
+            )
             generation_ms = (self.clock() - generation_started) * 1_000
             return MovingServiceTransportResult(
                 response_content=None,
@@ -496,6 +546,8 @@ class OpenAIMovingServiceEvaluationTransport:
                 generation_duration_ms=generation_ms,
                 cache_status="not_available",
                 provider_name=OPENAI_PROVIDER_NAME,
+                provider_request_id=provider_request_id,
+                provider_status_code=provider_status_code,
                 failure_phase="generation",
                 error_classification=classification,
             )

@@ -45,6 +45,13 @@ class PromptArtifactError(ValueError):
 class TransportErrorClassification(StrEnum):
     UNAVAILABLE = "unavailable"
     TIMEOUT = "timeout"
+    AUTHENTICATION_FAILED = "authentication_failed"
+    PERMISSION_DENIED = "permission_denied"
+    MODEL_UNAVAILABLE = "model_unavailable"
+    RATE_LIMITED = "rate_limited"
+    INVALID_REQUEST = "invalid_request"
+    CONNECTION_FAILED = "connection_failed"
+    PROVIDER_UNAVAILABLE = "provider_unavailable"
 
 
 @dataclass(frozen=True)
@@ -87,6 +94,7 @@ class MovingServiceTransportResult:
     provider_name: str | None = None
     provider_model_identifier: str | None = None
     provider_request_id: str | None = None
+    provider_status_code: int | None = None
     finish_status: str | None = None
     refusal_status: str | None = None
     incomplete_reason: str | None = None
@@ -122,6 +130,10 @@ class MovingServiceTransportResult:
             raise ValueError("Transport cache status is unsupported.")
         if self.failure_phase not in {None, "preflight", "generation"}:
             raise ValueError("Transport failure phase is unsupported.")
+        if self.provider_status_code is not None and not (
+            100 <= self.provider_status_code <= 599
+        ):
+            raise ValueError("Transport provider status code is unsupported.")
 
 
 class MovingServiceEvaluationTransport(Protocol):

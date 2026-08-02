@@ -12,7 +12,18 @@ from types import SimpleNamespace
 import httpx
 import openai
 import pytest
-from openai import APIConnectionError, APITimeoutError
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    BadRequestError,
+    ConflictError,
+    InternalServerError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+    UnprocessableEntityError,
+)
 
 SCRIPT_ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -372,6 +383,16 @@ def test_oversized_exact_preflight_blocks_generation() -> None:
     assert responses.calls == []
 
 
+def sdk_status_error(error_type: type[Exception], status_code: int) -> Exception:
+    request = httpx.Request("POST", "https://offline.invalid/v1/responses")
+    response = httpx.Response(
+        status_code,
+        request=request,
+        headers={"x-request-id": "req_bounded_offline"},
+    )
+    return error_type("bounded offline error", response=response, body=None)
+
+
 @pytest.mark.parametrize(
     ("phase", "error", "expected"),
     (
@@ -385,7 +406,47 @@ def test_oversized_exact_preflight_blocks_generation() -> None:
             APIConnectionError(
                 request=httpx.Request("POST", "https://offline.invalid")
             ),
-            TransportErrorClassification.UNAVAILABLE,
+            TransportErrorClassification.CONNECTION_FAILED,
+        ),
+        (
+            "generation",
+            sdk_status_error(AuthenticationError, 401),
+            TransportErrorClassification.AUTHENTICATION_FAILED,
+        ),
+        (
+            "generation",
+            sdk_status_error(PermissionDeniedError, 403),
+            TransportErrorClassification.PERMISSION_DENIED,
+        ),
+        (
+            "generation",
+            sdk_status_error(NotFoundError, 404),
+            TransportErrorClassification.MODEL_UNAVAILABLE,
+        ),
+        (
+            "generation",
+            sdk_status_error(RateLimitError, 429),
+            TransportErrorClassification.RATE_LIMITED,
+        ),
+        (
+            "generation",
+            sdk_status_error(BadRequestError, 400),
+            TransportErrorClassification.INVALID_REQUEST,
+        ),
+        (
+            "generation",
+            sdk_status_error(ConflictError, 409),
+            TransportErrorClassification.INVALID_REQUEST,
+        ),
+        (
+            "generation",
+            sdk_status_error(UnprocessableEntityError, 422),
+            TransportErrorClassification.INVALID_REQUEST,
+        ),
+        (
+            "generation",
+            sdk_status_error(InternalServerError, 500),
+            TransportErrorClassification.PROVIDER_UNAVAILABLE,
         ),
     ),
 )
@@ -409,6 +470,24 @@ def test_bounded_sdk_errors_are_translated_without_retry(
         result = transport.generate(prepared, preflight)
         assert result.error_classification is expected
         assert result.failure_phase == phase
+        if isinstance(
+            error,
+            (
+                AuthenticationError,
+                PermissionDeniedError,
+                NotFoundError,
+                RateLimitError,
+                BadRequestError,
+                ConflictError,
+                UnprocessableEntityError,
+                InternalServerError,
+            ),
+        ):
+            assert result.provider_request_id == "req_bounded_offline"
+            assert result.provider_status_code == error.status_code
+        else:
+            assert result.provider_request_id is None
+            assert result.provider_status_code is None
     assert len(responses.input_tokens.calls) == 1
     assert len(responses.calls) == (1 if phase == "generation" else 0)
 
