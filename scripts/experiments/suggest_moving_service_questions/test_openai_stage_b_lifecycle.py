@@ -137,9 +137,9 @@ def test_operator_intent_cannot_override_closed_authorization():
         )
 
 
-def test_sequences_one_through_three_are_consumed_and_four_is_next():
-    assert CONSUMED_THROUGH_SEQUENCE == 3
-    assert SEQUENCE == 4
+def test_sequences_one_through_four_are_consumed_and_five_is_next():
+    assert CONSUMED_THROUGH_SEQUENCE == 4
+    assert SEQUENCE == 5
 
 
 @pytest.mark.parametrize("credential", [None, ""])

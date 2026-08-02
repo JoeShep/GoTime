@@ -6,7 +6,18 @@ import pickle
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import httpx
 import pytest
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    BadRequestError,
+    InternalServerError,
+    NotFoundError,
+    PermissionDeniedError,
+    RateLimitError,
+)
 
 from openai_transport import OpenAIPreflightResult
 from real_model_adapter import TransportErrorClassification
@@ -14,6 +25,7 @@ from run_openai_stage_b_pilot import (
     FIXTURE_ID,
     RUN_SERIES_ID,
     SEQUENCE,
+    STAGE_B_GENERATION_FAILURE_CLASSIFICATIONS,
     StageBPreflightEvidence,
     StageBPilotError,
     _EVIDENCE_TOKEN,
@@ -141,10 +153,16 @@ def _valid_response() -> dict[str, object]:
 
 
 class FakeResponses:
-    def __init__(self, response: object, count: int = 2176):
+    def __init__(
+        self,
+        response: object,
+        count: int = 2176,
+        generation_error: Exception | None = None,
+    ):
         self.input_tokens = self
         self.response = response
         self.count_value = count
+        self.generation_error = generation_error
         self.count_calls = 0
         self.create_calls = 0
     def count(self, **kwargs):
@@ -152,12 +170,21 @@ class FakeResponses:
         return {"input_tokens": self.count_value}
     def create(self, **kwargs):
         self.create_calls += 1
+        if self.generation_error is not None:
+            raise self.generation_error
         return self.response
 
 
 class Owned:
-    def __init__(self, response):
-        self.client = type("Client", (), {"max_retries": 0, "responses": FakeResponses(response)})()
+    def __init__(self, response, generation_error: Exception | None = None):
+        self.client = type(
+            "Client",
+            (),
+            {
+                "max_retries": 0,
+                "responses": FakeResponses(response, generation_error=generation_error),
+            },
+        )()
         self.closed = False
     def __enter__(self): return self
     def __exit__(self, *args): self.closed = True
@@ -169,6 +196,16 @@ def _provider_response(content=None):
         "output": [{"type": "message", "content": [{"type": "output_text", "text": json.dumps(content or _valid_response())}]}],
         "usage": {"input_tokens": 2176, "output_tokens": 120, "input_tokens_details": {"cached_tokens": 0}},
     }
+
+
+def _sdk_status_error(error_type: type[Exception], status_code: int) -> Exception:
+    request = httpx.Request("POST", "https://offline.invalid/v1/responses")
+    response = httpx.Response(
+        status_code,
+        request=request,
+        headers={"x-request-id": "req_bounded_stage_b"},
+    )
+    return error_type("bounded offline error", response=response, body=None)
 
 
 def test_closed_repository_rejects_before_environment_access():
@@ -199,7 +236,7 @@ def test_exact_authorization_scope_is_required(tmp_path, mutation):
         load_manifest_bound_stage_b_authorization(manifest, repository_root=tmp_path, now=now)
 
 
-@pytest.mark.parametrize("consumed_sequence", [1, 2, 3])
+@pytest.mark.parametrize("consumed_sequence", [1, 2, 3, 4])
 def test_consumed_stage_b_sequences_cannot_be_reauthorized(
     tmp_path, consumed_sequence
 ):
@@ -260,9 +297,9 @@ def test_offline_success_writes_bounded_owner_only_records(tmp_path):
     record = _execute_stage_b(authorization=authorization, manifest_path=manifest, environment={"fake": "value"}, output_root=tmp_path / "out", client_builder=lambda *a, **k: owned, now=lambda: now)
     audit, evidence = _paths(tmp_path / "out")
     assert record.generation_succeeded and record.pydantic_validation_succeeded and record.semantic_validation_succeeded
-    assert record.run_sequence == 4
-    assert audit.name == "004-storage_unknown-generation-pilot.json"
-    assert evidence.name == "004-storage_unknown-reviewed-response.json"
+    assert record.run_sequence == 5
+    assert audit.name == "005-storage_unknown-generation-pilot.json"
+    assert evidence.name == "005-storage_unknown-reviewed-response.json"
     assert owned.client.responses.count_calls == owned.client.responses.create_calls == 1
     assert audit.exists() and evidence.exists() and (evidence.stat().st_mode & 0o777) == 0o600
     text = audit.read_text() + evidence.read_text()
@@ -300,6 +337,74 @@ def test_failure_writes_tombstone_and_prevents_overwrite(tmp_path):
     owned.client.responses.response["usage"]["input_tokens"] = 999
     with pytest.raises(StageBPilotError):
         _execute_stage_b(authorization=authorization, manifest_path=manifest, environment={}, output_root=tmp_path / "out", client_builder=lambda *a, **k: owned, now=lambda: now)
+
+
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    (
+        (
+            _sdk_status_error(AuthenticationError, 401),
+            "generation_authentication_failed",
+        ),
+        (
+            _sdk_status_error(PermissionDeniedError, 403),
+            "generation_permission_denied",
+        ),
+        (
+            _sdk_status_error(NotFoundError, 404),
+            "generation_model_unavailable",
+        ),
+        (
+            _sdk_status_error(RateLimitError, 429),
+            "generation_rate_limited",
+        ),
+        (
+            _sdk_status_error(BadRequestError, 400),
+            "generation_invalid_request",
+        ),
+        (
+            APIConnectionError(
+                request=httpx.Request("POST", "https://offline.invalid")
+            ),
+            "generation_connection_failed",
+        ),
+        (
+            _sdk_status_error(InternalServerError, 500),
+            "generation_provider_unavailable",
+        ),
+        (
+            APITimeoutError(
+                httpx.Request("POST", "https://offline.invalid")
+            ),
+            "generation_timeout",
+        ),
+    ),
+)
+def test_stage_b_audit_records_each_bounded_generation_failure(
+    tmp_path, error, expected
+):
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    authorization, manifest = _package(tmp_path / "repo", now)
+    owned = Owned(_provider_response(), generation_error=error)
+
+    with pytest.raises(StageBPilotError) as caught:
+        _execute_stage_b(
+            authorization=authorization,
+            manifest_path=manifest,
+            environment={},
+            output_root=tmp_path / expected,
+            client_builder=lambda *args, **kwargs: owned,
+            now=lambda: now,
+        )
+
+    assert caught.value.classification == expected
+    assert expected in STAGE_B_GENERATION_FAILURE_CLASSIFICATIONS
+    audit = json.loads(caught.value.record_path.read_text(encoding="utf-8"))
+    assert audit["bounded_failure_classification"] == expected
+    assert audit["generation_attempted"] is True
+    assert audit["generation_succeeded"] is False
+    assert owned.client.responses.count_calls == 1
+    assert owned.client.responses.create_calls == 1
 
 
 def test_generation_cost_above_stage_b_ceiling_is_rejected(tmp_path):

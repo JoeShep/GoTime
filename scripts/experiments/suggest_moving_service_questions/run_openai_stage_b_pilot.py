@@ -75,6 +75,18 @@ OPERATOR_INTENT = "AUTHORIZE_ONE_STORAGE_UNKNOWN_STAGE_B_PREFLIGHT_AND_GENERATIO
 ENABLEMENT_ENVIRONMENT_NAME = "GOTIME_MOVING_SERVICE_EVAL_ENABLED"
 MAXIMUM_SPEND = Decimal("0.03")
 _EVIDENCE_TOKEN = object()
+STAGE_B_GENERATION_FAILURE_CLASSIFICATIONS = frozenset(
+    {
+        "generation_authentication_failed",
+        "generation_permission_denied",
+        "generation_model_unavailable",
+        "generation_rate_limited",
+        "generation_invalid_request",
+        "generation_connection_failed",
+        "generation_provider_unavailable",
+        "generation_timeout",
+    }
+)
 
 
 class StageBPilotError(RuntimeError):
@@ -203,6 +215,18 @@ class StageBAuditRecord:
     reviewer: str | None
     reviewed_at: str | None
     bounded_review_notes: str | None
+
+    def __post_init__(self) -> None:
+        classification = self.bounded_failure_classification
+        if (
+            isinstance(classification, str)
+            and classification.startswith("generation_")
+            and classification
+            not in STAGE_B_GENERATION_FAILURE_CLASSIFICATIONS
+        ):
+            raise ValueError(
+                "Stage B generation failure classification is unsupported."
+            )
 
 
 def _paths(output_root: Path) -> tuple[Path, Path]:

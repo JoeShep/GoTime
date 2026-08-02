@@ -28,7 +28,7 @@ promoted into the Stage C denominator.
 
 ```text
 run-series ID: moving-service-stage-b-pilot-20260801
-sequence: 4
+sequence: 5
 fixture: storage_unknown
 maximum credential reads: 1
 maximum client constructions: 1
@@ -46,8 +46,9 @@ production use authorized: false
 
 The pilot uses a new series because Stage A sequences belong to a different
 preflight-only authorization history. Stage B sequences `1`, `2`, and `3` were
-consumed by credential-stage failures on 2026-08-01; sequence `4` is now the
-only eligible next slot. Only `storage_unknown` is eligible. A fresh
+consumed by credential-stage failures, and sequence `4` was consumed by a
+bounded generation failure. Sequence `5` is now the only eligible next slot.
+Only `storage_unknown` is eligible. A fresh
 preflight and its one generation are one indivisible pilot attempt.
 
 ## 3. Proposed Authorization Artifact
@@ -134,7 +135,7 @@ host-side credential presence/nonempty check
 The two launcher checks test only whether the named variable exists and is
 nonempty. They must not print, hash, measure, log, or otherwise expose its
 value. Failure at either check occurs before the Python runner and before audit
-reservation, so it does not consume sequence `4` and cannot reach client
+reservation, so it does not consume sequence `5` and cannot reach client
 construction or a network operation.
 
 The exact audit path must be reserved with exclusive creation before credential
@@ -278,7 +279,14 @@ record. The repository must be restored to closed authorization afterward.
 | Client construction failure | `client_construction` | Before network access |
 | Token preflight timeout/unavailable | `preflight_timeout` / `preflight_unavailable` | No generation |
 | Invalid count, over 3,000 tokens, or cost over `$0.03` | `preflight_gate` / `budget` | No generation |
-| Generation timeout/unavailable | `generation_timeout` / `generation_unavailable` | Evidence remains consumed |
+| Generation authentication failure | `generation_authentication_failed` | Evidence remains consumed |
+| Generation permission failure | `generation_permission_denied` | Evidence remains consumed |
+| Generation model/resource unavailable | `generation_model_unavailable` | Evidence remains consumed |
+| Generation rate limited | `generation_rate_limited` | Evidence remains consumed |
+| Generation invalid request | `generation_invalid_request` | Evidence remains consumed |
+| Generation connection failure | `generation_connection_failed` | Evidence remains consumed |
+| Generation provider unavailable | `generation_provider_unavailable` | Evidence remains consumed |
+| Generation timeout | `generation_timeout` | Evidence remains consumed |
 | Refusal | `refusal` | Reject output |
 | Incomplete response | `incomplete_response` | Reject output |
 | Malformed or duplicate-key JSON | `malformed_json` | No repair |
@@ -299,7 +307,7 @@ Proposed path:
 ```text
 .local/evaluations/suggest-moving-service-questions/
   moving-service-stage-b-pilot-20260801/
-  004-storage_unknown-generation-pilot.json
+  005-storage_unknown-generation-pilot.json
 ```
 
 The record may contain:
@@ -339,7 +347,7 @@ Proposed path:
 ```text
 .local/evaluations/suggest-moving-service-questions/
   moving-service-stage-b-pilot-20260801/
-  004-storage_unknown-reviewed-response.json
+  005-storage_unknown-reviewed-response.json
 ```
 
 The evidence file should be ignored by Git, created exclusively with owner-only
@@ -458,7 +466,8 @@ formal evaluation authorized: false
 production use authorized: false
 ```
 
-The repository-side boundary is ready for a fresh activation-package review
-after private account controls are reconfirmed. The frozen prompt, run
+The private account controls were reconfirmed on 2026-08-02. The
+repository-side boundary is ready for a fresh sequence-5 activation-package
+review after this closed reconciliation passes review. The frozen prompt, run
 configuration, provider response-schema snapshot, and their digests remain
 unchanged. The active authorization remains permanently closed.
