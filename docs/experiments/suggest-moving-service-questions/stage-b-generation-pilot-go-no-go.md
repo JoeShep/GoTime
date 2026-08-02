@@ -4,8 +4,8 @@
 
 ```text
 review date: 2026-08-02 America/Chicago / 2026-08-02 UTC
-repository-side decision: GO for a fresh activation-package review
-live execution decision: NO-GO until later repository-switch and execution approvals
+repository-side decision: CLOSED after completed sequence-5 pilot
+live execution decision: NO-GO; no further Stage B attempt authorized
 Stage B implementation review complete: yes
 Stage B repository activation authorized: false
 credential access authorized: false
@@ -15,12 +15,16 @@ formal evaluation authorized: false
 production use authorized: false
 ```
 
-The offline Stage B boundary and lifecycle are implemented and their
-closed-state tests pass. The private account controls were reconfirmed after
-the sequence-4 diagnostic. A fresh sequence-5 activation package may be
-prepared only after this reconciliation is reviewed. This review does not
-change the manifest, create repository authority, inspect an environment,
-construct an OpenAI client, or make a network request.
+The offline Stage B boundary and lifecycle were implemented and their
+closed-state tests passed. Sequence `5` then completed with successful token
+preflight, generation, provider structured output, Pydantic validation, and
+GoTime semantic validation. Human grounding review rejected the response and
+rated it `slightly_worse` than the deterministic fallback. The response
+evidence was deleted at sign-off, sequence `5` is consumed, the repository is
+bound to permanent closed authorization, and Stage C remains unauthorized.
+
+The remaining sections preserve the historical pre-execution review. They do
+not authorize another activation package or request.
 
 The historical inactive final-shape proposal from the earlier no-go review was
 outside the repository at:
@@ -47,9 +51,9 @@ policy
 validation
 ```
 
-The proposal binds the frozen prompt, run configuration, provider schema,
-request and response schema versions, knowledge version, OpenAI provider,
-`gpt-4.1-mini-2025-04-14`, and `openai==2.45.0`. It permits exactly one
+The executed authorization bound the frozen prompt, run configuration,
+provider schema, request and response schema versions, knowledge version,
+OpenAI provider, `gpt-4.1-mini-2025-04-14`, and `openai==2.45.0`. It permitted exactly one
 `storage_unknown` attempt at sequence `5` in
 `moving-service-stage-b-pilot-20260801`, with one credential read, one client
 construction, one input-token preflight, one generation, zero retries, and a
@@ -70,8 +74,9 @@ approver: Joe Shepherd
 SHA-256: f2e958930ab35698393ac6b53b3bb43eb396d0282b243aa943bc4c3744e19615
 ```
 
-A sequence-`5` package requires a new 900-second window, new exact bytes, and a
-new SHA-256 digest. Nothing in this document activates one.
+That historical candidate did not authorize sequence `5`. The separately
+approved sequence-`5` artifact was consumed and removed during closure. Nothing
+in this document activates or permits a replacement.
 
 ## 3. Human-Review Fields
 
@@ -103,7 +108,7 @@ and triggers immediate evidence deletion after sign-off.
 
 ## 4. Response Evidence and Deletion
 
-The validated response evidence path is exactly:
+The validated response evidence was created at:
 
 ```text
 .local/evaluations/suggest-moving-service-questions/
@@ -111,9 +116,10 @@ moving-service-stage-b-pilot-20260801/
 005-storage_unknown-reviewed-response.json
 ```
 
-It is Git-ignored, exclusively created with owner-only mode `0600`, and contains
-only the validated Pydantic response object. The bounded audit record stores
-its SHA-256 and a deletion deadline set to generation time plus 30 days.
+It was Git-ignored, exclusively created with owner-only mode `0600`, and
+contained only the validated Pydantic response object. It was deleted after
+the rejected human-review sign-off. The bounded audit, human-review, deletion,
+and closure records preserve the lifecycle without response content.
 
 The approved retention rule is deletion immediately after human review sign-off
 and aggregate capture, or no later than the recorded 30-day deadline, whichever
@@ -256,14 +262,13 @@ human-review state, closure state/path, and the permanent closed digest through
 the bounded closure record. Unavailable provider metadata is explicit; missing
 core usage required for validation or cost still fails closed.
 
-## 8. Closure After Success or Failure
+## 8. Closure After Success or Failure — Completed
 
 Closure must occur after every outcome, including expiration or an unexpected
 failure:
 
-1. Preserve consumed sequences `1` through `4`; do not retry or replace them.
-   Sequence `5` is the only future eligible slot and is consumed after any
-   authorized attempt begins.
+1. Preserve consumed sequences `1` through `5`; do not retry or replace them.
+   No sequence in this Stage B series remains eligible.
 2. Remove `GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY` from the bounded process
    environment and terminate that process.
 3. Restore `v1/manifest.json` to the committed permanent closed binding.
@@ -290,10 +295,10 @@ closed manifest fields, removes only the temporary Stage B artifact, writes an
 exclusive bounded closure record, and updates the audit closure fields. It
 does not inspect the environment and is safe to rerun.
 
-## 9. Proposed Manifest Diff — Not Applied
+## 9. Historical Manifest Diff — Closed and Not Reusable
 
-The candidate would require this exact conceptual manifest switch after a new,
-unexpired candidate is generated and separately approved:
+The pre-execution candidate described this conceptual manifest switch. It is
+historical, closed, and must not be applied:
 
 ```diff
 -  "artifact_version": "1.6.0",
@@ -319,9 +324,9 @@ All application-level authorization fields remain false:
 "real_model_evaluation_eligible": false
 ```
 
-This diff is not applied. Because the candidate is already expiring, a later
-activation review must generate new timestamps, new bytes, a new digest, and a
-corresponding new exact diff.
+This diff is not applied. The active manifest points to permanent closed
+authorization. Sequence `5` was separately authorized, consumed, and closed;
+there is no approved replacement.
 
 ## 10. Final Go/No-Go Checklist
 
@@ -342,7 +347,8 @@ Private account prerequisite completed on 2026-08-02:
   operations, unrelated endpoint permissions remain disabled, and the dated
   AI model remains enabled.
 
-Decision: **repository-side GO for a newly generated activation-package
-review; live execution remains NO-GO** until a fresh unexpired artifact, exact
-manifest-diff approval, and separate one-call execution authorization. No
-candidate is generated by this milestone.
+Outcome: sequence `5` succeeded technically but failed human grounding review
+and was rated `slightly_worse` than the deterministic fallback. Response
+evidence was deleted after sign-off and authorization was closed. Decision:
+**NO-GO for another Stage B activation and NO-GO for Stage C** unless a later
+prompt/validation milestone is separately reviewed and authorized.

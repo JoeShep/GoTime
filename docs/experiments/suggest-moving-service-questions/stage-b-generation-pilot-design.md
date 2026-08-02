@@ -15,6 +15,21 @@ formal evaluation authorized: false
 production use authorized: false
 ```
 
+### Completed pilot closeout
+
+Stage B sequence `5` completed on 2026-08-02. Exact token preflight, one
+generation, provider structured output, Pydantic validation, and GoTime
+semantic validation succeeded. Human grounding review rejected the response
+and rated it `slightly_worse` than the deterministic fallback because it
+introduced an unsupported user fact and broadened the approved grounding
+scope. The validated response evidence was deleted at review sign-off,
+sequence `5` is consumed, the manifest is restored to the permanent closed
+authorization, and Stage C remains unauthorized.
+
+The prospective controls below are retained as the historical design that
+governed the completed pilot. They are not authority to reactivate or repeat
+Stage B.
+
 This document designs one evaluation-only generation pilot. It does not create
 an authorization artifact, change the active authorization, expose the
 experiment through the application, or authorize a provider request. The
@@ -24,7 +39,7 @@ Stage B is not part of the fixed 20-slot formal evaluation, which remains a
 separate Stage C decision. A Stage B result must never be counted, copied, or
 promoted into the Stage C denominator.
 
-## 2. Proposed Pilot Scope
+## 2. Historical Pilot Scope
 
 ```text
 run-series ID: moving-service-stage-b-pilot-20260801
@@ -44,12 +59,13 @@ formal evaluation authorized: false
 production use authorized: false
 ```
 
-The pilot uses a new series because Stage A sequences belong to a different
+The pilot used a new series because Stage A sequences belonged to a different
 preflight-only authorization history. Stage B sequences `1`, `2`, and `3` were
-consumed by credential-stage failures, and sequence `4` was consumed by a
-bounded generation failure. Sequence `5` is now the only eligible next slot.
-Only `storage_unknown` is eligible. A fresh
-preflight and its one generation are one indivisible pilot attempt.
+consumed by credential-stage failures, sequence `4` was consumed by a bounded
+generation failure, and sequence `5` was consumed by the completed reviewed
+attempt. No sequence in this series is currently eligible. Only
+`storage_unknown` was eligible; its fresh preflight and one generation formed
+one indivisible pilot attempt.
 
 ## 3. Proposed Authorization Artifact
 
@@ -466,8 +482,9 @@ formal evaluation authorized: false
 production use authorized: false
 ```
 
-The private account controls were reconfirmed on 2026-08-02. The
-repository-side boundary is ready for a fresh sequence-5 activation-package
-review after this closed reconciliation passes review. The frozen prompt, run
+The private account controls were reconfirmed on 2026-08-02. Sequence `5` is
+complete and consumed; no fresh Stage B activation-package review is pending.
+The human review rejected the response, the response evidence was deleted, and
+the active authorization is permanently closed. The frozen prompt, run
 configuration, provider response-schema snapshot, and their digests remain
-unchanged. The active authorization remains permanently closed.
+unchanged. Stage C remains unauthorized.

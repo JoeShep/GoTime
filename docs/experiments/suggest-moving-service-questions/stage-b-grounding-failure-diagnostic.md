@@ -56,14 +56,11 @@ The rejected review preserved this bounded explanation:
 
 ### Documentation consistency
 
-The Stage B design and go/no-go documents still describe sequence 5
-prospectively as a future eligible slot and describe the response-evidence path
-as retained for review. The bounded lifecycle records now supersede that
-operational status: sequence 5 is consumed, the review was rejected, the
-repository is closed, and response evidence was deleted. A later reviewed
-documentation-closeout should update those status passages or add a compact
-Stage B outcome record. This mismatch did not affect request construction or
-the generated response and is not authority for another attempt.
+The prompt-v2 design milestone factually closed out the Stage B design and
+go/no-go documents. They now record that sequence 5 is consumed, the review was
+rejected, the repository is closed, response evidence was deleted, and Stage C
+remains unauthorized. Historical pre-execution material is labeled as such and
+is not authority for another attempt.
 
 ## Exact request boundary
 
