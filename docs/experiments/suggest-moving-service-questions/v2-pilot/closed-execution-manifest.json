@@ -1,0 +1,16 @@
+{
+  "capability": "suggest_moving_service_questions",
+  "status": "closed_no_execution_authorized",
+  "frozen_v2_manifest_path": "docs/experiments/suggest-moving-service-questions/v2/manifest.json",
+  "frozen_v2_manifest_digest": "3fb5d63b438f7658f319b3300885cea1d27c307bec30d6c2b85fdb8ca5d7741e",
+  "authorization_path": "docs/experiments/suggest-moving-service-questions/v2-pilot/openai-execution-authorization.toml",
+  "authorization_digest_algorithm": "sha256",
+  "authorization_digest": "bb5e2f4a70d71b44a34b59592e0bd30bf4b71f6a3fdd0724afa457340d4921af",
+  "follow_up_pilot_authorized": false,
+  "credential_access_authorized": false,
+  "token_preflight_authorized": false,
+  "ai_generation_authorized": false,
+  "formal_evaluation_authorized": false,
+  "stage_c_authorized": false,
+  "production_use_authorized": false
+}
