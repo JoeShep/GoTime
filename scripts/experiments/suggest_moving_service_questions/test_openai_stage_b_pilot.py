@@ -199,6 +199,31 @@ def test_exact_authorization_scope_is_required(tmp_path, mutation):
         load_manifest_bound_stage_b_authorization(manifest, repository_root=tmp_path, now=now)
 
 
+@pytest.mark.parametrize("consumed_sequence", [1, 2])
+def test_consumed_stage_b_sequences_cannot_be_reauthorized(
+    tmp_path, consumed_sequence
+):
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    authorization, manifest = _package(tmp_path, now)
+    authorization.path.write_text(
+        authorization.path.read_text(encoding="utf-8").replace(
+            f"authorized_sequence_numbers = [{SEQUENCE}]",
+            f"authorized_sequence_numbers = [{consumed_sequence}]",
+        ),
+        encoding="utf-8",
+    )
+    manifest_data = json.loads(manifest.read_text(encoding="utf-8"))
+    manifest_data["openai_execution_authorization_digest"] = hashlib.sha256(
+        authorization.path.read_bytes()
+    ).hexdigest()
+    manifest.write_text(json.dumps(manifest_data), encoding="utf-8")
+
+    with pytest.raises(StageBAuthorizationError, match="consumed"):
+        load_manifest_bound_stage_b_authorization(
+            manifest, repository_root=tmp_path, now=now
+        )
+
+
 def test_evidence_is_nonserializable_single_use_and_mismatch_safe(tmp_path):
     now = datetime.now(timezone.utc).replace(microsecond=0)
     authorization, _ = _package(tmp_path, now)
@@ -235,9 +260,9 @@ def test_offline_success_writes_bounded_owner_only_records(tmp_path):
     record = _execute_stage_b(authorization=authorization, manifest_path=manifest, environment={"fake": "value"}, output_root=tmp_path / "out", client_builder=lambda *a, **k: owned, now=lambda: now)
     audit, evidence = _paths(tmp_path / "out")
     assert record.generation_succeeded and record.pydantic_validation_succeeded and record.semantic_validation_succeeded
-    assert record.run_sequence == 2
-    assert audit.name == "002-storage_unknown-generation-pilot.json"
-    assert evidence.name == "002-storage_unknown-reviewed-response.json"
+    assert record.run_sequence == 3
+    assert audit.name == "003-storage_unknown-generation-pilot.json"
+    assert evidence.name == "003-storage_unknown-reviewed-response.json"
     assert owned.client.responses.count_calls == owned.client.responses.create_calls == 1
     assert audit.exists() and evidence.exists() and (evidence.stat().st_mode & 0o777) == 0o600
     text = audit.read_text() + evidence.read_text()

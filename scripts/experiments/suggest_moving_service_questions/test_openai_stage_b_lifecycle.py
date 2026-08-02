@@ -10,7 +10,14 @@ from pathlib import Path
 import pytest
 
 from manage_openai_stage_b_lifecycle import _parser
-from openai_client_factory import EvaluationCredentialError
+import openai_client_factory
+from openai_client_factory import (
+    EVALUATION_CREDENTIAL_NAME,
+    OPENAI_API_BASE_URL,
+    REQUIRED_NON_SECRET_GATE_ORDER,
+    EvaluationCredentialError,
+    build_stage_b_moving_service_openai_client_from_environment,
+)
 from run_openai_stage_b_pilot import (
     ENABLEMENT_ENVIRONMENT_NAME,
     OPERATOR_INTENT,
@@ -130,9 +137,9 @@ def test_operator_intent_cannot_override_closed_authorization():
         )
 
 
-def test_sequence_one_is_consumed_and_sequence_two_is_the_only_next_slot():
-    assert CONSUMED_THROUGH_SEQUENCE == 1
-    assert SEQUENCE == 2
+def test_sequences_one_and_two_are_consumed_and_three_is_the_only_next_slot():
+    assert CONSUMED_THROUGH_SEQUENCE == 2
+    assert SEQUENCE == 3
 
 
 def test_exact_docker_launch_forwards_only_named_evaluation_variables(tmp_path):
@@ -169,10 +176,59 @@ def test_exact_docker_launch_forwards_only_named_evaluation_variables(tmp_path):
     assert "GOTIME_MOVING_SERVICE_EVAL_ENABLED=1" in arguments
     assert "GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY" in arguments
     assert "synthetic-secret-not-for-recording" not in arguments
-    assert arguments[arguments.index("--sequence") + 1] == "2"
+    assert arguments[arguments.index("--sequence") + 1] == "3"
     assert arguments.count("GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY") == 1
     assert "--user" in arguments
     assert "--read-only" in arguments
+
+
+def test_forwarded_synthetic_credential_reaches_injected_stage_b_constructor(
+    tmp_path, monkeypatch
+):
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    authorization, manifest = _package(tmp_path / "repo", now)
+    monkeypatch.setattr(openai_client_factory, "REPOSITORY_ROOT", tmp_path / "repo")
+    synthetic_credential = "synthetic-docker-forwarding-proof"
+    client_calls = []
+    http_calls = []
+
+    class FakeHttpClient:
+        def close(self):
+            pass
+
+    class FakeOpenAIClient:
+        max_retries = 0
+
+        def close(self):
+            pass
+
+    def construct_http_client(**kwargs):
+        http_calls.append(kwargs)
+        return FakeHttpClient()
+
+    def construct_client(**kwargs):
+        client_calls.append(kwargs)
+        return FakeOpenAIClient()
+
+    owned = build_stage_b_moving_service_openai_client_from_environment(
+        {EVALUATION_CREDENTIAL_NAME: synthetic_credential},
+        completed_non_secret_gates=REQUIRED_NON_SECRET_GATE_ORDER,
+        operator_intent_confirmed=True,
+        manifest_path=manifest,
+        authorization_path=authorization.path,
+        expected_authorization_digest=authorization.digest,
+        sdk_version="2.45.0",
+        client_constructor=construct_client,
+        http_client_constructor=construct_http_client,
+    )
+    try:
+        assert http_calls == [{"trust_env": False}]
+        assert len(client_calls) == 1
+        assert client_calls[0]["api_key"] == synthetic_credential
+        assert client_calls[0]["base_url"] == OPENAI_API_BASE_URL
+        assert client_calls[0]["max_retries"] == 0
+    finally:
+        owned.close()
 
 
 def test_cli_rejects_wrong_fixed_values():

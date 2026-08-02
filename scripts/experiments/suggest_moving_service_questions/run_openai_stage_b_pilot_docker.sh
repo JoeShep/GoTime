@@ -19,6 +19,6 @@ exec docker run --rm \
     gotime-moving-service-stage-b:openai-2.45.0 \
     python scripts/experiments/suggest_moving_service_questions/run_openai_stage_b_pilot.py \
     --run-series moving-service-stage-b-pilot-20260801 \
-    --sequence 2 \
+    --sequence 3 \
     --fixture storage_unknown \
     --operator-intent AUTHORIZE_ONE_STORAGE_UNKNOWN_STAGE_B_PREFLIGHT_AND_GENERATION

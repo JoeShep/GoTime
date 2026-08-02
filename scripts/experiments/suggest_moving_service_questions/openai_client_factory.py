@@ -368,16 +368,15 @@ def build_moving_service_openai_client_with_pinned_sdk(
     )
 
 
-def build_stage_b_moving_service_openai_client_with_pinned_sdk(
-    environment: Mapping[str, str],
+def _require_stage_b_credential_access_authorized(
     *,
     completed_non_secret_gates: tuple[str, ...],
     operator_intent_confirmed: bool,
     manifest_path: Path,
     authorization_path: Path,
     expected_authorization_digest: str,
-) -> MovingServiceOpenAIClient:
-    """Construct only after the exact manifest-bound Stage B authorization."""
+) -> None:
+    """Verify every non-secret Stage B gate before environment access."""
     if completed_non_secret_gates != REQUIRED_NON_SECRET_GATE_ORDER:
         raise CredentialAccessNotAuthorizedError(
             "The ordered non-secret runner gates are incomplete."
@@ -404,6 +403,25 @@ def build_stage_b_moving_service_openai_client_with_pinned_sdk(
         raise CredentialAccessNotAuthorizedError(
             "Credential authorization is not the manifest-bound Stage B artifact."
         )
+
+
+def build_stage_b_moving_service_openai_client_with_pinned_sdk(
+    environment: Mapping[str, str],
+    *,
+    completed_non_secret_gates: tuple[str, ...],
+    operator_intent_confirmed: bool,
+    manifest_path: Path,
+    authorization_path: Path,
+    expected_authorization_digest: str,
+) -> MovingServiceOpenAIClient:
+    """Construct only after the exact manifest-bound Stage B authorization."""
+    _require_stage_b_credential_access_authorized(
+        completed_non_secret_gates=completed_non_secret_gates,
+        operator_intent_confirmed=operator_intent_confirmed,
+        manifest_path=manifest_path,
+        authorization_path=authorization_path,
+        expected_authorization_digest=expected_authorization_digest,
+    )
     from openai import DefaultHttpxClient, OpenAI
 
     credential = _read_evaluation_credential(environment)
@@ -412,4 +430,33 @@ def build_stage_b_moving_service_openai_client_with_pinned_sdk(
         sdk_version=OPENAI_SDK_VERSION,
         client_constructor=OpenAI,
         http_client_constructor=DefaultHttpxClient,
+    )
+
+
+def build_stage_b_moving_service_openai_client_from_environment(
+    environment: Mapping[str, str],
+    *,
+    completed_non_secret_gates: tuple[str, ...],
+    operator_intent_confirmed: bool,
+    manifest_path: Path,
+    authorization_path: Path,
+    expected_authorization_digest: str,
+    sdk_version: str,
+    client_constructor: Callable[..., _ClientLike],
+    http_client_constructor: Callable[..., _HttpClientLike],
+) -> MovingServiceOpenAIClient:
+    """Verify Stage B, then pass the one evaluation key to injected constructors."""
+    _require_stage_b_credential_access_authorized(
+        completed_non_secret_gates=completed_non_secret_gates,
+        operator_intent_confirmed=operator_intent_confirmed,
+        manifest_path=manifest_path,
+        authorization_path=authorization_path,
+        expected_authorization_digest=expected_authorization_digest,
+    )
+    credential = _read_evaluation_credential(environment)
+    return _construct_openai_client(
+        credential,
+        sdk_version=sdk_version,
+        client_constructor=client_constructor,
+        http_client_constructor=http_client_constructor,
     )
