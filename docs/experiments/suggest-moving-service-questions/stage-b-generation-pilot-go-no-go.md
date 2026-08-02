@@ -4,7 +4,8 @@
 
 ```text
 review date: 2026-08-01 America/Chicago / 2026-08-02 UTC
-decision: NO-GO
+repository-side decision: GO for a fresh activation-package review
+live execution decision: NO-GO until private account attestation and later approvals
 Stage B implementation review complete: yes
 Stage B repository activation authorized: false
 credential access authorized: false
@@ -14,20 +15,22 @@ formal evaluation authorized: false
 production use authorized: false
 ```
 
-The offline Stage B boundary is substantially implemented and its closed-state
-tests pass, but the live pilot is not ready to activate. This review does not
+The offline Stage B boundary and lifecycle are implemented and their
+closed-state tests pass. A fresh activation package may be prepared only after
+the remaining private account controls are reconfirmed. This review does not
 change the manifest, create repository authority, inspect an environment,
 construct an OpenAI client, or make a network request.
 
-The inactive final-shape proposal created for this review is outside the
-repository at:
+The historical inactive final-shape proposal from the earlier no-go review was
+outside the repository at:
 
 ```text
 /tmp/gotime-stage-b-authorization-candidate-20260802T025938Z.toml
 ```
 
-It is manifest-unbound and therefore has no authority. It expires at
-`2026-08-02T03:14:38Z` and must be discarded after that time.
+It was manifest-unbound, had no authority, and expired at
+`2026-08-02T03:14:38Z`. It must not be reused. This gap-resolution milestone
+does not generate a replacement.
 
 ## 2. Exact Authorization Shape
 
@@ -87,11 +90,12 @@ bounded_notes
 The intended `fallback_comparison` values are `materially_better`,
 `slightly_better`, `equivalent`, `slightly_worse`, and `materially_worse`.
 
-Blocking gap: the runner creates placeholders but does not provide a reviewed,
-bounded sign-off operation that validates boolean fields, the comparison enum,
-reviewer identity, timestamp, or note length. It also does not record one
-explicit aggregate `human_review_status`. Activation must wait for that
-offline-only review/finalization boundary and its tests.
+The capability-specific review operation now validates an exact field set,
+boolean safety findings, scores from `1` through `5`, the bounded comparison
+enum, a nonblank reviewer of at most 100 characters, and notes of at most 500
+characters. It records `human_review_status` as `approved` or `rejected`, uses
+an internally generated UTC review timestamp, never changes provider evidence,
+and triggers immediate evidence deletion after sign-off.
 
 ## 4. Response Evidence and Deletion
 
@@ -117,33 +121,57 @@ comes first. The procedure must be:
 4. Delete the exact reviewed-response file and the local raw pilot audit record.
 5. Confirm neither path exists and record deletion in the reviewed aggregate.
 
-Blocking gap: deadline recording exists, but there is no reviewed deletion or
-human-review finalization command. Deletion remains manual and unaudited.
+The explicit review command uses only bounded values:
+
+```sh
+python scripts/experiments/suggest_moving_service_questions/manage_openai_stage_b_lifecycle.py \
+  review \
+  --status <approved|rejected> \
+  --grounding-supported <true|false> \
+  --invented-user-fact-present <true|false> \
+  --scope-overstatement-present <true|false> \
+  --provider-or-service-recommendation-present <true|false> \
+  --storage-required-claim-present <true|false> \
+  --clarity-score <1-5> \
+  --usefulness-score <1-5> \
+  --fallback-comparison <approved-comparison-value> \
+  --reviewer <stable-reviewer-label> \
+  --notes <bounded-notes>
+```
+
+If review has not occurred, deadline deletion is explicit:
+
+```sh
+python scripts/experiments/suggest_moving_service_questions/manage_openai_stage_b_lifecycle.py \
+  delete-expired-evidence
+```
+
+Deletion is now mechanical and audited. Review sign-off deletes immediately;
+the separate `delete-expired-evidence` command refuses early deletion and acts
+only at or after the recorded deadline. Missing evidence is recorded
+explicitly, repeated calls are idempotent, and no response content enters the
+deletion record.
 
 ## 5. Exact Live Command
 
-There is currently **no approved exact live command**. The Stage B module
-exposes a Python function but has no `__main__` entry point, argument parser, or
-reviewed command-line flags. The documented
-`GOTIME_MOVING_SERVICE_EVAL_ENABLED` operator-intent variable is not consumed
-by the runner. Supplying a Python `-c` expression would bypass the intended
-reviewable CLI boundary and is not approved.
+The exact future command from the project root is:
 
-Before activation, add and offline-test one capability-specific CLI accepting
-only these fixed values:
-
-```text
-run series: moving-service-stage-b-pilot-20260801
-sequence: 1
-fixture: storage_unknown
-operator intent: AUTHORIZE_ONE_STORAGE_UNKNOWN_STAGE_B_PREFLIGHT_AND_GENERATION
+```sh
+GOTIME_MOVING_SERVICE_EVAL_ENABLED=1 \
+python scripts/experiments/suggest_moving_service_questions/run_openai_stage_b_pilot.py \
+  --run-series moving-service-stage-b-pilot-20260801 \
+  --sequence 1 \
+  --fixture storage_unknown \
+  --operator-intent AUTHORIZE_ONE_STORAGE_UNKNOWN_STAGE_B_PREFLIGHT_AND_GENERATION
 ```
 
-It must pass the process environment explicitly to the runner only after all
-non-secret gates, require the exact enablement intent, print no secret or full
-payload, and expose no caller-selected provider, model, artifact path, base
-URL, timeout, retry, budget, or output path. The exact command can be frozen
-only after that entry point exists.
+The credential is intentionally omitted. It must already exist only in the
+bounded process environment under its separately approved name. The CLI
+accepts no provider, AI model identifier, artifact, endpoint, timeout, retry,
+budget, count, or output-path override. Missing enablement or any value other
+than exact string `1` fails after non-secret gates and before credential
+lookup. Enablement and flags express operator intent only and cannot override
+closed repository authority.
 
 ## 6. Account and Credential Controls
 
@@ -195,10 +223,12 @@ Missing core token usage, inconsistent preflight/generation input counts,
 invalid cached-token categories, or unparseable cost data fail closed. There
 is one preflight, one generation, zero retry, and no formal-series budget.
 
-Blocking audit gaps relative to the approved design are explicit
-credential/client attempted-and-succeeded fields, cache status, referenced
-knowledge IDs, conservative preflight cost, pilot status, explicit closure
-status, and the permanent closed-authorization digest.
+The audit now includes credential lookup/value and client-construction states,
+preflight and generation states, conservative and actual cost, cache status,
+referenced knowledge IDs, failure stage/code, evidence retention state,
+human-review state, closure state/path, and the permanent closed digest through
+the bounded closure record. Unavailable provider metadata is explicit; missing
+core usage required for validation or cost still fails closed.
 
 ## 8. Closure After Success or Failure
 
@@ -220,9 +250,17 @@ failure:
    the deletion procedure above.
 9. Commit only the closed-state reviewed outcome; never commit active authority.
 
-Blocking gap: closure is documented but has no capability-specific,
-offline-tested command, and the current audit is finalized before closure so it
-cannot record verified closure status. This must be reconciled before go.
+Closure is implemented by the capability-specific lifecycle command:
+
+```sh
+python scripts/experiments/suggest_moving_service_questions/manage_openai_stage_b_lifecycle.py \
+  close --reason <success|bounded_failure|expiration|operator_cancellation>
+```
+
+It verifies the permanent closed artifact and digest, atomically restores the
+closed manifest fields, removes only the temporary Stage B artifact, writes an
+exclusive bounded closure record, and updates the audit closure fields. It
+does not inspect the environment and is safe to rerun.
 
 ## 9. Proposed Manifest Diff — Not Applied
 
@@ -270,15 +308,12 @@ Ready:
 * closed active repository authority;
 * fake-client and network-disabled offline tests.
 
-Blocking before a live proposal can be approved:
+Remaining before a live proposal can be approved:
 
-* implement and review the exact CLI/operator-enablement boundary;
-* complete the approved bounded audit fields;
-* implement offline-tested human-review finalization and deletion procedure;
-* implement or test the exact closure procedure and closure evidence;
-* reconcile contradictory historical readiness text in the Stage B design;
-* rerun complete offline tests after those changes; and
 * immediately reconfirm project, credential, generation permission, model,
   spending/rate, training, and retention controls.
 
-Decision: **NO-GO**. Do not activate this candidate or make a provider request.
+Decision: **repository-side GO for a newly generated activation-package
+review; live execution remains NO-GO** until private account attestation, a
+fresh unexpired artifact, exact manifest-diff approval, and separate one-call
+execution authorization. No candidate is generated by this milestone.

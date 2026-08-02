@@ -339,7 +339,10 @@ smaller design. Delete the evidence and raw local audit record within 30 days
 of pilot execution or immediately after review sign-off and aggregation,
 whichever occurs first. Retain only the reviewed aggregate outcome in Git.
 
-Retention is a proposal and is not implemented or approved by this document.
+The offline lifecycle now implements this retention rule. Human-review sign-off
+deletes evidence immediately; otherwise an explicit capability-specific
+operation enforces the recorded 30-day deadline. Both paths write a bounded,
+owner-only deletion record and update the audit lifecycle fields.
 
 ## 11. Smallest Offline Implementation Plan
 
@@ -359,7 +362,8 @@ Retention is a proposal and is not implemented or approved by this document.
 7. Finalize bounded audit data for every known failure and success path, close
    all client resources, and expose no full payload in logs.
 8. Produce the ignored response-evidence file only after Pydantic and semantic
-   validation succeed; do not implement retention until separately approved.
+   validation succeed, and manage it through the approved explicit retention
+   lifecycle.
 9. Add an offline closure helper or reviewed closure procedure that restores
    the permanent closed manifest and removes the short-lived artifact after
    success, failure, or expiration. Tests operate only on temporary repository
@@ -420,26 +424,22 @@ code.
 
 ## 14. Remaining Decisions
 
-Human approval is still required for:
-
-* the proposed run-series ID and operator-intent literal;
-* a 900-second authorization window for Stage B;
-* the separate validated-response evidence file and 30-day maximum retention;
-* the exact human-review checklist representation and reviewer identity field;
-* whether an absent provider request ID or optional usage subcategory is a
-  transport failure or a recorded limitation (recommended: limitation when
-  core token usage required for cost is present);
-* whether an unexpected post-reservation programming error may leave an empty
-  tombstone or must write a minimal bounded record (recommended: minimal
-  bounded record); and
-* the exact later Stage B authorization artifact and manifest lifecycle.
+Repository-side decisions are resolved: the run-series, sequence, fixture,
+operator-intent literal, 900-second maximum window, human-review schema,
+evidence retention, bounded tombstones, and closure lifecycle are implemented
+and offline tested. Before generating a new activation package, a human must
+reconfirm the private OpenAI project, project-scoped credential permissions for
+both token counting and Responses generation, model access, spend/rate
+controls, training opt-out, and accepted provider retention. Repository switch
+approval and one-attempt execution approval remain separate later decisions.
 
 ## 15. Readiness Decision
 
 ```text
 Stage B design ready for human review: true
-Stage B design approved: false
-Stage B implementation authorized: false
+Stage B design approved: true
+offline Stage B implementation authorized: true
+offline Stage B implementation complete: true
 credential access authorized: false
 token preflight authorized: false
 AI generation authorized: false
@@ -447,6 +447,7 @@ formal evaluation authorized: false
 production use authorized: false
 ```
 
-The design is ready for review, not implementation. The frozen prompt, run
+The repository-side boundary is ready for a fresh activation-package review
+after private account controls are reconfirmed. The frozen prompt, run
 configuration, provider response-schema snapshot, and their digests remain
 unchanged. The active authorization remains permanently closed.

@@ -240,7 +240,18 @@ def test_offline_success_writes_bounded_owner_only_records(tmp_path):
     text = audit.read_text() + evidence.read_text()
     for prohibited in ("api_key", "authorization_header", "system_instructions", "deterministic_request_json", "trusted_state"):
         assert prohibited not in text.lower()
-    assert set(record.human_review) == {"grounding_supported", "invented_user_facts", "scope_overstatement", "provider_or_service_recommendation", "storage_required_claim", "clarity", "usefulness", "fallback_comparison", "reviewer", "review_timestamp", "bounded_notes"}
+    assert record.human_review_status == "pending"
+    assert record.referenced_knowledge_ids == (
+        "moving-service.temporary-storage-planning.fmcsa.v1",
+    )
+    assert record.cache_status == "miss"
+    assert record.credential_lookup_attempted is True
+    assert record.credential_value_obtained is True
+    assert record.client_construction_attempted is True
+    assert record.client_construction_succeeded is True
+    assert record.conservative_preflight_cost is not None
+    assert record.authorization_closed is False
+    assert record.closure_status == "pending"
 
 
 def test_failure_writes_tombstone_and_prevents_overwrite(tmp_path):
@@ -283,6 +294,17 @@ def test_response_failures_are_bounded(tmp_path, kind):
         _execute_stage_b(authorization=authorization, manifest_path=manifest, environment={}, output_root=tmp_path / kind, client_builder=lambda *a, **k: Owned(response), now=lambda: now)
     expected = {"malformed": "malformed_json", "pydantic": "pydantic_validation_failure", "semantic": "semantic_validation_failure", "provider_schema": "provider_schema_failure", "refusal": "refusal", "incomplete": "incomplete_output"}[kind]
     assert caught.value.classification == expected
+    audit = json.loads(caught.value.record_path.read_text())
+    for field in (
+        "credential_lookup_attempted",
+        "client_construction_attempted",
+        "preflight_attempted",
+        "generation_attempted",
+        "authorization_closed",
+    ):
+        assert isinstance(audit[field], bool)
+    assert audit["failure_stage"]
+    assert audit["bounded_failure_classification"] == expected
 
 
 def test_transport_modules_are_not_reachable_from_application():

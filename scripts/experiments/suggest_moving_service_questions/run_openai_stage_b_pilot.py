@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import argparse
 import json
 import os
 import sys
@@ -71,6 +72,7 @@ from stage_b_authorization import (  # noqa: E402
 )
 
 OPERATOR_INTENT = "AUTHORIZE_ONE_STORAGE_UNKNOWN_STAGE_B_PREFLIGHT_AND_GENERATION"
+ENABLEMENT_ENVIRONMENT_NAME = "GOTIME_MOVING_SERVICE_EVAL_ENABLED"
 MAXIMUM_SPEND = Decimal("0.03")
 _EVIDENCE_TOKEN = object()
 
@@ -150,8 +152,14 @@ class StageBAuditRecord:
     ai_model_identifier: str
     provider_reported_model_identifier: str | None
     sdk_version: str
+    operator_intent_confirmed: bool
+    credential_lookup_attempted: bool
+    credential_value_obtained: bool
+    client_construction_attempted: bool
+    client_construction_succeeded: bool
     preflight_attempted: bool
     preflight_succeeded: bool
+    conservative_preflight_cost: str | None
     input_tokens: int | None
     generation_attempted: bool
     generation_succeeded: bool
@@ -162,6 +170,7 @@ class StageBAuditRecord:
     generation_duration_ms: float
     total_duration_ms: float
     estimated_cost: str | None
+    cache_status: str
     provider_request_id: str | None
     finish_status: str | None
     refusal_status: str | None
@@ -169,12 +178,30 @@ class StageBAuditRecord:
     pydantic_validation_succeeded: bool
     semantic_validation_succeeded: bool
     bounded_failure_classification: str | None
+    failure_stage: str | None
     normalized_question_text: str | None
+    referenced_knowledge_ids: tuple[str, ...]
     response_evidence_path: str | None
     response_evidence_sha256: str | None
     response_evidence_delete_by: str | None
+    response_evidence_deleted: bool
+    response_evidence_deletion_recorded_at: str | None
+    authorization_closed: bool
+    closure_status: str
+    closure_record_path: str
     fallback_used: bool
-    human_review: Mapping[str, object]
+    human_review_status: str
+    grounding_supported: bool | None
+    invented_user_fact_present: bool | None
+    scope_overstatement_present: bool | None
+    provider_or_service_recommendation_present: bool | None
+    storage_required_claim_present: bool | None
+    clarity_score: int | None
+    usefulness_score: int | None
+    fallback_comparison: str | None
+    reviewer: str | None
+    reviewed_at: str | None
+    bounded_review_notes: str | None
 
 
 def _paths(output_root: Path) -> tuple[Path, Path]:
@@ -195,15 +222,17 @@ def _provider_request() -> tuple[object, MovingServiceProviderRequest]:
     return request, adapter.prepare_request(request)
 
 
-def _human_review() -> dict[str, object]:
-    return {key: None for key in ("grounding_supported", "invented_user_facts", "scope_overstatement", "provider_or_service_recommendation", "storage_required_claim", "clarity", "usefulness", "fallback_comparison", "reviewer", "review_timestamp", "bounded_notes")}
-
-
 def _write_json_exclusive(path: Path, value: Mapping[str, object], mode: int = 0o600) -> None:
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
     with os.fdopen(descriptor, "w", encoding="utf-8") as output:
         json.dump(value, output, indent=2, sort_keys=True)
         output.write("\n")
+
+
+def _require_exact_enablement(environment: Mapping[str, str]) -> None:
+    """Treat exact operator enablement as intent, never repository authority."""
+    if environment.get(ENABLEMENT_ENVIRONMENT_NAME) != "1":
+        raise OfflineRunnerGateError("Stage B enablement must be the exact string 1.")
 
 
 def _execute_stage_b(*, authorization: VerifiedStageBAuthorization, manifest_path: Path, environment: Mapping[str, str], output_root: Path, client_builder: Callable[..., MovingServiceOpenAIClient], now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)) -> StageBAuditRecord:
@@ -214,45 +243,107 @@ def _execute_stage_b(*, authorization: VerifiedStageBAuthorization, manifest_pat
     descriptor = os.open(audit_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     output = os.fdopen(descriptor, "w", encoding="utf-8")
     attempt_token = object()
-    state: dict[str, object] = {"preflight_attempted": False, "preflight_succeeded": False, "input_tokens": None, "generation_attempted": False, "generation_succeeded": False, "output_tokens": None, "cached_input_tokens": None, "uncached_input_tokens": None, "preflight_duration_ms": 0.0, "generation_duration_ms": 0.0, "total_duration_ms": 0.0, "estimated_cost": None, "provider_request_id": None, "provider_reported_model_identifier": None, "finish_status": None, "refusal_status": None, "incomplete_reason": None, "pydantic_validation_succeeded": False, "semantic_validation_succeeded": False, "normalized_question_text": None, "response_evidence_path": None, "response_evidence_sha256": None, "response_evidence_delete_by": None}
+    closure_path = audit_path.with_name("001-storage_unknown-generation-pilot-closure.json")
+    state: dict[str, object] = {
+        "operator_intent_confirmed": True,
+        "credential_lookup_attempted": False,
+        "credential_value_obtained": False,
+        "client_construction_attempted": False,
+        "client_construction_succeeded": False,
+        "preflight_attempted": False,
+        "preflight_succeeded": False,
+        "conservative_preflight_cost": None,
+        "input_tokens": None,
+        "generation_attempted": False,
+        "generation_succeeded": False,
+        "output_tokens": None,
+        "cached_input_tokens": None,
+        "uncached_input_tokens": None,
+        "preflight_duration_ms": 0.0,
+        "generation_duration_ms": 0.0,
+        "total_duration_ms": 0.0,
+        "estimated_cost": None,
+        "cache_status": "not_available",
+        "provider_request_id": None,
+        "provider_reported_model_identifier": None,
+        "finish_status": None,
+        "refusal_status": None,
+        "incomplete_reason": None,
+        "pydantic_validation_succeeded": False,
+        "semantic_validation_succeeded": False,
+        "normalized_question_text": None,
+        "referenced_knowledge_ids": (),
+        "response_evidence_path": None,
+        "response_evidence_sha256": None,
+        "response_evidence_delete_by": None,
+        "response_evidence_deleted": False,
+        "response_evidence_deletion_recorded_at": None,
+        "authorization_closed": False,
+        "closure_status": "pending",
+        "closure_record_path": str(closure_path),
+        "human_review_status": "pending",
+        "grounding_supported": None,
+        "invented_user_fact_present": None,
+        "scope_overstatement_present": None,
+        "provider_or_service_recommendation_present": None,
+        "storage_required_claim_present": None,
+        "clarity_score": None,
+        "usefulness_score": None,
+        "fallback_comparison": None,
+        "reviewer": None,
+        "reviewed_at": None,
+        "bounded_review_notes": None,
+    }
     classification: str | None = None
+    failure_stage: str | None = None
     try:
+        state["credential_lookup_attempted"] = True
+        state["client_construction_attempted"] = True
         with client_builder(environment, completed_non_secret_gates=REQUIRED_NON_SECRET_GATE_ORDER, operator_intent_confirmed=True, manifest_path=manifest_path, authorization_path=authorization.path, expected_authorization_digest=authorization.digest) as owned:
+            state["credential_value_obtained"] = True
+            state["client_construction_succeeded"] = True
             transport = OpenAIMovingServiceEvaluationTransport(client=owned.client)
             state["preflight_attempted"] = True
             preflight = transport.preflight(provider_request)
-            state.update(preflight_succeeded=preflight.succeeded, input_tokens=preflight.input_tokens, preflight_duration_ms=preflight.duration_ms)
+            state.update(preflight_succeeded=preflight.succeeded, input_tokens=preflight.input_tokens, preflight_duration_ms=preflight.duration_ms, conservative_preflight_cost=str(preflight.conservative_cost) if preflight.conservative_cost is not None else None)
             if not preflight.succeeded:
                 classification = f"preflight_{preflight.error_classification.value}"
+                failure_stage = "token_preflight"
                 raise StageBPilotError(classification, audit_path)
             if preflight.conservative_cost is None or preflight.conservative_cost > MAXIMUM_SPEND:
                 classification = "budget_rejection"
+                failure_stage = "preflight_budget"
                 raise StageBPilotError(classification, audit_path)
             evidence = StageBPreflightEvidence(construction_token=_EVIDENCE_TOKEN, authorization=authorization, request=provider_request, preflight=preflight, audit_record_path=audit_path, attempt_token=attempt_token)
             consumed = evidence.consume(authorization=authorization, request=provider_request, audit_record_path=audit_path, attempt_token=attempt_token, now=now())
             state["generation_attempted"] = True
             result = transport.generate(provider_request, consumed)
-            state.update(generation_duration_ms=result.generation_duration_ms, total_duration_ms=result.duration_ms, input_tokens=result.input_tokens, output_tokens=result.output_tokens, cached_input_tokens=result.cached_input_tokens, uncached_input_tokens=result.uncached_input_tokens, estimated_cost=result.estimated_cost, provider_request_id=result.provider_request_id, provider_reported_model_identifier=result.provider_model_identifier, finish_status=result.finish_status, refusal_status=result.refusal_status, incomplete_reason=result.incomplete_reason)
+            state.update(generation_duration_ms=result.generation_duration_ms, total_duration_ms=result.duration_ms, input_tokens=result.input_tokens, output_tokens=result.output_tokens, cached_input_tokens=result.cached_input_tokens, uncached_input_tokens=result.uncached_input_tokens, estimated_cost=result.estimated_cost, cache_status=result.cache_status, provider_request_id=result.provider_request_id, provider_reported_model_identifier=result.provider_model_identifier, finish_status=result.finish_status, refusal_status=result.refusal_status, incomplete_reason=result.incomplete_reason)
             if result.error_classification is not None:
                 classification = f"generation_{result.error_classification.value}"
+                failure_stage = "generation"
                 raise StageBPilotError(classification, audit_path)
             if result.provider_model_identifier not in {None, OPENAI_MODEL_IDENTIFIER}:
                 classification = "provider_schema_failure"
+                failure_stage = "provider_response"
                 raise StageBPilotError(classification, audit_path)
             if Decimal(result.estimated_cost.removeprefix("$")) > MAXIMUM_SPEND:
                 classification = "budget_rejection"
+                failure_stage = "generation_budget"
                 raise StageBPilotError(classification, audit_path)
             raw = parse_untrusted_response(result.response_content)
             try:
                 response = MovingServiceQuestionResponse.model_validate(raw)
             except ValidationError as error:
                 classification = "pydantic_validation_failure"
+                failure_stage = "pydantic_validation"
                 raise StageBPilotError(classification, audit_path) from error
             state["pydantic_validation_succeeded"] = True
             try:
                 validated = validate_response(request, raw)
             except ResponseValidationError as error:
                 classification = "semantic_validation_failure"
+                failure_stage = "semantic_validation"
                 raise StageBPilotError(classification, audit_path) from error
             state["semantic_validation_succeeded"] = True
             state["generation_succeeded"] = True
@@ -263,6 +354,7 @@ def _execute_stage_b(*, authorization: VerifiedStageBAuthorization, manifest_pat
             state["response_evidence_sha256"] = hashlib.sha256(evidence_bytes).hexdigest()
             state["response_evidence_delete_by"] = (now() + timedelta(days=30)).replace(microsecond=0).isoformat().replace("+00:00", "Z")
             state["normalized_question_text"] = normalize_question_text(validated.suggestions[0].question) if validated.suggestions else None
+            state["referenced_knowledge_ids"] = tuple(sorted({knowledge_id for suggestion in validated.suggestions for knowledge_id in suggestion.relevant_knowledge_ids}))
     except StageBPilotError:
         raise
     except CredentialBoundaryError as error:
@@ -275,12 +367,17 @@ def _execute_stage_b(*, authorization: VerifiedStageBAuthorization, manifest_pat
             if isinstance(error, CredentialAccessNotAuthorizedError)
             else "credential_boundary_failure"
         )
+        failure_stage = "client_construction" if isinstance(error, OpenAIClientConstructionError) else "credential_lookup"
+        if isinstance(error, OpenAIClientConstructionError):
+            state["credential_value_obtained"] = True
         raise StageBPilotError(classification, audit_path) from error
     except OpenAIBudgetGateError as error:
         classification = "budget_rejection"
+        failure_stage = "preflight_budget"
         raise StageBPilotError(classification, audit_path) from error
     except OpenAIPreflightGateError as error:
         classification = "preflight_evidence_or_budget_failure"
+        failure_stage = "preflight_evidence"
         raise StageBPilotError(classification, audit_path) from error
     except ResponseValidationError as error:
         classification = (
@@ -289,19 +386,21 @@ def _execute_stage_b(*, authorization: VerifiedStageBAuthorization, manifest_pat
             else "provider_schema_failure" if isinstance(error, OpenAIProviderSchemaError)
             else "malformed_json"
         )
+        failure_stage = "provider_response"
         raise StageBPilotError(classification, audit_path) from error
     except Exception as error:
         classification = "unexpected_post_reservation_failure"
+        failure_stage = "unexpected"
         raise StageBPilotError(classification, audit_path) from error
     finally:
-        record = StageBAuditRecord(run_series_id=RUN_SERIES_ID, run_sequence=SEQUENCE, fixture_id=FIXTURE_ID, capability=CAPABILITY, authorization_version=AUTHORIZATION_VERSION, authorization_digest=authorization.digest, prompt_version="moving-service-questions-prompt-v1", prompt_digest=FROZEN_PROMPT_DIGEST, request_schema_version="moving-service-questions-schema-v1", response_schema_version="moving-service-questions-schema-v1", knowledge_fixture_version="moving-service-storage-fixture-v2", run_configuration_digest=OPENAI_RUN_CONFIGURATION_DIGEST, provider_schema_digest=OPENAI_RESPONSE_SCHEMA_DIGEST, provider="OpenAI", ai_model_identifier=OPENAI_MODEL_IDENTIFIER, sdk_version="2.45.0", bounded_failure_classification=classification, fallback_used=False, human_review=_human_review(), **state)
+        record = StageBAuditRecord(run_series_id=RUN_SERIES_ID, run_sequence=SEQUENCE, fixture_id=FIXTURE_ID, capability=CAPABILITY, authorization_version=AUTHORIZATION_VERSION, authorization_digest=authorization.digest, prompt_version="moving-service-questions-prompt-v1", prompt_digest=FROZEN_PROMPT_DIGEST, request_schema_version="moving-service-questions-schema-v1", response_schema_version="moving-service-questions-schema-v1", knowledge_fixture_version="moving-service-storage-fixture-v2", run_configuration_digest=OPENAI_RUN_CONFIGURATION_DIGEST, provider_schema_digest=OPENAI_RESPONSE_SCHEMA_DIGEST, provider="OpenAI", ai_model_identifier=OPENAI_MODEL_IDENTIFIER, sdk_version="2.45.0", bounded_failure_classification=classification, failure_stage=failure_stage, fallback_used=False, **state)
         json.dump(asdict(record), output, indent=2, sort_keys=True)
         output.write("\n")
         output.close()
     return record
 
 
-def run_stage_b_generation_pilot(*, environment: Mapping[str, str], operator_intent: str, output_root: Path = DEFAULT_OUTPUT_ROOT, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> StageBAuditRecord:
+def run_stage_b_generation_pilot(*, environment: Mapping[str, str], operator_intent: str, run_series_id: str = RUN_SERIES_ID, sequence: int = SEQUENCE, fixture_id: str = FIXTURE_ID, output_root: Path = DEFAULT_OUTPUT_ROOT, manifest_path: Path = DEFAULT_MANIFEST_PATH) -> StageBAuditRecord:
     """Public path; the committed closed manifest rejects before environment access."""
     if manifest_path.resolve() != DEFAULT_MANIFEST_PATH.resolve():
         raise OfflineRunnerGateError("Stage B requires the repository manifest.")
@@ -309,10 +408,28 @@ def run_stage_b_generation_pilot(*, environment: Mapping[str, str], operator_int
         authorization = load_manifest_bound_stage_b_authorization(manifest_path, repository_root=REPOSITORY_ROOT)
     except StageBAuthorizationError as error:
         raise OfflineRunnerGateError(str(error)) from error
+    if (run_series_id, sequence, fixture_id) != (RUN_SERIES_ID, SEQUENCE, FIXTURE_ID):
+        raise OfflineRunnerGateError("Stage B accepts only the exact approved slot.")
     resolved = _validate_output_root(output_root, allow_temporary_test_output=False)
     audit, evidence = _paths(resolved)
     if audit.exists() or evidence.exists():
         raise FileExistsError("The Stage B slot or evidence already exists.")
     if operator_intent != OPERATOR_INTENT:
         raise OfflineRunnerGateError("Stage B operator intent is not confirmed.")
+    _require_exact_enablement(environment)
     return _execute_stage_b(authorization=authorization, manifest_path=manifest_path, environment=environment, output_root=resolved, client_builder=build_stage_b_moving_service_openai_client_with_pinned_sdk)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Run the one authorized moving-service Stage B pilot.")
+    parser.add_argument("--run-series", required=True, choices=[RUN_SERIES_ID])
+    parser.add_argument("--sequence", required=True, type=int, choices=[SEQUENCE])
+    parser.add_argument("--fixture", required=True, choices=[FIXTURE_ID])
+    parser.add_argument("--operator-intent", required=True, choices=[OPERATOR_INTENT])
+    arguments = parser.parse_args()
+    run_stage_b_generation_pilot(environment=os.environ, operator_intent=arguments.operator_intent, run_series_id=arguments.run_series, sequence=arguments.sequence, fixture_id=arguments.fixture)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
