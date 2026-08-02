@@ -49,7 +49,7 @@ validation
 The proposal binds the frozen prompt, run configuration, provider schema,
 request and response schema versions, knowledge version, OpenAI provider,
 `gpt-4.1-mini-2025-04-14`, and `openai==2.45.0`. It permits exactly one
-`storage_unknown` attempt at sequence `3` in
+`storage_unknown` attempt at sequence `4` in
 `moving-service-stage-b-pilot-20260801`, with one credential read, one client
 construction, one input-token preflight, one generation, zero retries, and a
 maximum total pilot spend of `$0.03`. Formal evaluation and production use
@@ -59,7 +59,7 @@ Unknown, missing, broadened, or changed fields fail closed. The artifact alone
 is not authority: the repository manifest must reference its exact path,
 version, status, and SHA-256 digest, and the artifact must be unexpired.
 
-Expired historical candidate identity (not valid for sequence `3`):
+Expired historical candidate identity (not valid for sequence `4`):
 
 ```text
 approved_at: 2026-08-02T02:59:38Z
@@ -69,7 +69,7 @@ approver: Joe Shepherd
 SHA-256: f2e958930ab35698393ac6b53b3bb43eb396d0282b243aa943bc4c3744e19615
 ```
 
-A sequence-`3` package requires a new 900-second window, new exact bytes, and a
+A sequence-`4` package requires a new 900-second window, new exact bytes, and a
 new SHA-256 digest. Nothing in this document activates one.
 
 ## 3. Human-Review Fields
@@ -107,7 +107,7 @@ The validated response evidence path is exactly:
 ```text
 .local/evaluations/suggest-moving-service-questions/
 moving-service-stage-b-pilot-20260801/
-003-storage_unknown-reviewed-response.json
+004-storage_unknown-reviewed-response.json
 ```
 
 It is Git-ignored, exclusively created with owner-only mode `0600`, and contains
@@ -175,8 +175,14 @@ sh scripts/experiments/suggest_moving_service_questions/run_openai_stage_b_pilot
 The credential value is intentionally omitted. Docker receives exactly
 `--env GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY`, which forwards that one
 host variable by name into the container without placing its value in the
-command line. The launch path also supplies exact enablement, fixed sequence
-`3`, the repository mount, the caller's UID/GID, a read-only container root,
+command line. Before Docker starts, the host launcher requires the named
+variable to be exported and nonempty. Before Python starts, the container
+wrapper independently requires the forwarded variable to be present and
+nonempty. Neither check prints, hashes, measures, logs, or otherwise exposes
+the value. Failure at either boundary starts no Python runner, reserves no
+audit record, consumes no sequence, constructs no client, and makes no network
+request. The launch path also supplies exact enablement, fixed sequence
+`4`, the repository mount, the caller's UID/GID, a read-only container root,
 and the frozen evaluation image. The key must already exist only in the bounded
 host process environment under its separately approved name. The CLI
 accepts no provider, AI model identifier, artifact, endpoint, timeout, retry,
@@ -224,7 +230,7 @@ The pilot audit path is exactly:
 ```text
 .local/evaluations/suggest-moving-service-questions/
 moving-service-stage-b-pilot-20260801/
-003-storage_unknown-generation-pilot.json
+004-storage_unknown-generation-pilot.json
 ```
 
 It is reserved exclusively with mode `0600` before environment access. An
@@ -254,7 +260,7 @@ core usage required for validation or cost still fails closed.
 Closure must occur after every outcome, including expiration or an unexpected
 failure:
 
-1. Preserve consumed sequences `1` and `2`; do not retry or replace sequence `3` after
+1. Preserve consumed sequences `1`, `2`, and `3`; do not retry or replace sequence `4` after
    any attempt begins.
 2. Remove `GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY` from the bounded process
    environment and terminate that process.

@@ -28,7 +28,7 @@ promoted into the Stage C denominator.
 
 ```text
 run-series ID: moving-service-stage-b-pilot-20260801
-sequence: 3
+sequence: 4
 fixture: storage_unknown
 maximum credential reads: 1
 maximum client constructions: 1
@@ -45,8 +45,8 @@ production use authorized: false
 ```
 
 The pilot uses a new series because Stage A sequences belong to a different
-preflight-only authorization history. Stage B sequences `1` and `2` were
-consumed by credential-stage failures on 2026-08-01; sequence `3` is now the
+preflight-only authorization history. Stage B sequences `1`, `2`, and `3` were
+consumed by credential-stage failures on 2026-08-01; sequence `4` is now the
 only eligible next slot. Only `storage_unknown` is eligible. A fresh
 preflight and its one generation are one indivisible pilot attempt.
 
@@ -108,7 +108,11 @@ only after separate implementation review.
 The later runner must enforce this order:
 
 ```text
-frozen-artifact integrity
+host-side credential presence/nonempty check
+→ Docker startup
+→ container-side credential presence/nonempty check
+→ Stage B Python runner startup
+→ frozen-artifact integrity
 → exact Stage B manifest authorization
 → series, sequence, and fixture validation
 → ignored output path and atomic non-overwrite reservation
@@ -127,11 +131,17 @@ frozen-artifact integrity
 → immediate repository closure
 ```
 
+The two launcher checks test only whether the named variable exists and is
+nonempty. They must not print, hash, measure, log, or otherwise expose its
+value. Failure at either check occurs before the Python runner and before audit
+reservation, so it does not consume sequence `4` and cannot reach client
+construction or a network operation.
+
 The exact audit path must be reserved with exclusive creation before credential
-access. That reservation is the local concurrency gate: another process cannot
-reach preflight or generation for the same pilot slot. Every failure after the
-reservation consumes the sequence. The record is never deleted to retry or
-replace the pilot.
+value retrieval by Python. That reservation is the local concurrency gate:
+another process cannot reach preflight or generation for the same pilot slot.
+Every failure after the reservation consumes the sequence. The record is never
+deleted to retry or replace the pilot.
 
 ## 5. Fresh-Preflight Evidence
 
@@ -289,7 +299,7 @@ Proposed path:
 ```text
 .local/evaluations/suggest-moving-service-questions/
   moving-service-stage-b-pilot-20260801/
-  003-storage_unknown-generation-pilot.json
+  004-storage_unknown-generation-pilot.json
 ```
 
 The record may contain:
@@ -329,7 +339,7 @@ Proposed path:
 ```text
 .local/evaluations/suggest-moving-service-questions/
   moving-service-stage-b-pilot-20260801/
-  003-storage_unknown-reviewed-response.json
+  004-storage_unknown-reviewed-response.json
 ```
 
 The evidence file should be ignored by Git, created exclusively with owner-only

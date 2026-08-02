@@ -199,7 +199,7 @@ def test_exact_authorization_scope_is_required(tmp_path, mutation):
         load_manifest_bound_stage_b_authorization(manifest, repository_root=tmp_path, now=now)
 
 
-@pytest.mark.parametrize("consumed_sequence", [1, 2])
+@pytest.mark.parametrize("consumed_sequence", [1, 2, 3])
 def test_consumed_stage_b_sequences_cannot_be_reauthorized(
     tmp_path, consumed_sequence
 ):
@@ -260,9 +260,9 @@ def test_offline_success_writes_bounded_owner_only_records(tmp_path):
     record = _execute_stage_b(authorization=authorization, manifest_path=manifest, environment={"fake": "value"}, output_root=tmp_path / "out", client_builder=lambda *a, **k: owned, now=lambda: now)
     audit, evidence = _paths(tmp_path / "out")
     assert record.generation_succeeded and record.pydantic_validation_succeeded and record.semantic_validation_succeeded
-    assert record.run_sequence == 3
-    assert audit.name == "003-storage_unknown-generation-pilot.json"
-    assert evidence.name == "003-storage_unknown-reviewed-response.json"
+    assert record.run_sequence == 4
+    assert audit.name == "004-storage_unknown-generation-pilot.json"
+    assert evidence.name == "004-storage_unknown-reviewed-response.json"
     assert owned.client.responses.count_calls == owned.client.responses.create_calls == 1
     assert audit.exists() and evidence.exists() and (evidence.stat().st_mode & 0o777) == 0o600
     text = audit.read_text() + evidence.read_text()

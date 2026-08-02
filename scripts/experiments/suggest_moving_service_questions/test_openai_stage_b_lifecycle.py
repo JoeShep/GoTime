@@ -137,9 +137,87 @@ def test_operator_intent_cannot_override_closed_authorization():
         )
 
 
-def test_sequences_one_and_two_are_consumed_and_three_is_the_only_next_slot():
-    assert CONSUMED_THROUGH_SEQUENCE == 2
-    assert SEQUENCE == 3
+def test_sequences_one_through_three_are_consumed_and_four_is_next():
+    assert CONSUMED_THROUGH_SEQUENCE == 3
+    assert SEQUENCE == 4
+
+
+@pytest.mark.parametrize("credential", [None, ""])
+def test_exact_docker_launcher_rejects_missing_or_empty_host_credential(
+    tmp_path, credential
+):
+    assert not lifecycle_paths()["audit"].exists()
+    docker_started = tmp_path / "docker-started"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_docker = fake_bin / "docker"
+    fake_docker.write_text(
+        f'#!/bin/sh\ntouch "{docker_started}"\n', encoding="utf-8"
+    )
+    fake_docker.chmod(0o700)
+    environment = {**os.environ, "PATH": f"{fake_bin}:{os.environ['PATH']}"}
+    environment.pop(EVALUATION_CREDENTIAL_NAME, None)
+    if credential is not None:
+        environment[EVALUATION_CREDENTIAL_NAME] = credential
+
+    completed = subprocess.run(
+        [
+            "sh",
+            str(
+                REPO
+                / "scripts/experiments/suggest_moving_service_questions/"
+                "run_openai_stage_b_pilot_docker.sh"
+            ),
+        ],
+        cwd=REPO,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 3
+    assert not docker_started.exists()
+    assert not lifecycle_paths()["audit"].exists()
+    assert "credential" in completed.stderr.lower()
+
+
+@pytest.mark.parametrize("credential", [None, ""])
+def test_container_wrapper_rejects_before_python_runner(tmp_path, credential):
+    assert not lifecycle_paths()["audit"].exists()
+    runner_started = tmp_path / "runner-started"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    fake_python = fake_bin / "python"
+    fake_python.write_text(
+        f'#!/bin/sh\ntouch "{runner_started}"\n', encoding="utf-8"
+    )
+    fake_python.chmod(0o700)
+    environment = {**os.environ, "PATH": f"{fake_bin}:{os.environ['PATH']}"}
+    environment.pop(EVALUATION_CREDENTIAL_NAME, None)
+    if credential is not None:
+        environment[EVALUATION_CREDENTIAL_NAME] = credential
+
+    completed = subprocess.run(
+        [
+            "sh",
+            str(
+                REPO
+                / "scripts/experiments/suggest_moving_service_questions/"
+                "run_openai_stage_b_pilot_container.sh"
+            ),
+        ],
+        cwd=REPO,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 3
+    assert not runner_started.exists()
+    assert not lifecycle_paths()["audit"].exists()
+    assert "credential" in completed.stderr.lower()
 
 
 def test_exact_docker_launch_forwards_only_named_evaluation_variables(tmp_path):
@@ -176,10 +254,14 @@ def test_exact_docker_launch_forwards_only_named_evaluation_variables(tmp_path):
     assert "GOTIME_MOVING_SERVICE_EVAL_ENABLED=1" in arguments
     assert "GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY" in arguments
     assert "synthetic-secret-not-for-recording" not in arguments
-    assert arguments[arguments.index("--sequence") + 1] == "3"
     assert arguments.count("GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY") == 1
     assert "--user" in arguments
     assert "--read-only" in arguments
+    assert arguments[-2:] == [
+        "sh",
+        "scripts/experiments/suggest_moving_service_questions/"
+        "run_openai_stage_b_pilot_container.sh",
+    ]
 
 
 def test_forwarded_synthetic_credential_reaches_injected_stage_b_constructor(
@@ -229,6 +311,108 @@ def test_forwarded_synthetic_credential_reaches_injected_stage_b_constructor(
         assert client_calls[0]["max_retries"] == 0
     finally:
         owned.close()
+
+
+def test_exact_launcher_reaches_injected_constructor_with_synthetic_credential(
+    tmp_path
+):
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    authorization, manifest = _package(tmp_path / "repo", now)
+    marker = tmp_path / "constructor-reached"
+    capture = tmp_path / "docker-arguments.txt"
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    probe = tmp_path / "constructor_probe.py"
+    probe.write_text(
+        """import os, sys
+from pathlib import Path
+sys.path.insert(0, os.environ["GOTIME_SCRIPT_ROOT"])
+import openai_client_factory as factory
+factory.REPOSITORY_ROOT = Path(os.environ["GOTIME_FAKE_REPOSITORY_ROOT"])
+calls = []
+class Http:
+    def __init__(self, **kwargs): calls.append(("http", kwargs))
+    def close(self): pass
+class Client:
+    def __init__(self, **kwargs):
+        self.max_retries = kwargs["max_retries"]
+        calls.append(("client", kwargs))
+    def close(self): pass
+owned = factory.build_stage_b_moving_service_openai_client_from_environment(
+    {factory.EVALUATION_CREDENTIAL_NAME: os.environ[factory.EVALUATION_CREDENTIAL_NAME]},
+    completed_non_secret_gates=factory.REQUIRED_NON_SECRET_GATE_ORDER,
+    operator_intent_confirmed=True,
+    manifest_path=Path(os.environ["GOTIME_FAKE_MANIFEST"]),
+    authorization_path=Path(os.environ["GOTIME_FAKE_AUTHORIZATION"]),
+    expected_authorization_digest=os.environ["GOTIME_FAKE_AUTHORIZATION_DIGEST"],
+    sdk_version="2.45.0",
+    client_constructor=Client,
+    http_client_constructor=Http,
+)
+assert calls[0] == ("http", {"trust_env": False})
+assert calls[1][1]["api_key"] == "synthetic-exact-launcher-proof"
+assert calls[1][1]["max_retries"] == 0
+owned.close()
+Path(os.environ["GOTIME_CONSTRUCTOR_MARKER"]).write_text("reached", encoding="utf-8")
+""",
+        encoding="utf-8",
+    )
+    fake_python = fake_bin / "python"
+    fake_python.write_text(
+        '#!/bin/sh\nexec "$GOTIME_REAL_PYTHON" "$GOTIME_CONSTRUCTOR_PROBE"\n',
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o700)
+    fake_docker = fake_bin / "docker"
+    fake_docker.write_text(
+        '#!/bin/sh\nprintf "%s\\n" "$@" > "$GOTIME_DOCKER_ARGUMENT_CAPTURE"\n'
+        'exec sh "$GOTIME_CONTAINER_WRAPPER"\n',
+        encoding="utf-8",
+    )
+    fake_docker.chmod(0o700)
+    environment = {
+        **os.environ,
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+        EVALUATION_CREDENTIAL_NAME: "synthetic-exact-launcher-proof",
+        "GOTIME_DOCKER_ARGUMENT_CAPTURE": str(capture),
+        "GOTIME_CONTAINER_WRAPPER": str(
+            REPO
+            / "scripts/experiments/suggest_moving_service_questions/"
+            "run_openai_stage_b_pilot_container.sh"
+        ),
+        "GOTIME_REAL_PYTHON": sys.executable,
+        "GOTIME_CONSTRUCTOR_PROBE": str(probe),
+        "GOTIME_CONSTRUCTOR_MARKER": str(marker),
+        "GOTIME_SCRIPT_ROOT": str(
+            REPO / "scripts/experiments/suggest_moving_service_questions"
+        ),
+        "GOTIME_FAKE_REPOSITORY_ROOT": str(tmp_path / "repo"),
+        "GOTIME_FAKE_MANIFEST": str(manifest),
+        "GOTIME_FAKE_AUTHORIZATION": str(authorization.path),
+        "GOTIME_FAKE_AUTHORIZATION_DIGEST": authorization.digest,
+    }
+
+    completed = subprocess.run(
+        [
+            "sh",
+            str(
+                REPO
+                / "scripts/experiments/suggest_moving_service_questions/"
+                "run_openai_stage_b_pilot_docker.sh"
+            ),
+        ],
+        cwd=REPO,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert completed.returncode == 0
+    assert marker.read_text(encoding="utf-8") == "reached"
+    assert "synthetic-exact-launcher-proof" not in capture.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_cli_rejects_wrong_fixed_values():
