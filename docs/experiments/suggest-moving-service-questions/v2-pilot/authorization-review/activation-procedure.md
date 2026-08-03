@@ -9,8 +9,21 @@ never be copied over the permanent closed authorization in place.
 3. Resolve the exact approver and whole-second UTC approval, activation, and expiration timestamps.
 4. Confirm sequence 1 is unused and no audit, evidence, deletion, or closure file conflicts exist.
 5. Resolve every preflight-candidate placeholder and dry-run render a
-   short-lived preflight-only artifact to its new ignored local path. Verify it
-   against the phase-specific active validator before proposing any manifest diff.
+   short-lived preflight-only artifact for review with:
+
+   ```text
+   python scripts/experiments/suggest_moving_service_questions/render_v2_preflight_authorization_candidate.py \
+     --output /tmp/gotime-v2-preflight-authorization.toml \
+     --approver "<APPROVER_ID>" \
+     --approved-at "<APPROVED_AT_WHOLE_SECOND_UTC_Z>" \
+     --activated-at "<ACTIVATED_AT_WHOLE_SECOND_UTC_Z>" \
+     --expires-at "<EXPIRES_AT_WHOLE_SECOND_UTC_Z>" \
+     --reason "<AUTHORIZATION_REASON>"
+   ```
+
+   This command only creates an owner-only `/tmp` review artifact and reports
+   its digest. It does not install or activate the result. Verify that output
+   against the phase-specific validator before proposing any manifest diff.
 6. Verify the preflight artifact digest, confirm generation remains false, and obtain approval for that repository switch.
 7. Enter the evaluation credential interactively for the separately authorized preflight phase without displaying it:
 
@@ -38,3 +51,5 @@ repository authority and cannot broaden the rendered active artifact.
 The umbrella and both phase candidates remain committed review inputs only;
 future active artifacts are distinct local files with independent digests and
 must receive independent human approval and activation.
+The rendering CLI supports preflight only; generation remains unavailable
+until approved preflight evidence exists and a separate renderer is reviewed.

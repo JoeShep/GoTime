@@ -12,6 +12,39 @@ whole-second UTC timestamps. The maximum activation-to-expiration window is
 900 seconds. The rendered artifact may authorize one preflight and zero
 generations. Activation remains a later reviewed repository-binding operation.
 
+The supported offline rendering command is:
+
+```text
+python scripts/experiments/suggest_moving_service_questions/render_v2_preflight_authorization_candidate.py \
+  --output /tmp/gotime-v2-preflight-authorization.toml \
+  --approver "<APPROVER_ID>" \
+  --approved-at "<APPROVED_AT_WHOLE_SECOND_UTC_Z>" \
+  --activated-at "<ACTIVATED_AT_WHOLE_SECOND_UTC_Z>" \
+  --expires-at "<EXPIRES_AT_WHOLE_SECOND_UTC_Z>" \
+  --reason "<AUTHORIZATION_REASON>"
+```
+
+All six arguments are required. The output must be an absolute, nonexistent
+regular-file path beneath an existing real directory under `/tmp`; relative
+paths, traversal, prefix confusion, symlinks, repository paths, and
+`.local/evaluations` paths fail closed. The file is created exclusively with
+owner-only permissions. The activation-to-expiration window is at most 900
+seconds.
+
+Success prints only:
+
+```text
+output_path=<absolute path>
+sha256=<64-character lowercase digest>
+```
+
+Exit codes are: `2` argument error, `3` path-policy error, `4` candidate or
+frozen-integrity error, `5` authorization-value validation error, and `6`
+exclusive-write error. Failure diagnostics are bounded and written to stderr.
+The rendered `/tmp` file is review evidence only: it is not installed, not
+referenced by the execution manifest, and not authoritative merely because it
+exists. Generation rendering is not supported by this CLI.
+
 The future local artifact is:
 
 ```text

@@ -252,3 +252,22 @@ placeholder was resolved, no credential environment was inspected, and no
 client or network operation occurred. Permanent closed repository authority,
 formal-evaluation prohibition, Stage C prohibition, and production prohibition
 remain unchanged.
+
+## Preflight rendering CLI
+
+The phase-specific preflight candidate has one stable offline renderer:
+`render_v2_preflight_authorization_candidate.py`. It requires an absolute new
+output file under the real `/tmp` directory plus explicit approver, reason, and
+whole-second UTC approval, activation, and expiration values. The maximum
+activation window remains 900 seconds. No scope, identity, permission, limit,
+digest, provider, AI model identifier, fixture, sequence, or target-authority
+override is exposed.
+
+The command verifies the exact candidate, phase manifest, umbrella candidate,
+frozen v2 package, and permanent closed state through the reviewed loader and
+renderer. It creates an owner-only file exclusively and prints only the path
+and SHA-256 digest. The result remains outside the repository and authoritative
+evaluation path; rendering does not install it, alter the execution manifest,
+or grant execution authority. Generation rendering remains unsupported. This
+milestone inspected no credential environment, constructed no client, and made
+no network request.

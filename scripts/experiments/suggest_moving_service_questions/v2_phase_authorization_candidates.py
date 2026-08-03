@@ -300,7 +300,14 @@ def _serialize_toml(artifact: Mapping[str, object]) -> bytes:
 
 def _safe_output(path: Path) -> Path:
     resolved = path.resolve()
-    if not resolved.is_relative_to(Path("/tmp").resolve()) or path.exists():
+    if (
+        not path.is_absolute()
+        or ".." in path.parts
+        or resolved == Path("/tmp").resolve()
+        or not resolved.is_relative_to(Path("/tmp").resolve())
+        or path.exists()
+        or path.is_symlink()
+    ):
         raise V2PhaseCandidateError("Dry-run output must be a new file under /tmp.")
     return resolved
 
@@ -369,7 +376,10 @@ def _render(
     )
     destination = _safe_output(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    descriptor = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(destination, flags, 0o600)
     with os.fdopen(descriptor, "wb") as handle:
         handle.write(content)
     return RenderedPhaseAuthorization(phase, destination, digest, artifact)
