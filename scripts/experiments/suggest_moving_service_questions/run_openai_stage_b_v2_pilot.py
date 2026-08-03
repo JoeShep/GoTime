@@ -52,6 +52,7 @@ from v2_follow_up_authorization import (  # noqa: E402
     V2FollowUpAuthorizationError,
     load_manifest_bound_v2_authorization,
 )
+from openai_client_factory import CONVENTIONAL_OPENAI_ENVIRONMENT_NAMES  # noqa: E402
 
 DEFAULT_EXECUTION_MANIFEST = (
     REPOSITORY_ROOT
@@ -73,6 +74,9 @@ class V2FollowUpPilotError(RuntimeError):
 
 
 class V2PilotTransport(Protocol):
+    def request_fingerprint(self, request: MovingServiceProviderRequest) -> str:
+        ...
+
     def preflight(self, request: MovingServiceProviderRequest) -> OpenAIPreflightResult:
         ...
 
@@ -168,19 +172,25 @@ def prepare_frozen_v2_pilot() -> PreparedV2Pilot:
 
 def _fingerprint(prepared: PreparedV2Pilot) -> str:
     value = {
-        "model": prepared.provider_request.model_identifier,
-        "parameters": dict(prepared.provider_request.model_parameters),
-        "instructions": prepared.provider_request.system_instructions,
-        "input": prepared.provider_request.deterministic_request_json,
-        "schema": prepared.provider_request.response_json_schema,
+        "common_input": {
+            "model": prepared.provider_request.model_identifier,
+            "instructions": prepared.provider_request.system_instructions,
+            "input": prepared.provider_request.deterministic_request_json,
+            "text": {"format": {
+                "type": "json_schema",
+                "name": "moving_service_question_response_v2",
+                "strict": True,
+                "schema": prepared.provider_request.response_json_schema,
+            }},
+            "truncation": "disabled",
+        },
         "maximum_output_tokens": prepared.provider_request.maximum_output_tokens,
-        "timeout": prepared.provider_request.timeout_seconds,
-        "retries": prepared.provider_request.retry_count,
+        "temperature": 0,
         "store": False,
-        "stream": False,
         "background": False,
-        "truncation": "disabled",
-        "tools": [],
+        "stream": False,
+        "generation_timeout_seconds": prepared.provider_request.timeout_seconds,
+        "retry_count": prepared.provider_request.retry_count,
     }
     serialized = json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
@@ -246,6 +256,11 @@ def execute_authorized_v2_pilot_offline(
         "provider": prepared.pilot_configuration["identity"]["provider"],
         "ai_model_identifier": prepared.provider_request.model_identifier,
         "authorization_digest": authorization.digest,
+        "repository_authorization_validated": True,
+        "operator_intent_confirmed": True,
+        "sdk_version": prepared.pilot_configuration["identity"]["sdk_pin"],
+        "provider_schema_digest": prepared.frozen_manifest["artifact_digests"]["openai-response-schema.json"],
+        "pilot_configuration_digest": prepared.frozen_manifest["artifact_digests"]["openai-follow-up-pilot.toml"],
         "credential_lookup_attempted": False,
         "credential_value_obtained": False,
         "client_construction_attempted": False,
@@ -255,6 +270,10 @@ def execute_authorized_v2_pilot_offline(
         "generation_attempted": False,
         "generation_succeeded": False,
         "input_tokens": None,
+        "conservative_preflight_cost": None,
+        "preflight_duration_ms": None,
+        "generation_duration_ms": None,
+        "total_duration_ms": None,
         "output_tokens": None,
         "cached_input_tokens": None,
         "uncached_input_tokens": None,
@@ -264,8 +283,11 @@ def execute_authorized_v2_pilot_offline(
         "finish_status": None,
         "pydantic_validation_succeeded": False,
         "semantic_validation_succeeded": False,
+        "prose_validation_succeeded": False,
         "prose_violation_codes": [],
+        "referenced_knowledge_ids": [],
         "fallback_used": False,
+        "fallback_question_id": None,
         "human_review_status": "pending",
         "grounding_supported": None,
         "invented_user_fact_present": None,
@@ -279,6 +301,7 @@ def execute_authorized_v2_pilot_offline(
         "reviewed_at": None,
         "bounded_review_notes": None,
         "response_evidence_path": None,
+        "response_evidence_sha256": None,
         "response_evidence_delete_by": None,
         "response_evidence_deleted": False,
         "response_evidence_deletion_recorded_at": None,
@@ -289,6 +312,8 @@ def execute_authorized_v2_pilot_offline(
     attempt_token = object()
     try:
         state["credential_lookup_attempted"] = True
+        if any(name in environment for name in CONVENTIONAL_OPENAI_ENVIRONMENT_NAMES):
+            raise V2FollowUpPilotError("credential_configuration_rejected", audit_path)
         credential = environment.get(CREDENTIAL_NAME)
         if not credential:
             raise V2FollowUpPilotError("credential_failure", audit_path)
@@ -301,7 +326,15 @@ def execute_authorized_v2_pilot_offline(
         preflight = transport.preflight(prepared.provider_request)
         state["preflight_succeeded"] = preflight.succeeded
         state["input_tokens"] = preflight.input_tokens
-        if not preflight.succeeded or preflight.request_fingerprint != _fingerprint(prepared):
+        state["preflight_duration_ms"] = preflight.duration_ms
+        state["conservative_preflight_cost"] = (
+            str(preflight.conservative_cost) if preflight.conservative_cost is not None else None
+        )
+        if (
+            not preflight.succeeded
+            or preflight.request_fingerprint
+            != transport.request_fingerprint(prepared.provider_request)
+        ):
             raise V2FollowUpPilotError("preflight_failure", audit_path)
         if preflight.conservative_cost is None or preflight.conservative_cost > Decimal("0.03"):
             raise V2FollowUpPilotError("budget_rejection", audit_path)
@@ -322,11 +355,17 @@ def execute_authorized_v2_pilot_offline(
             estimated_cost=result.estimated_cost,
             provider_request_id=result.provider_request_id,
             finish_status=result.finish_status,
+            preflight_duration_ms=result.preflight_duration_ms,
+            generation_duration_ms=result.generation_duration_ms,
+            total_duration_ms=result.duration_ms,
         )
         if result.error_classification is not None:
             raise V2FollowUpPilotError(
                 f"generation_{result.error_classification.value}", audit_path
             )
+        state["generation_succeeded"] = True
+        if not isinstance(result.estimated_cost, str):
+            raise V2FollowUpPilotError("usage_or_cost_unavailable", audit_path)
         if Decimal(result.estimated_cost.removeprefix("$")) > Decimal("0.03"):
             raise V2FollowUpPilotError("budget_rejection", audit_path)
         if not isinstance(result.response_content, (str, Mapping)):
@@ -340,10 +379,17 @@ def execute_authorized_v2_pilot_offline(
         except json.JSONDecodeError as error:
             raise V2FollowUpPilotError("malformed_json", audit_path) from error
         try:
-            MovingServiceQuestionResponseV2.model_validate(raw)
+            structured = MovingServiceQuestionResponseV2.model_validate(raw)
         except ValidationError as error:
             raise V2FollowUpPilotError("pydantic_validation_failure", audit_path) from error
         state["pydantic_validation_succeeded"] = True
+        state["referenced_knowledge_ids"] = sorted(
+            {
+                knowledge_id
+                for suggestion in structured.suggestions
+                for knowledge_id in suggestion.relevant_knowledge_ids
+            }
+        )
         try:
             validated = validate_response_v2(prepared.request, raw)
         except ProseValidationError as error:
@@ -351,12 +397,17 @@ def execute_authorized_v2_pilot_offline(
             state["prose_violation_codes"] = list(error.violation_codes)
             fallback = select_fallback_v2(prepared.request)
             state["fallback_used"] = fallback is not None
+            state["fallback_question_id"] = (
+                fallback.question_id if fallback is not None else None
+            )
             raise V2FollowUpPilotError("prose_validation_failure", audit_path) from error
         except ResponseValidationError as error:
             raise V2FollowUpPilotError("semantic_validation_failure", audit_path) from error
         state["semantic_validation_succeeded"] = True
-        state["generation_succeeded"] = True
+        state["prose_validation_succeeded"] = True
         _write_exclusive(evidence_path, validated.model_dump(mode="json"))
+        os.chmod(evidence_path, 0o600)
+        state["response_evidence_sha256"] = _digest(evidence_path)
         state["response_evidence_path"] = str(evidence_path)
         state["response_evidence_delete_by"] = (
             datetime.now(timezone.utc) + timedelta(days=30)
@@ -365,20 +416,40 @@ def execute_authorized_v2_pilot_offline(
     except V2FollowUpPilotError as error:
         state["bounded_failure_classification"] = error.classification
         raise
+    except Exception:
+        state["bounded_failure_classification"] = "unexpected_failure"
+        raise
     finally:
-        state["authorization_closed"] = closure()
-        _write_exclusive(
-            closure_path,
-            {
-                "run_series_id": RUN_SERIES_ID,
-                "sequence": SEQUENCE,
-                "authorization_closed": state["authorization_closed"],
-                "contains_response_content": False,
-            },
-        )
+        active_exception = sys.exc_info()[0] is not None
+        cleanup_failure: str | None = None
+        close_method = getattr(locals().get("client"), "close", None)
+        if callable(close_method):
+            try:
+                close_method()
+            except Exception:
+                cleanup_failure = "client_close_failure"
+                state["bounded_failure_classification"] = state["bounded_failure_classification"] or cleanup_failure
+        try:
+            state["authorization_closed"] = closure()
+        except Exception:
+            state["authorization_closed"] = False
+            cleanup_failure = "closure_failure"
+            state["bounded_failure_classification"] = state["bounded_failure_classification"] or cleanup_failure
+        if not closure_path.exists():
+            _write_exclusive(
+                closure_path,
+                {
+                    "run_series_id": RUN_SERIES_ID,
+                    "sequence": SEQUENCE,
+                    "authorization_closed": state["authorization_closed"],
+                    "contains_response_content": False,
+                },
+            )
         json.dump(state, output, indent=2, sort_keys=True)
         output.write("\n")
         output.close()
+        if cleanup_failure is not None and not active_exception:
+            raise V2FollowUpPilotError(cleanup_failure, audit_path)
 
 
 def run_v2_follow_up_pilot_with_injected_boundaries(

@@ -99,6 +99,9 @@ class FakeTransport:
         self.preflight_calls = 0
         self.generation_calls = 0
 
+    def request_fingerprint(self, request) -> str:
+        return _fingerprint(prepare_frozen_v2_pilot())
+
     def preflight(self, request) -> OpenAIPreflightResult:
         self.preflight_calls += 1
         return OpenAIPreflightResult(

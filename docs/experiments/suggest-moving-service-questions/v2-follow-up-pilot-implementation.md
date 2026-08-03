@@ -18,10 +18,12 @@ production use authorized: false
 ```
 
 This implementation proves the isolated v2 control path with injected fake
-clients and fake transport results. It neither constructs an OpenAI client nor
-contains a live transport admission path. The public entry point validates the
-committed execution manifest and stops at the closed repository authorization
-before inspecting operator environment values.
+OpenAI SDK-shaped clients and provider responses. The reviewed OpenAI transport
+mechanics perform fake exact-token preflight and fake generation against the
+frozen v2 prompt, deterministic request JSON, and strict provider schema. It
+neither constructs a real OpenAI client nor contains a live transport admission
+path. The public entry point stops at closed repository authorization before
+inspecting operator environment values.
 
 ## Frozen bindings
 
@@ -119,3 +121,38 @@ FastAPI or the frontend. It does not modify v1 fallback, request/response
 schemas, fixtures, authorization, Stage A/Stage B records, or lifecycle
 evidence. V1 authorization identities fail the v2 validator, and the v2
 identities are not admitted by the v1 runner.
+
+## Offline transport and client boundary
+
+`openai_transport_v2.py` is a thin verifier around the reviewed OpenAI
+Responses transport. It changes no provider mechanics. It substitutes the
+frozen v2 provider-schema identity and verifies the v2 timeouts, limits,
+strict-output mode, AI model identifier, and parameters. The existing frozen
+pricing configuration remains the source for token-cost arithmetic.
+
+Offline construction tests pass a synthetic credential explicitly to fake
+constructors and verify the official base URL, `max_retries=0`, and an HTTP
+client created with `trust_env=false`. Conventional OpenAI environment names
+are rejected. Owned client and HTTP resources close. The committed closed
+manifest prevents the public runner from inspecting any environment.
+
+## Review, deletion, and Docker lifecycle
+
+The v2 lifecycle accepts only bounded human-review fields and validates the
+owner-only response evidence against schema v2 and its recorded digest. Review
+sign-off deletes evidence immediately and creates a content-free deletion
+record; the recorded 30-day deadline supports explicit later deletion. The
+operation is idempotent. Closure restores and verifies the exact permanent
+closed manifest and records bounded evidence without credential access.
+
+The v2 Docker launcher and wrapper fix the run series, sequence, fixture, and
+operator-intent literal. Host and container checks reject a missing credential
+before Python starts. The credential is forwarded by environment-variable name
+only. The committed launcher exposes only a synthetic self-test using a
+read-only root and repository mount, host UID/GID, and `--network none`; other
+invocations stop while repository execution remains closed.
+
+Human review of this integration is still required. No short-lived execution
+authorization was generated. Credential access, token preflight, generation,
+formal evaluation, Stage C, FastAPI/frontend exposure, and production use all
+remain unauthorized.
