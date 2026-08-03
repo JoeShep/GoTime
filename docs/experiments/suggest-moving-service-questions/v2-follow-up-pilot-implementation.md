@@ -156,3 +156,20 @@ Human review of this integration is still required. No short-lived execution
 authorization was generated. Credential access, token preflight, generation,
 formal evaluation, Stage C, FastAPI/frontend exposure, and production use all
 remain unauthorized.
+
+## Inactive authorization review package
+
+An inactive, non-authoritative review package now exists under
+`v2-pilot/authorization-review/`. It contains the candidate, its external
+digest manifest, a human checklist, and future activation and cancellation
+procedures. The candidate binds the exact frozen v2 package, permanent closed
+state, run identity, provider settings, counts, timeouts, spend ceiling, record
+paths, and single-use policy.
+
+The candidate has placeholder approver and UTC timestamps, carries no active
+permission, and cannot satisfy the manifest-bound execution validator. The
+permanent closed execution manifest remains byte-for-byte authoritative.
+Activation requires a separately rendered artifact, new digest, reviewed
+manifest diff, exact human identity and timestamps, and explicit approval in a
+later milestone. Package preparation and dry-run validation inspect no
+credential environment, construct no client, and make no network request.
