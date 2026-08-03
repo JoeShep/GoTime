@@ -74,13 +74,26 @@ def phase_artifact(phase: str, prepared: PreparedV2Pilot, **evidence) -> dict[st
             "automatic_retries": 0, "maximum_total_spend_usd": "0.03", "single_use": True,
         },
         "approval": {
-            "approver": "Offline Reviewer", "approved_at": "2030-01-01T12:00:00Z",
-            "expires_at": "2030-01-01T12:15:00Z", "maximum_duration_seconds": 900,
+            "approver": "Offline Reviewer",
+            "approved_at": (
+                "2030-01-01T12:00:03Z" if phase == "generation" else "2030-01-01T12:00:00Z"
+            ),
+            "activated_at": (
+                "2030-01-01T12:00:03Z" if phase == "generation" else "2030-01-01T12:00:00Z"
+            ),
+            "expires_at": (
+                "2030-01-01T12:15:03Z" if phase == "generation" else "2030-01-01T12:15:00Z"
+            ),
+            "maximum_duration_seconds": 900,
+            "authorization_reason": "Offline phase-boundary test",
         },
         "evidence_binding": evidence or {
             "preflight_evidence_digest": "not_applicable",
             "preflight_review_digest": "not_applicable", "input_tokens": 0,
             "conservative_cost": "0.00",
+            "request_digest": "not_applicable", "canonical_attempt_digest": "not_applicable",
+            "provider_fingerprint": "not_applicable", "preflight_reviewer": "not_applicable",
+            "preflight_reviewed_at": "not_applicable",
         },
     }
 
@@ -109,6 +122,7 @@ def create_preflight_and_review(tmp_path: Path, approved: bool = True):
         notes="Bounded.", now=NOW + timedelta(seconds=3),
     )
     paths = phase_paths(tmp_path)
+    persisted_evidence = json.loads(paths["preflight_evidence"].read_text())
     evidence_digest = hashlib.sha256(paths["preflight_evidence"].read_bytes()).hexdigest()
     review_digest = hashlib.sha256(paths["preflight_review"].read_bytes()).hexdigest()
     generation = validate_phase_authorization(
@@ -117,6 +131,11 @@ def create_preflight_and_review(tmp_path: Path, approved: bool = True):
             preflight_evidence_digest=evidence_digest,
             preflight_review_digest=review_digest,
             input_tokens=2176, conservative_cost="0.0016704",
+            request_digest=persisted_evidence["deterministic_request_digest"],
+            canonical_attempt_digest=persisted_evidence["canonical_attempt_digest"],
+            provider_fingerprint=persisted_evidence["provider_preflight_fingerprint"],
+            preflight_reviewer="Offline Reviewer",
+            preflight_reviewed_at="2030-01-01T12:00:03Z",
         ), digest="b" * 64, phase="generation", now=NOW + timedelta(seconds=4),
         expected_bindings=frozen_binding_identity(prepared),
     )
@@ -146,16 +165,18 @@ def test_phase_authorization_expiration_fails_closed() -> None:
             phase_artifact("preflight", prepared), digest="a" * 64, phase="preflight",
             now=NOW + timedelta(minutes=20), expected_bindings=frozen_binding_identity(prepared),
         )
-    changed = phase_artifact("generation", prepared, preflight_evidence_digest="a" * 64,
-        preflight_review_digest="b" * 64, input_tokens=1, conservative_cost="0.01")
+    evidence = dict(preflight_evidence_digest="a" * 64, preflight_review_digest="b" * 64,
+        input_tokens=1, conservative_cost="0.01", request_digest="c" * 64,
+        canonical_attempt_digest="d" * 64, provider_fingerprint="e" * 64,
+        preflight_reviewer="Reviewer", preflight_reviewed_at="2030-01-01T12:00:00Z")
+    changed = phase_artifact("generation", prepared, **evidence)
     changed["authorization"]["token_preflight_authorized"] = True  # type: ignore[index]
     with pytest.raises(V2TwoGateAuthorizationError):
         validate_phase_authorization(changed, digest="b" * 64, phase="generation", now=NOW,
             expected_bindings=frozen_binding_identity(prepared))
     generation = validate_phase_authorization(
-        phase_artifact("generation", prepared, preflight_evidence_digest="a" * 64,
-            preflight_review_digest="b" * 64, input_tokens=1, conservative_cost="0.01"),
-        digest="b" * 64, phase="generation", now=NOW,
+        phase_artifact("generation", prepared, **evidence),
+        digest="b" * 64, phase="generation", now=NOW + timedelta(seconds=4),
         expected_bindings=frozen_binding_identity(prepared),
     )
     with pytest.raises(V2FollowUpPilotError, match="preflight_authorization_rejected"):

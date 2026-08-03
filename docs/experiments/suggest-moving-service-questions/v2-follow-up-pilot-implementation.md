@@ -221,3 +221,34 @@ The inactive candidate remains byte-for-byte unchanged. It is compatible as a
 non-authoritative umbrella review ceiling because it already requires separate
 preflight and generation approval; future activation must render two distinct
 active artifacts rather than activate its combined proposed-permission view.
+
+## Inactive phase-specific candidates
+
+Two narrower review candidates now live under
+`v2-pilot/authorization-review/phase-candidates/`. The preflight candidate
+proposes one credential lookup, one client construction, one preflight, and
+zero generations. The generation candidate proposes one credential lookup,
+one client construction, zero preflights, and one generation. Both bind the
+unchanged umbrella candidate digest and the complete frozen-v2 package. Both
+remain inactive, non-authoritative, placeholder-bound, and invalid for
+execution.
+
+Offline loaders reject path substitution, symlinks, digest drift, duplicate
+TOML keys, unknown fields, mixed versions, phase overlap, broadened limits, and
+unresolved values in active validation. Dry-run renderers may write only a new
+owner-only file under `/tmp`; they never replace the permanent closed
+authorization. The generation renderer additionally requires exact immutable
+preflight evidence and approved review records, verifies their digests,
+freshness, unused state, run and frozen bindings, token count, cost, request
+digest, canonical-attempt digest, provider fingerprint, reviewer, and review
+timestamp.
+
+The maximum activation-to-expiration window is 900 seconds. Approval cannot be
+in the future, activation cannot precede approval, and generation approval or
+activation cannot precede preflight review. Phase authority is single use at
+the earliest irreversible attempt boundary and never returns to unused state.
+Preparation and activation remain separate milestones. No approver or timestamp
+placeholder was resolved, no credential environment was inspected, and no
+client or network operation occurred. Permanent closed repository authority,
+formal-evaluation prohibition, Stage C prohibition, and production prohibition
+remain unchanged.

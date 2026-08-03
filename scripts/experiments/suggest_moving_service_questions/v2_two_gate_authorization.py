@@ -26,6 +26,9 @@ class VerifiedV2PhaseAuthorization:
     review_digest: str | None = None
     input_tokens: int | None = None
     conservative_cost: Decimal | None = None
+    request_digest: str | None = None
+    canonical_attempt_digest: str | None = None
+    provider_fingerprint: str | None = None
 
 
 def _utc(value: object, field: str) -> datetime:
@@ -87,15 +90,25 @@ def validate_phase_authorization(
     if artifact["scope"] != expected_scope:
         raise V2TwoGateAuthorizationError("Two-gate scope drifted.")
     approval = artifact["approval"]
-    if set(approval) != {"approver", "approved_at", "expires_at", "maximum_duration_seconds"}:
+    if set(approval) != {
+        "approver", "approved_at", "activated_at", "expires_at",
+        "maximum_duration_seconds", "authorization_reason",
+    }:
         raise V2TwoGateAuthorizationError("Approval fields drifted.")
     if not isinstance(approval["approver"], str) or not approval["approver"].strip():
         raise V2TwoGateAuthorizationError("Approver is required.")
+    if not isinstance(approval["authorization_reason"], str) or not approval["authorization_reason"].strip():
+        raise V2TwoGateAuthorizationError("Authorization reason is required.")
     approved = _utc(approval["approved_at"], "approved_at")
+    activated = _utc(approval["activated_at"], "activated_at")
     expires = _utc(approval["expires_at"], "expires_at")
-    if approval["maximum_duration_seconds"] != 900 or (expires - approved).total_seconds() > 900:
+    if (
+        approval["maximum_duration_seconds"] != 900
+        or (expires - activated).total_seconds() > 900
+        or not approved <= activated < expires
+    ):
         raise V2TwoGateAuthorizationError("Authorization window exceeds 900 seconds.")
-    if not approved <= now < expires:
+    if not activated <= now < expires:
         raise V2TwoGateAuthorizationError("Authorization is expired or not active.")
     evidence = artifact["evidence_binding"]
     if phase == "preflight":
@@ -104,11 +117,18 @@ def validate_phase_authorization(
             "preflight_review_digest": "not_applicable",
             "input_tokens": 0,
             "conservative_cost": "0.00",
+            "request_digest": "not_applicable",
+            "canonical_attempt_digest": "not_applicable",
+            "provider_fingerprint": "not_applicable",
+            "preflight_reviewer": "not_applicable",
+            "preflight_reviewed_at": "not_applicable",
         }:
             raise V2TwoGateAuthorizationError("Preflight authority cannot bind generation evidence.")
         return VerifiedV2PhaseAuthorization(phase, digest, approved, expires)
     if set(evidence) != {
-        "preflight_evidence_digest", "preflight_review_digest", "input_tokens", "conservative_cost"
+        "preflight_evidence_digest", "preflight_review_digest", "input_tokens",
+        "conservative_cost", "request_digest", "canonical_attempt_digest",
+        "provider_fingerprint", "preflight_reviewer", "preflight_reviewed_at",
     }:
         raise V2TwoGateAuthorizationError("Generation evidence binding drifted.")
     if not all(isinstance(evidence[key], str) and len(evidence[key]) == 64 for key in (
@@ -120,8 +140,17 @@ def validate_phase_authorization(
     cost = Decimal(str(evidence["conservative_cost"]))
     if cost < 0 or cost > Decimal("0.03"):
         raise V2TwoGateAuthorizationError("Generation cost binding is invalid.")
+    for key in ("request_digest", "canonical_attempt_digest", "provider_fingerprint"):
+        if not isinstance(evidence[key], str) or len(evidence[key]) != 64:
+            raise V2TwoGateAuthorizationError("Generation attempt binding is invalid.")
+    if not isinstance(evidence["preflight_reviewer"], str) or not evidence["preflight_reviewer"].strip():
+        raise V2TwoGateAuthorizationError("Preflight reviewer binding is invalid.")
+    reviewed_at = _utc(evidence["preflight_reviewed_at"], "preflight_reviewed_at")
+    if approved < reviewed_at or activated < reviewed_at:
+        raise V2TwoGateAuthorizationError("Generation authority predates preflight review.")
     return VerifiedV2PhaseAuthorization(
         phase, digest, approved, expires,
         str(evidence["preflight_evidence_digest"]), str(evidence["preflight_review_digest"]),
-        int(evidence["input_tokens"]), cost,
+        int(evidence["input_tokens"]), cost, str(evidence["request_digest"]),
+        str(evidence["canonical_attempt_digest"]), str(evidence["provider_fingerprint"]),
     )

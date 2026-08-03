@@ -1,0 +1,22 @@
+{
+  "capability": "suggest_moving_service_questions",
+  "package_version": "moving-service-openai-v2-phase-candidates-v1",
+  "package_status": "inactive_non_authoritative",
+  "digest_algorithm": "sha256",
+  "umbrella_candidate_path": "docs/experiments/suggest-moving-service-questions/v2-pilot/authorization-review/inactive-authorization-candidate.toml",
+  "umbrella_candidate_digest": "cee4cdb826452906ea677785b1b76cf43745d28237a791d4c129175a0447062a",
+  "preflight_candidate_path": "docs/experiments/suggest-moving-service-questions/v2-pilot/authorization-review/phase-candidates/inactive-preflight-authorization-candidate.toml",
+  "preflight_candidate_digest": "a3f1000bb1b336bad4fb35e9316520f59eb1eeb96e257f19eb13e9d495504a6c",
+  "generation_candidate_path": "docs/experiments/suggest-moving-service-questions/v2-pilot/authorization-review/phase-candidates/inactive-generation-authorization-candidate.toml",
+  "generation_candidate_digest": "371674e7d7369d2271ef5573920ad3edd05e5c284a03593a69f7118876491500",
+  "active_repository_authority": false,
+  "valid_for_execution": false,
+  "separate_human_approval_required": true,
+  "separate_active_rendering_required": true,
+  "credential_access_authorized": false,
+  "token_preflight_authorized": false,
+  "ai_generation_authorized": false,
+  "formal_evaluation_authorized": false,
+  "stage_c_authorized": false,
+  "production_use_authorized": false
+}

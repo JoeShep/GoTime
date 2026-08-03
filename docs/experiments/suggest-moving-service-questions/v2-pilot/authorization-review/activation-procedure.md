@@ -4,10 +4,13 @@ This is a future procedure, not current authority. The inactive candidate must
 never be copied over the permanent closed authorization in place.
 
 1. Verify a clean working tree and frozen v1/v2 integrity.
-2. Confirm the reviewed candidate SHA-256 digest.
+2. Confirm the unchanged umbrella candidate SHA-256 digest and the selected
+   inactive phase-candidate digest from `phase-candidates/phase-candidate-manifest.json`.
 3. Resolve the exact approver and whole-second UTC approval, activation, and expiration timestamps.
 4. Confirm sequence 1 is unused and no audit, evidence, deletion, or closure file conflicts exist.
-5. Render a short-lived preflight-only artifact and exact manifest diff through the reviewed lifecycle operation.
+5. Resolve every preflight-candidate placeholder and dry-run render a
+   short-lived preflight-only artifact to its new ignored local path. Verify it
+   against the phase-specific active validator before proposing any manifest diff.
 6. Verify the preflight artifact digest, confirm generation remains false, and obtain approval for that repository switch.
 7. Enter the evaluation credential interactively for the separately authorized preflight phase without displaying it:
 
@@ -18,7 +21,11 @@ never be copied over the permanent closed authorization in place.
    ```
 
 8. Run at most one preflight, unset the credential, close preflight authority, and review the persisted evidence and cost.
-9. Render a distinct short-lived generation-only artifact bound to the approved evidence and review digests.
+9. Resolve every generation-candidate placeholder and dry-run render a distinct
+   short-lived generation-only artifact. Bind the evidence and review digests,
+   token count, cost, request digest, canonical-attempt digest, provider
+   fingerprint, reviewer, and review timestamp. Verify that evidence is fresh,
+   approved, and unused before proposing any manifest diff.
 10. Verify the generation artifact digest, confirm token preflight remains false, and obtain separate approval for that repository switch.
 11. Re-enter the evaluation credential with the same silent zsh procedure and run at most one generation with zero retries; generation must not perform preflight.
 12. Unset the credential and restore permanent closed authorization immediately.
@@ -28,3 +35,6 @@ never be copied over the permanent closed authorization in place.
 
 Operator intent, environment variables, and the inactive candidate are never
 repository authority and cannot broaden the rendered active artifact.
+The umbrella and both phase candidates remain committed review inputs only;
+future active artifacts are distinct local files with independent digests and
+must receive independent human approval and activation.

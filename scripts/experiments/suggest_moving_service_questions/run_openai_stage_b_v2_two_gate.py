@@ -267,6 +267,12 @@ def execute_v2_generation_offline(
         raise V2FollowUpPilotError("preflight_evidence_binding_mismatch")
     if evidence.get("input_tokens") != authorization.input_tokens or Decimal(str(evidence.get("conservative_maximum_generation_cost"))) != authorization.conservative_cost:
         raise V2FollowUpPilotError("preflight_evidence_cost_mismatch")
+    if (
+        evidence.get("deterministic_request_digest") != authorization.request_digest
+        or evidence.get("canonical_attempt_digest") != authorization.canonical_attempt_digest
+        or evidence.get("provider_preflight_fingerprint") != authorization.provider_fingerprint
+    ):
+        raise V2FollowUpPilotError("preflight_authorization_binding_mismatch")
     if paths["preflight_consumption"].exists():
         raise V2FollowUpPilotError("preflight_evidence_consumed")
     if any(paths[key].exists() for key in ("generation_audit", "response_evidence", "generation_closure")):
