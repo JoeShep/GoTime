@@ -173,3 +173,51 @@ Activation requires a separately rendered artifact, new digest, reviewed
 manifest diff, exact human identity and timestamps, and explicit approval in a
 later milestone. Package preparation and dry-run validation inspect no
 credential environment, construct no client, and make no network request.
+
+## Two-gate reconciliation
+
+The future live-capable workflow is now represented offline as two mutually
+exclusive phases for the same sequence-1 pilot attempt. A preflight
+authorization permits one credential lookup, one client construction, and one
+exact token count, while generation remains false and unreachable. A later
+generation authorization permits one credential lookup, one client
+construction, and one generation, while token preflight remains false and
+unreachable. Neither phase authorizes formal evaluation, Stage C, or production
+use. The permanent committed execution manifest remains closed.
+
+Successful preflight writes separate owner-only audit and evidence records:
+
+```text
+.local/evaluations/suggest-moving-service-questions/
+  moving-service-stage-b-v2-pilot-20260802/
+    001-storage_unknown-preflight.json
+    001-storage_unknown-preflight-evidence.json
+    001-storage_unknown-preflight-review.json
+    001-storage_unknown-preflight-evidence-consumption.json
+```
+
+The evidence contains only frozen identities and digests, deterministic request
+and provider-payload digests, bounded provider identity and parameters, token
+count, cost ceiling, timing, and review state. It excludes prompts, serialized
+request content, trusted state, credentials, headers, envelopes, and raw
+exceptions. Human review is append-only in a separate digest-bound record.
+Rejection or expiration blocks generation.
+
+Generation verifies the exact evidence and review digests plus the frozen
+manifest, prompt, schema, payload, request, provider, AI model identifier, SDK,
+timeouts, parameters, and cost. It creates an exclusive consumption record
+before invoking fake generation and cannot perform token preflight. A failed
+generation cannot reuse the consumed evidence. Automated success still requires
+human grounding review and the existing response-evidence deletion lifecycle.
+
+Separate preflight and generation Docker launchers fix the phase and run
+identity. Their committed forms are offline-only, use synthetic credentials,
+run with `--network none`, and stop when the permanent repository authority is
+closed. Missing credentials stop before Docker or Python. No active artifact,
+approver, timestamp, real credential, client, or provider request was created
+by this reconciliation.
+
+The inactive candidate remains byte-for-byte unchanged. It is compatible as a
+non-authoritative umbrella review ceiling because it already requires separate
+preflight and generation approval; future activation must render two distinct
+active artifacts rather than activate its combined proposed-permission view.
