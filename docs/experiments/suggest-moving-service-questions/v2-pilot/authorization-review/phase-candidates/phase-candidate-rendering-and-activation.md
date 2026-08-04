@@ -116,6 +116,38 @@ The future local artifact is:
     001-storage_unknown-preflight-authorization.toml
 ```
 
+After installation, approval, and the non-writing plan have been reviewed, the
+future atomic activation command is:
+
+```text
+python scripts/experiments/suggest_moving_service_questions/activate_v2_preflight_authorization.py \
+  --artifact-sha256 "<INSTALLED_ARTIFACT_SHA256>" \
+  --installation-record-sha256 "<INSTALLATION_RECORD_SHA256>" \
+  --activation-review-sha256 "<ACTIVATION_REVIEW_SHA256>" \
+  --operator "<OPERATOR_ID>" \
+  --operator-intent "activate exactly one v2 moving-service preflight authorization"
+```
+
+This command may be used only in a separately authorized milestone while the
+reviewed artifact is valid. The transaction creates the exact active bytes,
+atomically installs an exact preflight-only manifest, and records bounded
+activation evidence. Authority exists only when the active file, manifest,
+activation evidence, and committed journal all agree; partial state fails
+closed.
+
+Durable transaction states are `prepared`, `authorization_installed`,
+`manifest_activated`, `activation_recorded`, and `committed`. Recovery may use
+`rollback_required` and finishes at `rolled_back`. Exclusive writes, fsyncs,
+and same-filesystem atomic renames protect the transition. Idempotent recovery
+restores the exact closed manifest and removes only active/temporary files.
+
+Activation exit codes are: `2` argument, `3` input integrity, `4` review
+validation, `5` validity window, `6` closed state, `7` conflict, `8`
+transaction preparation, `9` active-authorization write, `10` manifest
+transition, `11` activation-record write, `12` transaction commit, and `13`
+recovery required. Validation has used synthetic roots only; the committed
+manifest remains closed and generation remains unauthorized.
+
 Preflight authority is consumed at the first credential lookup, client
 construction, token-preflight attempt, expiration, post-activation
 cancellation, or bounded failure. It never returns to unused active state.

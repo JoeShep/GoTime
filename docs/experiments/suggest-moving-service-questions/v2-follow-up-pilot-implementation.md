@@ -290,8 +290,22 @@ planner verifies all three exact digests, current validity, approval, closed
 state, conflict absence, and unused sequence, then reports the future active
 destination and required transition without writing them.
 
-Rendering, installation, activation review, and activation are therefore four
-distinct operations. The fourth remains unimplemented and unauthorized. The
-permanent closed execution manifest remains authoritative. This milestone read
-no credential or credential environment, constructed no client, and performed
-no preflight, generation, or network operation.
+Rendering, installation, activation review, and activation remain four
+distinct operations. The fourth now has a capability-specific atomic
+implementation, but it remains unauthorized and was exercised only against
+injected synthetic repository and local-state roots.
+
+The activation transaction revalidates all three reviewed digests, the current
+window, frozen bindings, exact preflight-only scope, permanent closed bytes,
+and unused sequence before writing. It then exclusively installs the exact
+authorization bytes, atomically transitions the execution manifest, writes
+bounded activation evidence, and commits a durable transaction journal.
+Runtime acceptance requires the active file, manifest, evidence, and committed
+journal to agree. Deterministic failpoints prove every partial state fails
+closed and idempotent recovery restores byte-identical permanent closed state.
+
+Generation, formal evaluation, Stage C, production, FastAPI, frontend,
+recurring, and background execution remain false. The permanent closed
+execution manifest remains authoritative. This milestone inspected no
+credential environment, constructed no client, and performed no preflight,
+generation, or network operation.

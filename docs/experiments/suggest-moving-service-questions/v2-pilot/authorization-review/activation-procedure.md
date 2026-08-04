@@ -48,8 +48,20 @@ never be copied over the permanent closed authorization in place.
    future active path and manifest transition. Installation, review approval,
    and planning do not activate authority.
 9. In a separate future milestone, verify the preflight artifact digest,
-   confirm generation remains false, and obtain approval for an atomic
-   activation operation and repository switch.
+   confirm generation remains false, and obtain approval to run exactly:
+
+   ```text
+   python scripts/experiments/suggest_moving_service_questions/activate_v2_preflight_authorization.py \
+     --artifact-sha256 "<INSTALLED_ARTIFACT_SHA256>" \
+     --installation-record-sha256 "<INSTALLATION_RECORD_SHA256>" \
+     --activation-review-sha256 "<ACTIVATION_REVIEW_SHA256>" \
+     --operator "<OPERATOR_ID>" \
+     --operator-intent "activate exactly one v2 moving-service preflight authorization"
+   ```
+
+   Installation and review do not authorize this command. It atomically binds
+   exact reviewed bytes to preflight-only repository authority only after a
+   separate explicit approval.
 10. Enter the evaluation credential interactively for the separately authorized preflight phase without displaying it:
 
    ```zsh
@@ -78,3 +90,9 @@ future active artifacts are distinct local files with independent digests and
 must receive independent human approval and activation.
 The rendering CLI supports preflight only; generation remains unavailable
 until approved preflight evidence exists and a separate renderer is reviewed.
+
+Immediately before activation, reconfirm the current window, permanent closed
+bytes, unused sequence, exact three input digests, and absence of active,
+transaction, audit, evidence, consumption, cancellation, or closure conflicts.
+Any interrupted transaction is non-runnable until the offline recovery path
+restores exact closed state.

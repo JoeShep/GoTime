@@ -112,6 +112,13 @@ def run_v2_preflight_phase(*, environment: Mapping[str, str], operator_intent: s
     _closed_public_gate()
 
 
+def load_committed_v2_preflight_authorization(*, now: datetime):
+    """Load only complete atomic preflight authority; import stays side-effect free."""
+    from v2_preflight_authorization_activation import load_active_preflight_authorization
+
+    return load_active_preflight_authorization(now=now)
+
+
 def run_v2_generation_phase(*, environment: Mapping[str, str], operator_intent: str) -> None:
     """Committed public entry fails before environment inspection."""
     _closed_public_gate()
