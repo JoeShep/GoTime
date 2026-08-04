@@ -45,7 +45,7 @@ def _utc(value: object, field: str) -> datetime:
 
 def validate_phase_authorization(
     artifact: Mapping[str, object], *, digest: str, phase: str, now: datetime,
-    expected_bindings: Mapping[str, object],
+    expected_bindings: Mapping[str, object], expected_sequence: int = SEQUENCE,
 ) -> VerifiedV2PhaseAuthorization:
     """Validate one exact temporary artifact without reading repository state."""
     if phase not in PHASES or set(artifact) != {
@@ -77,7 +77,7 @@ def validate_phase_authorization(
         raise V2TwoGateAuthorizationError("Phase permissions overlap or broadened.")
     expected_scope = {
         "run_series_id": RUN_SERIES_ID,
-        "sequence": SEQUENCE,
+        "sequence": expected_sequence,
         "fixture_id": FIXTURE_ID,
         "maximum_credential_reads": 1,
         "maximum_client_constructions": 1,

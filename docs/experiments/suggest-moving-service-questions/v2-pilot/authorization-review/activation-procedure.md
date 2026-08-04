@@ -91,6 +91,20 @@ must receive independent human approval and activation.
 The rendering CLI supports preflight only; generation remains unavailable
 until approved preflight evidence exists and a separate renderer is reviewed.
 
+Sequence 1 is cancelled and consumed without a provider request. A future
+package must authorize sequence 2. After its separate activation and live-call
+approval, enter the credential with the documented zsh-safe commands, set
+the exact operator controls, and run exactly:
+
+```zsh
+export GOTIME_MOVING_SERVICE_EVAL_ENABLED=1
+export GOTIME_MOVING_SERVICE_EVAL_OPERATOR_INTENT=AUTHORIZE_ONE_STORAGE_UNKNOWN_V2_PREFLIGHT_ONLY
+sh scripts/experiments/suggest_moving_service_questions/run_openai_stage_b_v2_preflight_docker.sh
+```
+
+The launcher exposes no scope overrides and the preflight runner cannot invoke
+generation. Closure follows the single attempt immediately.
+
 Immediately before activation, reconfirm the current window, permanent closed
 bytes, unused sequence, exact three input digests, and absence of active,
 transaction, audit, evidence, consumption, cancellation, or closure conflicts.

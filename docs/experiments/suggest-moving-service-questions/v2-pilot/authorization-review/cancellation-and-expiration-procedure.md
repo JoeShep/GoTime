@@ -27,3 +27,9 @@ manifest without its exact file, a digest mismatch, missing evidence, or an
 uncommitted journal never grants authority. Recovery restores the byte-exact
 closed manifest, removes only the active authorization and temporary files,
 preserves bounded evidence, records `rolled_back`, and is idempotent.
+
+Sequence 1 ended by operator cancellation before credential access and is
+permanently consumed. Sequence 2 is the next eligible preflight attempt and
+must receive a fresh candidate, review package, activation, and live-call
+approval. Its success or bounded failure writes `002-storage_unknown` evidence
+and closes immediately; it is never retried.

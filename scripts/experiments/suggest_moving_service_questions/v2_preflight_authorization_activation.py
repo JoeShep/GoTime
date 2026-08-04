@@ -128,20 +128,22 @@ class VerifiedActivePreflight:
 
 def activation_paths(
     *, repository_root: Path = REPOSITORY_ROOT, output_root: Path = DEFAULT_OUTPUT_ROOT,
+    sequence: int = SEQUENCE,
 ) -> ActivationPaths:
     repository_root = repository_root.resolve()
     repository_docs = repository_root / "docs/experiments/suggest-moving-service-questions/v2-pilot"
     review = review_paths(output_root)
     base = output_root / RUN_SERIES_ID
+    prefix = f"{sequence:03d}-{FIXTURE_ID}"
     return ActivationPaths(
         execution_manifest=repository_docs / "execution-manifest.json",
         closed_manifest=repository_docs / "closed-execution-manifest.json",
         permanent_authorization=repository_docs / "openai-execution-authorization.toml",
         installed=review["installed"], installation=review["installation"],
-        review=review["activation_review"], active=review["future_active"],
-        activation=base / f"{PREFIX}-preflight-activation.json",
-        journal=base / f"{PREFIX}-preflight-activation-transaction.json",
-        closure=base / f"{PREFIX}-preflight-closure.json",
+        review=review["activation_review"], active=base / f"{prefix}-preflight-authorization.toml",
+        activation=base / f"{prefix}-preflight-activation.json",
+        journal=base / f"{prefix}-preflight-activation-transaction.json",
+        closure=base / f"{prefix}-preflight-closure.json",
     )
 
 
@@ -489,10 +491,10 @@ def activate_preflight_authorization(
 
 def load_active_preflight_authorization(
     *, repository_root: Path = REPOSITORY_ROOT, output_root: Path = DEFAULT_OUTPUT_ROOT,
-    now: datetime,
+    now: datetime, expected_sequence: int = SEQUENCE,
 ) -> VerifiedActivePreflight:
     """Require the complete dual-bound, committed activation state."""
-    paths = activation_paths(repository_root=repository_root, output_root=output_root)
+    paths = activation_paths(repository_root=repository_root, output_root=output_root, sequence=expected_sequence)
     try:
         authorization_bytes = _secure_regular(paths.active, "active authorization")
         manifest_bytes = _secure_regular(paths.execution_manifest, "execution manifest")
@@ -512,6 +514,7 @@ def load_active_preflight_authorization(
     if (
         manifest.get("status") != "active_preflight_authorized"
         or manifest.get("phase") != PHASE
+        or manifest.get("sequence") != expected_sequence
         or manifest.get("authorization_path") != str(paths.active.resolve())
         or manifest.get("authorization_digest") != authorization_digest
         or manifest.get("transaction_id") != journal.get("transaction_id")
@@ -540,6 +543,7 @@ def load_active_preflight_authorization(
         verified = validate_phase_authorization(
             artifact, digest=authorization_digest, phase="preflight", now=now,
             expected_bindings=frozen_binding_identity(prepared),
+            expected_sequence=expected_sequence,
         )
     except V2TwoGateAuthorizationError as error:
         raise ActiveAuthorizationValidationError("active authorization is invalid or expired") from error
@@ -550,12 +554,12 @@ def load_active_preflight_authorization(
 
 def recover_preflight_activation(
     *, reason: str, now: datetime, repository_root: Path = REPOSITORY_ROOT,
-    output_root: Path = DEFAULT_OUTPUT_ROOT,
+    output_root: Path = DEFAULT_OUTPUT_ROOT, sequence: int = SEQUENCE,
 ) -> Mapping[str, object]:
     """Idempotently restore exact closed bytes after any activation transaction state."""
-    if reason not in {"activation_recovery", "operator_cancellation", "expiration", "bounded_failure"}:
+    if reason not in {"success", "activation_recovery", "operator_cancellation", "expiration", "bounded_failure"}:
         raise ActivationError("closure reason is invalid")
-    paths = activation_paths(repository_root=repository_root, output_root=output_root)
+    paths = activation_paths(repository_root=repository_root, output_root=output_root, sequence=sequence)
     if paths.closure.exists():
         record = json.loads(_secure_regular(paths.closure, "closure evidence"))
         if record.get("authorization_closed") is not True:
@@ -591,7 +595,7 @@ def recover_preflight_activation(
         _update_journal(paths.journal, journal, "rolled_back")
     closure = {
         "capability": CAPABILITY, "phase": PHASE, "run_series_id": RUN_SERIES_ID,
-        "sequence": SEQUENCE, "fixture_id": FIXTURE_ID, "closure_reason": reason,
+        "sequence": sequence, "fixture_id": FIXTURE_ID, "closure_reason": reason,
         "closed_at": _stamp(now), "transaction_id": transaction_id,
         "prior_transaction_state": prior_state, "transaction_state": "rolled_back",
         "closed_execution_manifest_digest": _digest_bytes(closed_bytes),

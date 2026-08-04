@@ -43,9 +43,9 @@ PREFLIGHT_INTENT = "AUTHORIZE_ONE_STORAGE_UNKNOWN_V2_PREFLIGHT_ONLY"
 GENERATION_INTENT = "AUTHORIZE_ONE_STORAGE_UNKNOWN_V2_GENERATION_ONLY"
 
 
-def phase_paths(output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Path]:
+def phase_paths(output_root: Path = DEFAULT_OUTPUT_ROOT, sequence: int = SEQUENCE) -> dict[str, Path]:
     directory = output_root / RUN_SERIES_ID
-    prefix = f"{SEQUENCE:03d}-{FIXTURE_ID}"
+    prefix = f"{sequence:03d}-{FIXTURE_ID}"
     return {
         "preflight_audit": directory / f"{prefix}-preflight.json",
         "preflight_evidence": directory / f"{prefix}-preflight-evidence.json",
@@ -128,22 +128,29 @@ def execute_v2_preflight_offline(
     *, authorization: VerifiedV2PhaseAuthorization, environment: Mapping[str, str],
     operator_intent: str, output_root: Path, client_constructor: Callable[[str], object],
     transport_factory: Callable[[object, PreparedV2Pilot], V2PilotTransport],
-    closure: Callable[[], bool], now: datetime,
+    closure: Callable[[], bool], now: datetime, sequence: int = SEQUENCE,
+    active_manifest_digest: str | None = None,
+    activation_record_digest: str | None = None,
 ) -> Mapping[str, object]:
     if authorization.phase != "preflight":
         raise V2FollowUpPilotError("preflight_authorization_rejected")
     prepared = prepare_frozen_v2_pilot()
-    paths = phase_paths(output_root)
+    paths = phase_paths(output_root, sequence)
     paths["preflight_audit"].parent.mkdir(parents=True, exist_ok=True)
     if any(paths[key].exists() for key in ("preflight_audit", "preflight_evidence", "preflight_closure")):
         raise FileExistsError("Preflight slot already exists.")
     state: dict[str, object] = {
-        "run_series_id": RUN_SERIES_ID, "sequence": SEQUENCE, "fixture_id": FIXTURE_ID,
+        "run_series_id": RUN_SERIES_ID, "sequence": sequence, "fixture_id": FIXTURE_ID,
         "phase": "preflight", "authorization_digest": authorization.digest,
+        "active_manifest_digest": active_manifest_digest,
+        "activation_record_digest": activation_record_digest,
+        "operator_intent_confirmed": False,
         "credential_lookup_attempted": False, "credential_value_obtained": False,
         "client_construction_attempted": False, "client_construction_succeeded": False,
         "preflight_attempted": False, "preflight_succeeded": False,
         "generation_attempted": False, "input_tokens": None,
+        "cached_input_tokens": None, "uncached_input_tokens": None,
+        "provider_request_id": None, "duration_ms": None, "evidence_digest": None,
         "conservative_maximum_generation_cost": None,
         "bounded_failure_classification": None, "authorization_closed": False,
         "authorization_consumed": False,
@@ -155,6 +162,7 @@ def execute_v2_preflight_offline(
         state["credential_lookup_attempted"] = True
         state["authorization_consumed"] = True
         credential = _gate_environment(environment, operator_intent, PREFLIGHT_INTENT)
+        state["operator_intent_confirmed"] = True
         state["credential_value_obtained"] = True
         state["client_construction_attempted"] = True
         client = client_constructor(credential)
@@ -163,6 +171,7 @@ def execute_v2_preflight_offline(
         state["preflight_attempted"] = True
         preflight = transport.preflight(prepared.provider_request)
         state["input_tokens"] = preflight.input_tokens
+        state["duration_ms"] = preflight.duration_ms
         state["conservative_maximum_generation_cost"] = (
             str(preflight.conservative_cost) if preflight.conservative_cost is not None else None
         )
@@ -171,7 +180,7 @@ def execute_v2_preflight_offline(
         if preflight.conservative_cost is None or preflight.conservative_cost > Decimal("0.03"):
             raise V2FollowUpPilotError("budget_rejection")
         evidence = {
-            "run_series_id": RUN_SERIES_ID, "sequence": SEQUENCE, "fixture_id": FIXTURE_ID,
+            "run_series_id": RUN_SERIES_ID, "sequence": sequence, "fixture_id": FIXTURE_ID,
             "phase": "preflight", **frozen_binding_identity(prepared),
             "deterministic_request_digest": _exact_request_digest(prepared),
             "canonical_attempt_digest": _fingerprint(prepared),
@@ -190,6 +199,7 @@ def execute_v2_preflight_offline(
             "consumed": False, "human_review_status": "pending",
         }
         _write_exclusive(paths["preflight_evidence"], evidence)
+        state["evidence_digest"] = hashlib.sha256(paths["preflight_evidence"].read_bytes()).hexdigest()
         state["preflight_succeeded"] = True
         return state
     except V2FollowUpPilotError as error:
@@ -199,7 +209,12 @@ def execute_v2_preflight_offline(
         close = getattr(client, "close", None)
         if callable(close):
             close()
-        state["authorization_closed"] = closure()
+        try:
+            state["authorization_closed"] = closure(
+                "success" if state["preflight_succeeded"] else "bounded_failure"
+            )
+        except TypeError:
+            state["authorization_closed"] = closure()
         paths["preflight_audit"].write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 

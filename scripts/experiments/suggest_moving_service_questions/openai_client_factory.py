@@ -299,6 +299,52 @@ def _construct_openai_client(
     return MovingServiceOpenAIClient(client, http_client)
 
 
+def build_v2_preflight_openai_client(
+    environment: Mapping[str, str], *, active_state_verified: bool,
+    completed_non_secret_gates: tuple[str, ...], operator_intent_confirmed: bool,
+    client_constructor: Callable[..., _ClientLike],
+    http_client_constructor: Callable[..., _HttpClientLike],
+) -> MovingServiceOpenAIClient:
+    """Construct one injected client after the v2 atomic state is verified."""
+    if active_state_verified is not True:
+        raise CredentialAccessNotAuthorizedError("V2 active state is not verified.")
+    if completed_non_secret_gates != REQUIRED_NON_SECRET_GATE_ORDER:
+        raise CredentialAccessNotAuthorizedError("The ordered non-secret runner gates are incomplete.")
+    if operator_intent_confirmed is not True:
+        raise CredentialAccessNotAuthorizedError("Explicit operator intent was not confirmed.")
+    credential = _read_evaluation_credential(environment)
+    return _construct_openai_client(
+        credential, sdk_version=OPENAI_SDK_VERSION,
+        client_constructor=client_constructor, http_client_constructor=http_client_constructor,
+    )
+
+
+def build_v2_preflight_openai_client_with_pinned_sdk(
+    environment: Mapping[str, str], *, active_state_verified: bool,
+    completed_non_secret_gates: tuple[str, ...], operator_intent_confirmed: bool,
+) -> MovingServiceOpenAIClient:
+    """Future-live v2 constructor; SDK imports occur only after non-secret gates."""
+    if not active_state_verified or completed_non_secret_gates != REQUIRED_NON_SECRET_GATE_ORDER or not operator_intent_confirmed:
+        raise CredentialAccessNotAuthorizedError("V2 preflight client gates are incomplete.")
+    from openai import DefaultHttpxClient, OpenAI
+    return build_v2_preflight_openai_client(
+        environment, active_state_verified=True,
+        completed_non_secret_gates=completed_non_secret_gates,
+        operator_intent_confirmed=True, client_constructor=OpenAI,
+        http_client_constructor=DefaultHttpxClient,
+    )
+
+
+def construct_v2_preflight_openai_client_with_pinned_sdk(credential_value: str) -> MovingServiceOpenAIClient:
+    """Construct from the runner's single already-validated credential lookup."""
+    from openai import DefaultHttpxClient, OpenAI
+    credential = MovingServiceEvaluationCredential(credential_value, _CREDENTIAL_CONSTRUCTION_TOKEN)
+    return _construct_openai_client(
+        credential, sdk_version=OPENAI_SDK_VERSION, client_constructor=OpenAI,
+        http_client_constructor=DefaultHttpxClient,
+    )
+
+
 def build_moving_service_openai_client_from_environment(
     environment: Mapping[str, str],
     *,

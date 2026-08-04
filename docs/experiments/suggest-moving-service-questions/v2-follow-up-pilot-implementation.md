@@ -309,3 +309,16 @@ recurring, and background execution remain false. The permanent closed
 execution manifest remains authoritative. This milestone inspected no
 credential environment, constructed no client, and performed no preflight,
 generation, or network operation.
+
+## Sequence-2 real-preflight boundary
+
+Sequence 1 was consumed by an operator-cancelled activation; no credential was
+read and no provider request occurred. Sequence 2 is the next eligible slot.
+The public preflight launcher now connects complete committed sequence-2
+authority to the reviewed credential/client boundary and the frozen-v2 OpenAI
+input-token transport. It permits one lookup, one client, one five-second
+`/v1/responses/input_tokens` call, zero retries, and zero generation calls.
+Audit, evidence, consumption, and closure use the `002-storage_unknown` prefix.
+Every attempted path closes client resources and restores permanent closed
+authority immediately. The separate synthetic mode retains `--network none`.
+No live credential, client, or network operation was used in this milestone.
