@@ -315,6 +315,7 @@ def _safe_output(path: Path) -> Path:
 def _active_artifact(
     *, phase: str, approver: str, approved_at: str, activated_at: str,
     expires_at: str, authorization_reason: str, evidence_binding: Mapping[str, object],
+    sequence: int = 1,
 ) -> dict[str, object]:
     prepared = prepare_frozen_v2_pilot()
     return {
@@ -333,7 +334,7 @@ def _active_artifact(
             "production_use_authorized": False,
         },
         "scope": {
-            "run_series_id": "moving-service-stage-b-v2-pilot-20260802", "sequence": 1,
+            "run_series_id": "moving-service-stage-b-v2-pilot-20260802", "sequence": sequence,
             "fixture_id": "storage_unknown", "maximum_credential_reads": 1,
             "maximum_client_constructions": 1,
             "maximum_token_preflight_requests": 1 if phase == "preflight" else 0,
@@ -353,8 +354,9 @@ def _render(
     *, phase: str, output_path: Path, approver: str, approved_at: str,
     activated_at: str, expires_at: str, authorization_reason: str, now: datetime,
     evidence_binding: Mapping[str, object], reviewed_at: datetime | None = None,
+    sequence: int = 1, candidate_loader=load_inactive_phase_candidate,
 ) -> RenderedPhaseAuthorization:
-    load_inactive_phase_candidate(phase)
+    candidate_loader(phase)
     if not approver.strip() or approver in SHARED_PLACEHOLDERS:
         raise V2PhaseCandidateError("Exact approver identity is required.")
     if not authorization_reason.strip() or authorization_reason in SHARED_PLACEHOLDERS:
@@ -366,13 +368,14 @@ def _render(
     artifact = _active_artifact(
         phase=phase, approver=approver, approved_at=approved_at, activated_at=activated_at,
         expires_at=expires_at, authorization_reason=authorization_reason,
-        evidence_binding=evidence_binding,
+        evidence_binding=evidence_binding, sequence=sequence,
     )
     content = _serialize_toml(artifact)
     digest = hashlib.sha256(content).hexdigest()
     validate_phase_authorization(
         artifact, digest=digest, phase=phase, now=now,
         expected_bindings=frozen_binding_identity(prepare_frozen_v2_pilot()),
+        expected_sequence=sequence,
     )
     destination = _safe_output(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -392,6 +395,27 @@ def render_preflight_candidate(
     return _render(
         phase="preflight", output_path=output_path, approver=approver,
         approved_at=approved_at, activated_at=activated_at, expires_at=expires_at,
+        authorization_reason=authorization_reason, now=now,
+        evidence_binding={
+            "preflight_evidence_digest": "not_applicable",
+            "preflight_review_digest": "not_applicable", "input_tokens": 0,
+            "conservative_cost": "0.00", "request_digest": "not_applicable",
+            "canonical_attempt_digest": "not_applicable", "provider_fingerprint": "not_applicable",
+            "preflight_reviewer": "not_applicable", "preflight_reviewed_at": "not_applicable",
+        },
+    )
+
+
+def render_preflight_candidate_for_sequence(
+    *, sequence: int, candidate_loader, output_path: Path, approver: str,
+    approved_at: str, activated_at: str, expires_at: str,
+    authorization_reason: str, now: datetime,
+) -> RenderedPhaseAuthorization:
+    """Render a fixed, separately reviewed preflight candidate for one sequence."""
+    return _render(
+        phase="preflight", sequence=sequence, candidate_loader=candidate_loader,
+        output_path=output_path, approver=approver, approved_at=approved_at,
+        activated_at=activated_at, expires_at=expires_at,
         authorization_reason=authorization_reason, now=now,
         evidence_binding={
             "preflight_evidence_digest": "not_applicable",

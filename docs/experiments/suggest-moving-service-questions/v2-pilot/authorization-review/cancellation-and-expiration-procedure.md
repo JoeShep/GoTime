@@ -33,3 +33,8 @@ permanently consumed. Sequence 2 is the next eligible preflight attempt and
 must receive a fresh candidate, review package, activation, and live-call
 approval. Its success or bounded failure writes `002-storage_unknown` evidence
 and closes immediately; it is never retried.
+
+Sequence-2 cancellation and recovery operate only on `002-storage_unknown`
+active, activation, transaction, audit, evidence, consumption, and closure
+paths. Recovery restores the exact permanent closed manifest without deleting,
+rewriting, or treating sequence-1 records as authority.

@@ -132,7 +132,7 @@ def activation_paths(
 ) -> ActivationPaths:
     repository_root = repository_root.resolve()
     repository_docs = repository_root / "docs/experiments/suggest-moving-service-questions/v2-pilot"
-    review = review_paths(output_root)
+    review = review_paths(output_root, sequence=sequence)
     base = output_root / RUN_SERIES_ID
     prefix = f"{sequence:03d}-{FIXTURE_ID}"
     return ActivationPaths(
@@ -249,8 +249,8 @@ def _closed_state(paths: ActivationPaths) -> tuple[bytes, str, str]:
     return closed, _digest_bytes(closed), authorization_digest
 
 
-def _attempt_conflicts(output_root: Path) -> bool:
-    attempts = phase_paths(output_root)
+def _attempt_conflicts(output_root: Path, *, sequence: int = SEQUENCE) -> bool:
+    attempts = phase_paths(output_root, sequence)
     return any(attempts[key].exists() for key in (
         "preflight_audit", "preflight_evidence", "preflight_review",
         "preflight_consumption", "preflight_closure",
@@ -260,6 +260,7 @@ def _attempt_conflicts(output_root: Path) -> bool:
 def _load_inputs(
     *, paths: ActivationPaths, artifact_sha256: str, installation_record_sha256: str,
     activation_review_sha256: str, output_root: Path, now: datetime,
+    sequence: int = SEQUENCE, installation_options: Mapping[str, object] | None = None,
 ) -> tuple[bytes, dict[str, object], dict[str, object], dict[str, object]]:
     # Reuse the reviewed package validator first; it performs no environment or provider work.
     try:
@@ -267,7 +268,8 @@ def _load_inputs(
             artifact_sha256=artifact_sha256,
             installation_record_sha256=installation_record_sha256,
             activation_review_sha256=activation_review_sha256,
-            output_root=output_root, now=now,
+            output_root=output_root, now=now, sequence=sequence,
+            **dict(installation_options or {}),
         )
     except InstallationValidityWindowError as error:
         raise ActivationValidityError("reviewed authorization is outside its valid window") from error
@@ -310,20 +312,20 @@ def _load_inputs(
         raise ActivationValidityError("activation lifecycle timestamps are invalid or expired")
     if (expires - activated).total_seconds() > 900:
         raise ActivationValidityError("activation window exceeds 900 seconds")
-    if _attempt_conflicts(output_root):
+    if _attempt_conflicts(output_root, sequence=sequence):
         raise ActivationConflictError("preflight sequence is already used")
     return installed, artifact, installation, review
 
 
 def _active_manifest(
     *, artifact: Mapping[str, object], artifact_digest: str, review_digest: str,
-    active_path: Path, transaction_id: str,
+    active_path: Path, transaction_id: str, sequence: int = SEQUENCE,
 ) -> dict[str, object]:
     binding = frozen_binding_identity(prepare_frozen_v2_pilot())
     approval = artifact["approval"]
     return {
         "capability": CAPABILITY, "status": "active_preflight_authorized",
-        "phase": PHASE, "run_series_id": RUN_SERIES_ID, "sequence": SEQUENCE,
+        "phase": PHASE, "run_series_id": RUN_SERIES_ID, "sequence": sequence,
         "fixture_id": FIXTURE_ID, "provider": binding["provider"],
         "ai_model_identifier": binding["ai_model_identifier"], "sdk_pin": binding["sdk_pin"],
         "frozen_v2_manifest_path": "docs/experiments/suggest-moving-service-questions/v2/manifest.json",
@@ -350,11 +352,11 @@ def _active_manifest(
 
 def _journal_record(
     *, transaction_id: str, state: str, artifact_digest: str,
-    installation_digest: str, review_digest: str, now: datetime,
+    installation_digest: str, review_digest: str, now: datetime, sequence: int = SEQUENCE,
 ) -> dict[str, object]:
     return {
         "capability": CAPABILITY, "phase": PHASE, "run_series_id": RUN_SERIES_ID,
-        "sequence": SEQUENCE, "fixture_id": FIXTURE_ID, "transaction_id": transaction_id,
+        "sequence": sequence, "fixture_id": FIXTURE_ID, "transaction_id": transaction_id,
         "transaction_state": state, "installed_artifact_digest": artifact_digest,
         "installation_record_digest": installation_digest,
         "activation_review_digest": review_digest, "updated_at": _stamp(now),
@@ -381,20 +383,22 @@ def activate_preflight_authorization(
     now: datetime, repository_root: Path = REPOSITORY_ROOT,
     output_root: Path = DEFAULT_OUTPUT_ROOT, failpoint: str | None = None,
     transaction_id_factory: Callable[[], str] = lambda: uuid.uuid4().hex,
+    sequence: int = SEQUENCE, installation_options: Mapping[str, object] | None = None,
 ) -> Mapping[str, object]:
     """Atomically activate synthetic or future reviewed state; never touches credentials."""
     if not operator.strip() or operator_intent != OPERATOR_INTENT:
         raise ActivationReviewError("operator identity or exact intent is invalid")
     if failpoint is not None and failpoint not in FAILPOINTS:
         raise ActivationError("unknown synthetic failpoint")
-    paths = activation_paths(repository_root=repository_root, output_root=output_root)
+    paths = activation_paths(repository_root=repository_root, output_root=output_root, sequence=sequence)
     if any(path.exists() for path in (paths.active, paths.activation, paths.journal)):
         raise ActivationConflictError("active authorization, evidence, or journal already exists")
     installed, artifact, installation, review = _load_inputs(
         paths=paths, artifact_sha256=artifact_sha256,
         installation_record_sha256=installation_record_sha256,
         activation_review_sha256=activation_review_sha256,
-        output_root=output_root, now=now,
+        output_root=output_root, now=now, sequence=sequence,
+        installation_options=installation_options,
     )
     closed_bytes, closed_digest, permanent_digest = _closed_state(paths)
     if installation.get("closed_execution_manifest_digest") != _digest(EXECUTION_MANIFEST):
@@ -412,7 +416,7 @@ def activate_preflight_authorization(
     journal = _journal_record(
         transaction_id=transaction_id, state="prepared", artifact_digest=artifact_sha256,
         installation_digest=installation_record_sha256, review_digest=activation_review_sha256,
-        now=now,
+        now=now, sequence=sequence,
     )
     try:
         _exclusive(paths.journal, _json_bytes(journal))
@@ -432,7 +436,7 @@ def activate_preflight_authorization(
     manifest = _active_manifest(
         artifact=artifact, artifact_digest=artifact_sha256,
         review_digest=activation_review_sha256, active_path=paths.active,
-        transaction_id=transaction_id,
+        transaction_id=transaction_id, sequence=sequence,
     )
     manifest_bytes = _json_bytes(manifest)
     manifest_digest = _digest_bytes(manifest_bytes)
@@ -445,7 +449,7 @@ def activate_preflight_authorization(
     binding = frozen_binding_identity(prepare_frozen_v2_pilot())
     activation_record = {
         "capability": CAPABILITY, "phase": PHASE, "run_series_id": RUN_SERIES_ID,
-        "sequence": SEQUENCE, "fixture_id": FIXTURE_ID,
+        "sequence": sequence, "fixture_id": FIXTURE_ID,
         "installed_artifact_digest": artifact_sha256,
         "installation_record_digest": installation_record_sha256,
         "activation_review_digest": activation_review_sha256,

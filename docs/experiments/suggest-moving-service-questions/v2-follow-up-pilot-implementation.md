@@ -322,3 +322,18 @@ Audit, evidence, consumption, and closure use the `002-storage_unknown` prefix.
 Every attempted path closes client resources and restores permanent closed
 authority immediately. The separate synthetic mode retains `--network none`.
 No live credential, client, or network operation was used in this milestone.
+
+## Sequence-2 candidate versioning
+
+Sequence 2 has a distinct inactive candidate and sequence-aware manifest under
+`v2-pilot/authorization-review/phase-candidates/sequence-2/`. The historical
+sequence-1 candidate and manifest remain byte-for-byte unchanged and are
+recorded only as historical non-authority. Fixed sequence-2 renderer,
+installation, activation-review, planner, activation, and recovery entry points
+accept no sequence override and use only `002-storage_unknown` paths.
+
+The committed candidate retains unresolved human identity and UTC timestamp
+placeholders and grants no authority. Synthetic tests exercise activation and
+recovery only in isolated roots. The repository remains permanently closed;
+generation, formal evaluation, Stage C, production, FastAPI, and frontend use
+remain unauthorized. No credential or provider operation occurred.

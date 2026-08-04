@@ -110,3 +110,9 @@ bytes, unused sequence, exact three input digests, and absence of active,
 transaction, audit, evidence, consumption, cancellation, or closure conflicts.
 Any interrupted transaction is non-runnable until the offline recovery path
 restores exact closed state.
+
+Sequence 2 uses the distinct candidate manifest and fixed commands documented
+in `phase-candidates/sequence-2/sequence-2-rendering-and-activation.md`. Every
+resolved and operational path uses prefix `002-storage_unknown`; no sequence-2
+command accepts a sequence override or reads a `001` review record. Its exact
+operator-intent literal is `AUTHORIZE_ONE_STORAGE_UNKNOWN_V2_PREFLIGHT_ONLY`.

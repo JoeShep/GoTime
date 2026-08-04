@@ -121,16 +121,19 @@ def _utc(value: object, field: str) -> datetime:
     return parsed
 
 
-def review_paths(output_root: Path = DEFAULT_OUTPUT_ROOT) -> dict[str, Path]:
+def review_paths(output_root: Path = DEFAULT_OUTPUT_ROOT, *, sequence: int = SEQUENCE) -> dict[str, Path]:
     base = output_root / RUN_SERIES_ID
     review = base / "authorization-review"
+    prefix = f"{sequence:03d}-{FIXTURE_ID}"
     return {
         "directory": review,
-        "installed": review / f"{PREFIX}-preflight-rendered.toml",
-        "installation": review / f"{PREFIX}-preflight-installation.json",
-        "activation_review": review / f"{PREFIX}-preflight-activation-review.json",
-        "future_active": base / f"{PREFIX}-preflight-authorization.toml",
-        "future_closure": base / f"{PREFIX}-preflight-closure.json",
+        "installed": review / f"{prefix}-preflight-rendered.toml",
+        "installation": review / f"{prefix}-preflight-installation.json",
+        "activation_review": review / f"{prefix}-preflight-activation-review.json",
+        "future_active": base / f"{prefix}-preflight-authorization.toml",
+        "future_activation": base / f"{prefix}-preflight-activation.json",
+        "future_transaction": base / f"{prefix}-preflight-activation-transaction.json",
+        "future_closure": base / f"{prefix}-preflight-closure.json",
     }
 
 
@@ -186,28 +189,33 @@ def _verify_closed_state() -> tuple[str, str]:
     return _digest(EXECUTION_MANIFEST), authorization_digest
 
 
-def _verify_package() -> tuple[Mapping[str, object], str, str]:
+def _verify_package(
+    *, candidate_loader=load_inactive_phase_candidate, candidate_manifest: Path = MANIFEST_PATH,
+    candidate_digest: str = "a3f1000bb1b336bad4fb35e9316520f59eb1eeb96e257f19eb13e9d495504a6c",
+    candidate_manifest_digest: str = "a9e8f21c65c15d0a0fccaffdbd44902c7e2a88416b97f53c562f331ae1740979",
+) -> tuple[Mapping[str, object], str, str]:
     try:
-        candidate = load_inactive_phase_candidate("preflight")
-        manifest_digest = _digest(MANIFEST_PATH)
+        candidate = candidate_loader("preflight")
+        manifest_digest = _digest(candidate_manifest)
         prepared = prepare_frozen_v2_pilot()
     except (OSError, ValueError) as error:
         raise PackageIntegrityError("reviewed candidate or frozen package failed verification") from error
-    if candidate.digest != "a3f1000bb1b336bad4fb35e9316520f59eb1eeb96e257f19eb13e9d495504a6c":
+    if candidate.digest != candidate_digest:
         raise PackageIntegrityError("preflight candidate digest drifted")
-    if manifest_digest != "a9e8f21c65c15d0a0fccaffdbd44902c7e2a88416b97f53c562f331ae1740979":
+    if manifest_digest != candidate_manifest_digest:
         raise PackageIntegrityError("phase-candidate manifest digest drifted")
     return prepared.frozen_manifest, candidate.digest, manifest_digest
 
 
 def _validate_artifact(
-    artifact: Mapping[str, object], *, digest: str, now: datetime,
+    artifact: Mapping[str, object], *, digest: str, now: datetime, sequence: int = SEQUENCE,
 ) -> Mapping[str, object]:
     prepared = prepare_frozen_v2_pilot()
     try:
         validate_phase_authorization(
             artifact, digest=digest, phase="preflight", now=now,
             expected_bindings=frozen_binding_identity(prepared),
+            expected_sequence=sequence,
         )
     except V2TwoGateAuthorizationError as error:
         message = str(error)
@@ -220,10 +228,10 @@ def _validate_artifact(
     return artifact
 
 
-def _conflicts(paths: Mapping[str, Path], output_root: Path) -> None:
+def _conflicts(paths: Mapping[str, Path], output_root: Path, *, sequence: int = SEQUENCE) -> None:
     if any(paths[key].exists() for key in ("installed", "installation", "activation_review", "future_active")):
         raise ConflictingStateError("authorization review or active artifact already exists")
-    attempts = phase_paths(output_root)
+    attempts = phase_paths(output_root, sequence)
     if any(attempts[key].exists() for key in (
         "preflight_audit", "preflight_evidence", "preflight_review",
         "preflight_consumption", "preflight_closure",
@@ -269,7 +277,10 @@ def _json_bytes(value: Mapping[str, object]) -> bytes:
 
 def install_preflight_for_review(
     *, source: Path, expected_sha256: str, output_root: Path = DEFAULT_OUTPUT_ROOT,
-    now: datetime,
+    now: datetime, sequence: int = SEQUENCE, candidate_loader=load_inactive_phase_candidate,
+    candidate_manifest: Path = MANIFEST_PATH,
+    candidate_digest: str = "a3f1000bb1b336bad4fb35e9316520f59eb1eeb96e257f19eb13e9d495504a6c",
+    candidate_manifest_digest: str = "a9e8f21c65c15d0a0fccaffdbd44902c7e2a88416b97f53c562f331ae1740979",
 ) -> Mapping[str, object]:
     source = validate_source_path(source)
     if len(expected_sha256) != 64 or any(character not in "0123456789abcdef" for character in expected_sha256):
@@ -282,20 +293,23 @@ def install_preflight_for_review(
         artifact = tomllib.loads(source_bytes.decode("utf-8"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
         raise SourceIntegrityError("rendered source is malformed TOML") from error
-    _, candidate_digest, candidate_manifest_digest = _verify_package()
-    _validate_artifact(artifact, digest=source_digest, now=now)
+    _, verified_candidate_digest, verified_manifest_digest = _verify_package(
+        candidate_loader=candidate_loader, candidate_manifest=candidate_manifest,
+        candidate_digest=candidate_digest, candidate_manifest_digest=candidate_manifest_digest,
+    )
+    _validate_artifact(artifact, digest=source_digest, now=now, sequence=sequence)
     closed_manifest_digest, closed_authorization_digest = _verify_closed_state()
-    paths = review_paths(output_root)
-    _conflicts(paths, output_root)
+    paths = review_paths(output_root, sequence=sequence)
+    _conflicts(paths, output_root, sequence=sequence)
     approval = artifact["approval"]
     bindings = artifact["bindings"]
     installation = {
         "capability": "suggest_moving_service_questions", "phase": "preflight",
-        "run_series_id": RUN_SERIES_ID, "sequence": SEQUENCE, "fixture_id": FIXTURE_ID,
+        "run_series_id": RUN_SERIES_ID, "sequence": sequence, "fixture_id": FIXTURE_ID,
         "source_digest": source_digest, "installed_digest": source_digest,
         "installed_path": str(paths["installed"].resolve()),
-        "candidate_digest": candidate_digest,
-        "phase_candidate_manifest_digest": candidate_manifest_digest,
+        "candidate_digest": verified_candidate_digest,
+        "phase_candidate_manifest_digest": verified_manifest_digest,
         "umbrella_candidate_digest": UMBRELLA_DIGEST,
         "frozen_v2_manifest_digest": frozen_binding_identity(prepare_frozen_v2_pilot())["frozen_v2_manifest_digest"],
         "prompt_digest": bindings["prompt_digest"],
@@ -331,8 +345,12 @@ def install_preflight_for_review(
 
 def _load_installed(
     *, output_root: Path, artifact_sha256: str, now: datetime,
+    sequence: int = SEQUENCE, candidate_loader=load_inactive_phase_candidate,
+    candidate_manifest: Path = MANIFEST_PATH,
+    candidate_digest: str = "a3f1000bb1b336bad4fb35e9316520f59eb1eeb96e257f19eb13e9d495504a6c",
+    candidate_manifest_digest: str = "a9e8f21c65c15d0a0fccaffdbd44902c7e2a88416b97f53c562f331ae1740979",
 ) -> tuple[dict[str, object], dict[str, object], dict[str, Path], str]:
-    paths = review_paths(output_root)
+    paths = review_paths(output_root, sequence=sequence)
     if paths["future_active"].exists():
         raise ClosedStateError("active local preflight authorization exists")
     if not paths["installed"].is_file() or paths["installed"].is_symlink():
@@ -350,13 +368,13 @@ def _load_installed(
         or installation.get("capability") != "suggest_moving_service_questions"
         or installation.get("phase") != "preflight"
         or installation.get("run_series_id") != RUN_SERIES_ID
-        or installation.get("sequence") != SEQUENCE
+        or installation.get("sequence") != sequence
         or installation.get("fixture_id") != FIXTURE_ID
         or installation.get("source_digest") != installed_digest
         or installation.get("installed_digest") != installed_digest
         or installation.get("installed_path") != str(paths["installed"].resolve())
-        or installation.get("candidate_digest") != "a3f1000bb1b336bad4fb35e9316520f59eb1eeb96e257f19eb13e9d495504a6c"
-        or installation.get("phase_candidate_manifest_digest") != "a9e8f21c65c15d0a0fccaffdbd44902c7e2a88416b97f53c562f331ae1740979"
+        or installation.get("candidate_digest") != candidate_digest
+        or installation.get("phase_candidate_manifest_digest") != candidate_manifest_digest
         or installation.get("umbrella_candidate_digest") != UMBRELLA_DIGEST
         or installation.get("frozen_v2_manifest_digest") != binding["frozen_v2_manifest_digest"]
         or installation.get("authoritative") is not False
@@ -365,9 +383,12 @@ def _load_installed(
     ):
         raise ReviewValidationError("installation record drifted")
     artifact = tomllib.loads(installed_bytes.decode("utf-8"))
-    _verify_package()
+    _verify_package(
+        candidate_loader=candidate_loader, candidate_manifest=candidate_manifest,
+        candidate_digest=candidate_digest, candidate_manifest_digest=candidate_manifest_digest,
+    )
     _verify_closed_state()
-    _validate_artifact(artifact, digest=installed_digest, now=now)
+    _validate_artifact(artifact, digest=installed_digest, now=now, sequence=sequence)
     approval = artifact["approval"]
     bindings = artifact["bindings"]
     if any(installation.get(key) != value for key, value in {
@@ -387,6 +408,9 @@ def _load_installed(
 def review_preflight_activation(
     *, artifact_sha256: str, reviewer: str, decision: str, reviewed_at: str,
     notes: str, output_root: Path = DEFAULT_OUTPUT_ROOT, now: datetime,
+    sequence: int = SEQUENCE, candidate_loader=load_inactive_phase_candidate,
+    candidate_manifest: Path = MANIFEST_PATH, candidate_digest: str = "a3f1000bb1b336bad4fb35e9316520f59eb1eeb96e257f19eb13e9d495504a6c",
+    candidate_manifest_digest: str = "a9e8f21c65c15d0a0fccaffdbd44902c7e2a88416b97f53c562f331ae1740979",
 ) -> Mapping[str, object]:
     if decision not in DECISIONS:
         raise ReviewValidationError("review decision is invalid")
@@ -397,10 +421,12 @@ def review_preflight_activation(
         raise ReviewValidationError("review timestamp is in the future")
     artifact, installation, paths, installation_digest = _load_installed(
         output_root=output_root, artifact_sha256=artifact_sha256, now=now,
+        sequence=sequence, candidate_loader=candidate_loader, candidate_manifest=candidate_manifest,
+        candidate_digest=candidate_digest, candidate_manifest_digest=candidate_manifest_digest,
     )
     if paths["activation_review"].exists():
         raise ConflictingStateError("activation review already exists")
-    attempts = phase_paths(output_root)
+    attempts = phase_paths(output_root, sequence)
     if any(attempts[key].exists() for key in (
         "preflight_audit", "preflight_evidence", "preflight_consumption", "preflight_closure",
     )):
@@ -409,7 +435,7 @@ def review_preflight_activation(
     expires_at = str(artifact["approval"]["expires_at"])
     record = {
         "capability": "suggest_moving_service_questions", "phase": "preflight",
-        "run_series_id": RUN_SERIES_ID, "sequence": SEQUENCE, "fixture_id": FIXTURE_ID,
+        "run_series_id": RUN_SERIES_ID, "sequence": sequence, "fixture_id": FIXTURE_ID,
         "installed_artifact_path": str(paths["installed"].resolve()),
         "installed_artifact_digest": artifact_sha256,
         "installation_record_digest": installation_digest,
@@ -439,10 +465,14 @@ def review_preflight_activation(
 def plan_preflight_activation(
     *, artifact_sha256: str, installation_record_sha256: str,
     activation_review_sha256: str, output_root: Path = DEFAULT_OUTPUT_ROOT,
-    now: datetime,
+    now: datetime, sequence: int = SEQUENCE, candidate_loader=load_inactive_phase_candidate,
+    candidate_manifest: Path = MANIFEST_PATH, candidate_digest: str = "a3f1000bb1b336bad4fb35e9316520f59eb1eeb96e257f19eb13e9d495504a6c",
+    candidate_manifest_digest: str = "a9e8f21c65c15d0a0fccaffdbd44902c7e2a88416b97f53c562f331ae1740979",
 ) -> Mapping[str, object]:
     artifact, _, paths, actual_installation_digest = _load_installed(
         output_root=output_root, artifact_sha256=artifact_sha256, now=now,
+        sequence=sequence, candidate_loader=candidate_loader, candidate_manifest=candidate_manifest,
+        candidate_digest=candidate_digest, candidate_manifest_digest=candidate_manifest_digest,
     )
     if actual_installation_digest != installation_record_sha256:
         raise ActivationPrerequisiteError("installation-record digest mismatch")
@@ -464,7 +494,7 @@ def plan_preflight_activation(
     _verify_closed_state()
     if paths["future_active"].exists():
         raise ActivationPrerequisiteError("future active destination already exists")
-    attempts = phase_paths(output_root)
+    attempts = phase_paths(output_root, sequence)
     if any(attempts[key].exists() for key in (
         "preflight_audit", "preflight_evidence", "preflight_consumption", "preflight_closure",
     )):
@@ -476,6 +506,8 @@ def plan_preflight_activation(
         "execution_manifest_transition_required": True,
         "execution_manifest_path": str(EXECUTION_MANIFEST),
         "closure_artifact": str(paths["future_closure"].resolve()),
+        "activation_record": str(paths["future_activation"].resolve()),
+        "transaction_journal": str(paths["future_transaction"].resolve()),
         "remaining_operator_confirmations": [
             "approve_exact_atomic_manifest_transition",
             "authorize_one_live_preflight_separately",
