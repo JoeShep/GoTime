@@ -271,3 +271,27 @@ evaluation path; rendering does not install it, alter the execution manifest,
 or grant execution authority. Generation rendering remains unsupported. This
 milestone inspected no credential environment, constructed no client, and made
 no network request.
+
+## Preflight installation and activation review
+
+The rendered preflight artifact can now move through two additional offline,
+non-authoritative states. Installation verifies exact `/tmp` source bytes,
+owner-only permissions, candidate and frozen bindings, active validity, closed
+repository authority, and unused sequence state before exclusively copying the
+bytes into the fixed ignored `authorization-review/` directory. A bounded
+installation record identifies the artifact and closed-state evidence without
+retaining prompts, requests, environment data, or credentials.
+
+A separate append-only review records `approve`, `reject`, or
+`request_changes`. Approval creates eligibility only; it does not change the
+manifest or write the future active authorization. Rejection and requested
+changes permanently block the installed artifact from the dry-run planner. The
+planner verifies all three exact digests, current validity, approval, closed
+state, conflict absence, and unused sequence, then reports the future active
+destination and required transition without writing them.
+
+Rendering, installation, activation review, and activation are therefore four
+distinct operations. The fourth remains unimplemented and unauthorized. The
+permanent closed execution manifest remains authoritative. This milestone read
+no credential or credential environment, constructed no client, and performed
+no preflight, generation, or network operation.

@@ -24,8 +24,33 @@ never be copied over the permanent closed authorization in place.
    This command only creates an owner-only `/tmp` review artifact and reports
    its digest. It does not install or activate the result. Verify that output
    against the phase-specific validator before proposing any manifest diff.
-6. Verify the preflight artifact digest, confirm generation remains false, and obtain approval for that repository switch.
-7. Enter the evaluation credential interactively for the separately authorized preflight phase without displaying it:
+6. Install the exact rendered bytes into non-authoritative local review staging:
+
+   ```text
+   python scripts/experiments/suggest_moving_service_questions/install_v2_preflight_authorization_for_review.py \
+     --source /tmp/gotime-v2-preflight-authorization.toml \
+     --expected-sha256 "<RENDERED_ARTIFACT_SHA256>"
+   ```
+
+7. Record a separate activation review while the artifact remains valid:
+
+   ```text
+   python scripts/experiments/suggest_moving_service_questions/review_v2_preflight_authorization_activation.py \
+     --artifact-sha256 "<INSTALLED_ARTIFACT_SHA256>" \
+     --reviewer "<REVIEWER_ID>" \
+     --decision approve \
+     --reviewed-at "<WHOLE_SECOND_UTC_Z>" \
+     --notes "<BOUNDED_NOTES>"
+   ```
+
+8. Run the non-writing activation planner with the exact artifact,
+   installation-record, and activation-review digests. Review the proposed
+   future active path and manifest transition. Installation, review approval,
+   and planning do not activate authority.
+9. In a separate future milestone, verify the preflight artifact digest,
+   confirm generation remains false, and obtain approval for an atomic
+   activation operation and repository switch.
+10. Enter the evaluation credential interactively for the separately authorized preflight phase without displaying it:
 
    ```zsh
    read -s "GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY?OpenAI evaluation key: "
@@ -33,18 +58,18 @@ never be copied over the permanent closed authorization in place.
    export GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY
    ```
 
-8. Run at most one preflight, unset the credential, close preflight authority, and review the persisted evidence and cost.
-9. Resolve every generation-candidate placeholder and dry-run render a distinct
+11. Run at most one preflight, unset the credential, close preflight authority, and review the persisted evidence and cost.
+12. Resolve every generation-candidate placeholder and dry-run render a distinct
    short-lived generation-only artifact. Bind the evidence and review digests,
    token count, cost, request digest, canonical-attempt digest, provider
    fingerprint, reviewer, and review timestamp. Verify that evidence is fresh,
    approved, and unused before proposing any manifest diff.
-10. Verify the generation artifact digest, confirm token preflight remains false, and obtain separate approval for that repository switch.
-11. Re-enter the evaluation credential with the same silent zsh procedure and run at most one generation with zero retries; generation must not perform preflight.
-12. Unset the credential and restore permanent closed authorization immediately.
-13. Complete mandatory human grounding review.
-14. Delete response evidence immediately after sign-off.
-15. Verify permanent closed authorization and bounded closure evidence.
+13. Verify the generation artifact digest, confirm token preflight remains false, and obtain separate approval for that repository switch.
+14. Re-enter the evaluation credential with the same silent zsh procedure and run at most one generation with zero retries; generation must not perform preflight.
+15. Unset the credential and restore permanent closed authorization immediately.
+16. Complete mandatory human grounding review.
+17. Delete response evidence immediately after sign-off.
+18. Verify permanent closed authorization and bounded closure evidence.
 
 Operator intent, environment variables, and the inactive candidate are never
 repository authority and cannot broaden the rendered active artifact.

@@ -45,6 +45,69 @@ The rendered `/tmp` file is review evidence only: it is not installed, not
 referenced by the execution manifest, and not authoritative merely because it
 exists. Generation rendering is not supported by this CLI.
 
+## Non-authoritative installation and activation review
+
+Rendering, installation, activation review, and activation are four separate
+operations. A previously rendered artifact may be copied byte-for-byte into
+the fixed ignored review area with:
+
+```text
+python scripts/experiments/suggest_moving_service_questions/install_v2_preflight_authorization_for_review.py \
+  --source /tmp/gotime-v2-preflight-authorization.toml \
+  --expected-sha256 "<RENDERED_ARTIFACT_SHA256>"
+```
+
+The installed artifact and append-only installation record are fixed at:
+
+```text
+.local/evaluations/suggest-moving-service-questions/
+  moving-service-stage-b-v2-pilot-20260802/authorization-review/
+    001-storage_unknown-preflight-rendered.toml
+    001-storage_unknown-preflight-installation.json
+```
+
+Installation preserves exact bytes, uses owner-only files and directory,
+verifies the closed repository and absence of attempt conflicts, and leaves the
+execution manifest unchanged. The staged artifact remains non-authoritative.
+
+Review that exact installation without activating it using:
+
+```text
+python scripts/experiments/suggest_moving_service_questions/review_v2_preflight_authorization_activation.py \
+  --artifact-sha256 "<INSTALLED_ARTIFACT_SHA256>" \
+  --reviewer "<REVIEWER_ID>" \
+  --decision "<approve|reject|request_changes>" \
+  --reviewed-at "<WHOLE_SECOND_UTC_Z>" \
+  --notes "<BOUNDED_NOTES>"
+```
+
+The append-only review is written to
+`authorization-review/001-storage_unknown-preflight-activation-review.json`.
+Approval means only that the installed bytes are eligible for a later atomic
+activation while still valid. Rejection or `request_changes` permanently
+blocks planning for that installed artifact.
+
+The non-writing prerequisite planner is:
+
+```text
+python scripts/experiments/suggest_moving_service_questions/plan_v2_preflight_authorization_activation.py \
+  --artifact-sha256 "<INSTALLED_ARTIFACT_SHA256>" \
+  --installation-record-sha256 "<INSTALLATION_RECORD_SHA256>" \
+  --activation-review-sha256 "<ACTIVATION_REVIEW_SHA256>"
+```
+
+It reports the future active destination, expected digest, required manifest
+transition, closure path, deadline, and remaining confirmations. It writes
+nothing. The future active path remains unwritten.
+
+Stable exit codes across these commands are: `2` argument, `3` path policy,
+`4` source integrity, `5` candidate/frozen integrity, `6` closed state, `7`
+conflicting state, `8` validity window, `9` installation write, `10` review
+validation, `11` review write, and `12` activation prerequisite. Existing
+destination, prior record, active authority, attempt evidence, expiration,
+digest drift, and consumed sequence all fail closed without overwrite or
+repair.
+
 The future local artifact is:
 
 ```text
