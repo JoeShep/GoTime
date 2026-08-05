@@ -337,3 +337,14 @@ placeholders and grants no authority. Synthetic tests exercise activation and
 recovery only in isolated roots. The repository remains permanently closed;
 generation, formal evaluation, Stage C, production, FastAPI, and frontend use
 remain unauthorized. No credential or provider operation occurred.
+
+## Sequence-2 renderer dependency environment
+
+The first operational render attempt stopped before artifact creation because
+host Python lacked Pydantic. The expired timestamps are unusable. The reviewed
+sequence-2 operator path now invokes the unchanged Python renderer inside
+`gotime-moving-service-stage-b:openai-2.45.0`, verifies the locked OpenAI and
+Pydantic versions, runs as the host UID/GID with a read-only root and repository,
+and uses `--network none`. It forwards no credential or OpenAI environment
+variable. Rendering remains non-authoritative and requires a fresh human-
+approved timestamp package.

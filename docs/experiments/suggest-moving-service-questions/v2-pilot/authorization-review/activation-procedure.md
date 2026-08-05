@@ -116,3 +116,9 @@ in `phase-candidates/sequence-2/sequence-2-rendering-and-activation.md`. Every
 resolved and operational path uses prefix `002-storage_unknown`; no sequence-2
 command accepts a sequence override or reads a `001` review record. Its exact
 operator-intent literal is `AUTHORIZE_ONE_STORAGE_UNKNOWN_V2_PREFLIGHT_ONLY`.
+
+The reviewed sequence-2 renderer must be invoked through its Docker launcher,
+not host Python. It uses the pinned evaluation image with `--network none`,
+forwards no credential environment variable, and writes only the requested
+`/tmp` review artifact. The failed host-Python timestamp package created no
+artifact and must not be reused; obtain fresh human-approved timestamps.

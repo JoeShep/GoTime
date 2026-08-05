@@ -4,10 +4,16 @@ The committed sequence-2 candidate and manifest are review inputs only. They
 cannot authorize sequence 1, generation, or execution. The permanent closed
 manifest remains authoritative until a separately approved atomic activation.
 
+The previous host-Python command failed before creating an artifact because the
+host environment did not contain Pydantic. Its timestamp package expired and
+must not be reused. The reviewed operator flow now runs in the existing pinned
+evaluation image with networking disabled; it does not require virtual-
+environment activation or forward credentials.
+
 The fixed renderer is:
 
 ```text
-python scripts/experiments/suggest_moving_service_questions/render_v2_sequence_2_preflight_authorization_candidate.py \
+sh scripts/experiments/suggest_moving_service_questions/render_v2_sequence_2_preflight_authorization_candidate_docker.sh \
   --output /tmp/gotime-v2-sequence-2-preflight-authorization.toml \
   --approver "<APPROVER_ID>" \
   --approved-at "<APPROVED_AT_WHOLE_SECOND_UTC_Z>" \
@@ -51,3 +57,9 @@ All local paths are fixed beneath run series
 the active authorization, execution manifest, activation evidence, and committed
 journal; interruption recovery restores the exact permanent closed manifest.
 No committed permission is active.
+
+The launcher uses image `gotime-moving-service-stage-b:openai-2.45.0`, verifies
+the locked OpenAI and Pydantic versions without downloading packages, mounts
+the repository read-only, mounts host `/tmp` for the owner-only output, runs as
+the host UID/GID, and passes only renderer arguments. Rendering remains non-
+authoritative and never installs or activates the result.
