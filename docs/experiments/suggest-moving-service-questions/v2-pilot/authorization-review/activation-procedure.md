@@ -122,3 +122,11 @@ not host Python. It uses the pinned evaluation image with `--network none`,
 forwards no credential environment variable, and writes only the requested
 `/tmp` review artifact. The failed host-Python timestamp package created no
 artifact and must not be reused; obtain fresh human-approved timestamps.
+
+The fixed sequence-2 installation, activation-review, and planning commands
+also use their corresponding `_docker.sh` launchers. The prior host installation
+command failed because `python` was unavailable; it created no installation or
+review record, and its rendered artifact is invalid for reuse. All four
+preparation commands run in the pinned image with networking disabled and no
+credential or proxy forwarding. A fresh human-approved timestamp package is
+required before restarting preparation.

@@ -25,16 +25,16 @@ sh scripts/experiments/suggest_moving_service_questions/render_v2_sequence_2_pre
 Installation, review, and planning use the fixed sequence-2 commands:
 
 ```text
-python scripts/experiments/suggest_moving_service_questions/install_v2_sequence_2_preflight_authorization_for_review.py \
+sh scripts/experiments/suggest_moving_service_questions/install_v2_sequence_2_preflight_authorization_for_review_docker.sh \
   --source /tmp/gotime-v2-sequence-2-preflight-authorization.toml \
   --expected-sha256 "<RENDERED_SHA256>"
 
-python scripts/experiments/suggest_moving_service_questions/review_v2_sequence_2_preflight_authorization_activation.py \
+sh scripts/experiments/suggest_moving_service_questions/review_v2_sequence_2_preflight_authorization_activation_docker.sh \
   --artifact-sha256 "<INSTALLED_SHA256>" \
   --reviewer "<REVIEWER_ID>" --decision "<DECISION>" \
   --reviewed-at "<REVIEWED_AT_WHOLE_SECOND_UTC_Z>" --notes "<BOUNDED_NOTES>"
 
-python scripts/experiments/suggest_moving_service_questions/plan_v2_sequence_2_preflight_authorization_activation.py \
+sh scripts/experiments/suggest_moving_service_questions/plan_v2_sequence_2_preflight_authorization_activation_docker.sh \
   --artifact-sha256 "<INSTALLED_SHA256>" \
   --installation-record-sha256 "<INSTALLATION_RECORD_SHA256>" \
   --activation-review-sha256 "<ACTIVATION_REVIEW_SHA256>"
@@ -63,3 +63,12 @@ the locked OpenAI and Pydantic versions without downloading packages, mounts
 the repository read-only, mounts host `/tmp` for the owner-only output, runs as
 the host UID/GID, and passes only renderer arguments. Rendering remains non-
 authoritative and never installs or activates the result.
+
+The later host installation command failed before installation because `python`
+was unavailable. No installed artifact or review record was created. That
+rendered artifact and timestamp package are invalid for reuse. Rendering,
+installation, activation review, and planning now all use fixed pinned-image
+launchers with `--network none`, no credential or proxy forwarding, and no host
+Python dependency. Installation mounts `/tmp` read-only and only review staging
+writable; review keeps installed bytes unchanged; planning mounts local state
+read-only and performs no writes.

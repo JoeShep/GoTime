@@ -348,3 +348,13 @@ Pydantic versions, runs as the host UID/GID with a read-only root and repository
 and uses `--network none`. It forwards no credential or OpenAI environment
 variable. Rendering remains non-authoritative and requires a fresh human-
 approved timestamp package.
+
+The remaining sequence-2 review workflow uses the same dependency boundary.
+Fixed Docker launchers invoke only the existing installer, activation-review,
+and dry-run planner CLIs. The installer mounts `/tmp` read-only and only local
+review staging writable; review has the same narrow record-write boundary;
+planning mounts local state read-only. Every launcher uses the pinned image,
+host UID/GID, a read-only root and repository, and `--network none`, while
+forwarding no credential or proxy variables. The prior host installation
+attempt failed because `python` was unavailable and created no installed or
+review record. Its artifact and timestamps cannot be reused.
