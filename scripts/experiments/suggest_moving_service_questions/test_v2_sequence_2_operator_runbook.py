@@ -21,6 +21,7 @@ PUBLIC = {
     "activate_v2_sequence_2_preflight_authorization_docker.sh",
     "run_openai_stage_b_v2_preflight_docker.sh",
     "close_v2_sequence_2_preflight_authorization_docker.sh",
+    "cleanup_v2_sequence_2_expired_review_package_docker.sh",
 }
 
 

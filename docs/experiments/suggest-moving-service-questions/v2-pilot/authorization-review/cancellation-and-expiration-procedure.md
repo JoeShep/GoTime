@@ -48,3 +48,21 @@ sh scripts/experiments/suggest_moving_service_questions/close_v2_sequence_2_pref
 
 It runs in the pinned evaluation image with networking disabled and is safe to
 rerun. It never reads credentials or calls a provider.
+
+An expired review package that was never activated uses a different fixed
+cleanup operation. Its verifier passes the rendered TOML through the established
+typed preflight validator: phase comes from `metadata.phase`, permissions come
+from `authorization`, and request counts come from `scope`. A dry-run must
+precede separate confirmation:
+
+```sh
+sh scripts/experiments/suggest_moving_service_questions/cleanup_v2_sequence_2_expired_review_package_docker.sh \
+  --artifact-sha256 "<EXPIRED_ARTIFACT_SHA256>" \
+  --installation-record-sha256 "<INSTALLATION_RECORD_SHA256>" \
+  --activation-review-sha256 "<ACTIVATION_REVIEW_SHA256>"
+```
+
+The confirmed form adds `--confirm-delete --operator "<OPERATOR_ID>"`. It may
+delete only the fixed `/tmp` rendered source and the three fixed sequence-2
+review files. It writes an ignored bounded cleanup record, leaves repository
+authority closed, and does not consume sequence 2.

@@ -22,6 +22,7 @@ evaluation-specific credential.
 | Activate | `scripts/experiments/suggest_moving_service_questions/activate_v2_sequence_2_preflight_authorization_docker.sh` | required | `activate_v2_sequence_2_preflight_authorization_container.sh` | covered | atomic preflight-only authority |
 | Preflight | `scripts/experiments/suggest_moving_service_questions/run_openai_stage_b_v2_preflight_docker.sh` | required | `run_openai_stage_b_v2_preflight_container.sh` | covered with fake client and `--network none` | consumes one active preflight authority |
 | Close/recover | `scripts/experiments/suggest_moving_service_questions/close_v2_sequence_2_preflight_authorization_docker.sh` | required | `close_v2_sequence_2_preflight_authorization_container.sh` | covered | restores or verifies permanent closure |
+| Expired review cleanup | `scripts/experiments/suggest_moving_service_questions/cleanup_v2_sequence_2_expired_review_package_docker.sh` | required | `cleanup_v2_sequence_2_expired_review_package_container.sh` | covered | none; sequence remains unused |
 
 ## Non-authoritative preparation
 
@@ -52,6 +53,40 @@ sh scripts/experiments/suggest_moving_service_questions/plan_v2_sequence_2_prefl
 ```
 
 These four commands do not activate authority.
+
+## Expired, never-activated review cleanup
+
+The cleanup verifier uses the same typed preflight authorization validator as
+rendering, installation, and activation. Phase identity is
+`metadata.phase`; permission booleans are in `authorization`, and request
+limits are in `scope`. Cleanup is permitted only after expiration when active,
+activation, transaction, audit, evidence, consumption, cancellation, and
+closure records are all absent.
+
+Dry-run first:
+
+```sh
+sh scripts/experiments/suggest_moving_service_questions/cleanup_v2_sequence_2_expired_review_package_docker.sh \
+  --artifact-sha256 "<EXPIRED_ARTIFACT_SHA256>" \
+  --installation-record-sha256 "<INSTALLATION_RECORD_SHA256>" \
+  --activation-review-sha256 "<ACTIVATION_REVIEW_SHA256>"
+```
+
+After separate confirmation of that exact output, delete only the fixed `/tmp`
+source and three fixed `002-storage_unknown` review files:
+
+```sh
+sh scripts/experiments/suggest_moving_service_questions/cleanup_v2_sequence_2_expired_review_package_docker.sh \
+  --artifact-sha256 "<EXPIRED_ARTIFACT_SHA256>" \
+  --installation-record-sha256 "<INSTALLATION_RECORD_SHA256>" \
+  --activation-review-sha256 "<ACTIVATION_REVIEW_SHA256>" \
+  --confirm-delete \
+  --operator "<OPERATOR_ID>"
+```
+
+The confirmed command writes one ignored owner-only cleanup record and deletes
+only those four exact files. It does not consume sequence 2 or activate
+authority.
 
 ## Atomic activation
 
