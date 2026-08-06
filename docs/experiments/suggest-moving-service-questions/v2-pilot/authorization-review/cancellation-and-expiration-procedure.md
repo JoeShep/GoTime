@@ -66,3 +66,14 @@ The confirmed form adds `--confirm-delete --operator "<OPERATOR_ID>"`. It may
 delete only the fixed `/tmp` rendered source and the three fixed sequence-2
 review files. It writes an ignored bounded cleanup record, leaves repository
 authority closed, and does not consume sequence 2.
+
+Sequence 2 was subsequently activated and closed as `bounded_failure` before
+credential lookup when the launcher process could not inherit an interactive
+shell export. No retry is permitted. Its history is immutable and sequence 3
+is the next candidate slot.
+
+The sequence-3 same-shell operator script installs traps for normal exit,
+failure, interruption, termination, and hangup. After launcher start, any
+incomplete automatic closure invokes only the fixed sequence-3 closure command
+with `bounded_failure`; successful execution verifies closure with `success`.
+Every path unsets the evaluation credential, enablement, and intent variables.

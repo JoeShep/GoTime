@@ -1,5 +1,16 @@
 # NEXT_SESSION
 
+## Sequence-3 preflight operator readiness
+
+Sequence 1 and sequence 2 are consumed historical attempts. Sequence 2 closed
+before credential lookup with no provider request because separate processes
+could not share the human operator's interactive export. A distinct inactive
+sequence-3 candidate and a fixed same-shell operator workflow are now prepared
+offline. Before any future live attempt, review the sequence-3 candidate and
+runbook, prepare a fresh short-lived package, and require the human operator to
+run the single zsh command directly. Generation, formal evaluation, Stage C,
+and production remain unauthorized.
+
 ## Goal
 
 Design the first version of GoTime's reasoning engine by observing how an experienced project manager plans a real relocation.

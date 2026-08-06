@@ -1,0 +1,116 @@
+[metadata]
+capability = "suggest_moving_service_questions"
+candidate_version = "moving-service-openai-v2-preflight-sequence-3-candidate-v1"
+candidate_status = "inactive_non_authoritative"
+phase = "preflight"
+active_repository_authority = false
+valid_for_execution = false
+placeholder_bound = true
+requires_separate_human_approval = true
+requires_separate_active_rendering = true
+may_replace_permanent_closed_authorization = false
+
+[bindings]
+frozen_v2_manifest_path = "docs/experiments/suggest-moving-service-questions/v2/manifest.json"
+frozen_v2_manifest_digest = "3fb5d63b438f7658f319b3300885cea1d27c307bec30d6c2b85fdb8ca5d7741e"
+prompt_path = "docs/experiments/suggest-moving-service-questions/v2/real-model-prompt.toml"
+prompt_version = "moving-service-questions-prompt-v2"
+prompt_digest = "9bcc190f9c4c51fba1caed8c5d284de9d29d6fe8d675132a04f741cc9a1af7a6"
+schema_version = "moving-service-questions-schema-v2"
+provider_schema_path = "docs/experiments/suggest-moving-service-questions/v2/openai-response-schema.json"
+provider_schema_digest = "822f23e6c0fc9845626e05bd8131fd5e30a0933f8fd268296ae688cc67ebf411"
+provider_schema_review_path = "docs/experiments/suggest-moving-service-questions/v2/openai-response-schema-review.md"
+provider_schema_review_digest = "af49358cd9b390009dede7e29f38fbc3dfed0d9bc6f5a8117f3a88ea7e38bff5"
+schema_adaptation_path = "docs/experiments/suggest-moving-service-questions/v2/provider-schema-adaptation.json"
+schema_adaptation_digest = "65739b0adc523aaef2af53617a2541cc6f94e0cc450b4a35b39794667fe785b1"
+deterministic_baseline_path = "docs/experiments/suggest-moving-service-questions/v2/deterministic-baseline.json"
+deterministic_baseline_digest = "daf72f467845adc1e5f73bdaa51179584c5765d5f4f959e6b0c50500a7c668d7"
+request_fixtures_path = "docs/experiments/suggest-moving-service-questions/v2/request-fixtures.json"
+request_fixtures_digest = "4027cd31286244f45af409653ba13115cc25aa19f23a5bbeff2c7e482281b18e"
+response_fixtures_path = "docs/experiments/suggest-moving-service-questions/v2/response-fixtures.json"
+response_fixtures_digest = "42c494dbbb9dba4874e40ff459578a8b68829cb507d76ddaacbf315c7f1b7115"
+expected_results_path = "docs/experiments/suggest-moving-service-questions/v2/expected-results.json"
+expected_results_digest = "72eb888f789ac90c6ea5ea7dc6d9fa3d384e740d46065772d0d936aa1dcd2c1e"
+pilot_configuration_path = "docs/experiments/suggest-moving-service-questions/v2/openai-follow-up-pilot.toml"
+pilot_configuration_digest = "08d1d6781cae9150c059736ea92e119226234c8e53c798766f2901f010499ad3"
+closed_execution_manifest_path = "docs/experiments/suggest-moving-service-questions/v2-pilot/closed-execution-manifest.json"
+closed_execution_manifest_digest = "18a22d62a3e368f5a021649be56a211af959fed7b0305eab61d063022b1387fa"
+permanent_closed_authorization_path = "docs/experiments/suggest-moving-service-questions/v2-pilot/openai-execution-authorization.toml"
+permanent_closed_authorization_digest = "bb5e2f4a70d71b44a34b59592e0bd30bf4b71f6a3fdd0724afa457340d4921af"
+umbrella_candidate_path = "docs/experiments/suggest-moving-service-questions/v2-pilot/authorization-review/inactive-authorization-candidate.toml"
+umbrella_candidate_digest = "cee4cdb826452906ea677785b1b76cf43745d28237a791d4c129175a0447062a"
+fallback_version = "moving-service-fallback-v2"
+provider = "OpenAI"
+ai_model_identifier = "gpt-4.1-mini-2025-04-14"
+sdk_pin = "openai==2.45.0"
+
+[authorization]
+credential_access_authorized = false
+token_preflight_authorized = false
+ai_generation_authorized = false
+formal_evaluation_authorized = false
+stage_c_authorized = false
+production_use_authorized = false
+fastapi_exposure_authorized = false
+frontend_exposure_authorized = false
+recurring_execution_authorized = false
+background_execution_authorized = false
+
+[proposed_authorization]
+credential_access_authorized = true
+token_preflight_authorized = true
+ai_generation_authorized = false
+formal_evaluation_authorized = false
+stage_c_authorized = false
+production_use_authorized = false
+fastapi_exposure_authorized = false
+frontend_exposure_authorized = false
+recurring_execution_authorized = false
+background_execution_authorized = false
+
+[scope]
+run_series_id = "moving-service-stage-b-v2-pilot-20260802"
+sequence = 3
+fixture_id = "storage_unknown"
+credential_environment_variable = "GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY"
+operator_enablement_variable = "GOTIME_MOVING_SERVICE_EVAL_ENABLED"
+required_operator_enablement_value = "1"
+operator_intent = "AUTHORIZE_ONE_STORAGE_UNKNOWN_V2_PREFLIGHT_ONLY"
+maximum_credential_reads = 1
+maximum_client_constructions = 1
+maximum_token_preflight_requests = 1
+maximum_ai_generation_requests = 0
+automatic_retries = 0
+token_preflight_timeout_seconds = 5
+ai_generation_timeout_seconds = 12
+maximum_output_tokens = 500
+maximum_total_spend_usd = "0.03"
+human_grounding_review_required = true
+single_use = true
+
+[approval]
+approval_status = "unresolved_inactive_candidate"
+approver = "APPROVER_ID_REQUIRED"
+approved_at = "APPROVED_AT_UTC_REQUIRED"
+activated_at = "ACTIVATED_AT_UTC_REQUIRED"
+expires_at = "EXPIRES_AT_UTC_REQUIRED"
+maximum_authorization_duration_seconds = 900
+authorization_reason = "AUTHORIZATION_REASON_REQUIRED"
+
+[evidence_binding]
+preflight_evidence_digest = "not_applicable"
+preflight_review_digest = "not_applicable"
+input_tokens = 0
+conservative_cost = "0.00"
+request_digest = "not_applicable"
+canonical_attempt_digest = "not_applicable"
+provider_fingerprint = "not_applicable"
+preflight_reviewer = "not_applicable"
+preflight_reviewed_at = "not_applicable"
+
+[consumption]
+consumed_at_earliest_attempt_stage = true
+consumption_stages = ["credential_lookup_attempt", "client_construction_attempt", "token_preflight_attempt", "expiration", "operator_cancellation_after_activation", "bounded_failure_after_activation"]
+reuse_after_consumption = false
+return_to_unused_active_state = false
+closure_restores_permanent_closed_authorization = true

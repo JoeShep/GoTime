@@ -22,10 +22,10 @@ SEQUENCE = 2
 def run(*, environment=None, now=None, active_loader=load_active_preflight_authorization,
         client_builder=construct_v2_preflight_openai_client_with_pinned_sdk,
         transport_factory=make_v2_openai_transport, output_root=DEFAULT_OUTPUT_ROOT,
-        closure_operation=recover_preflight_activation):
+        closure_operation=recover_preflight_activation, sequence=SEQUENCE):
     """Validate all non-secret authority before touching the supplied environment."""
     current = now or datetime.now(timezone.utc)
-    active = active_loader(now=current, expected_sequence=SEQUENCE)
+    active = active_loader(now=current, expected_sequence=sequence)
     source = os.environ if environment is None else environment
 
     def construct(credential: str):
@@ -37,7 +37,7 @@ def run(*, environment=None, now=None, active_loader=load_active_preflight_autho
     def close(reason: str) -> bool:
         record = closure_operation(
             reason=reason, now=datetime.now(timezone.utc),
-            output_root=output_root, sequence=SEQUENCE,
+            output_root=output_root, sequence=sequence,
         )
         return bool(record["authorization_closed"])
 
@@ -45,7 +45,7 @@ def run(*, environment=None, now=None, active_loader=load_active_preflight_autho
         authorization=active.authorization, environment=source,
         operator_intent=source.get("GOTIME_MOVING_SERVICE_EVAL_OPERATOR_INTENT", ""), output_root=output_root,
         client_constructor=construct, transport_factory=transport,
-        closure=close, now=current, sequence=SEQUENCE,
+        closure=close, now=current, sequence=sequence,
         active_manifest_digest=active.manifest_digest,
         activation_record_digest=active.activation_digest,
     )

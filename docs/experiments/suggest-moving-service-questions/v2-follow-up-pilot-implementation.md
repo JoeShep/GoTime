@@ -381,3 +381,26 @@ approve, plan, activate, synthetic preflight, and closure. It verifies dual-
 bound authority, bounded evidence, byte-exact permanent closure, and
 non-reusability, then removes the temporary repository and `/tmp` artifact.
 The real committed repository remains permanently closed throughout testing.
+
+## Sequence-3 same-shell operator boundary
+
+Sequence 2 was activated and then closed as a bounded failure before credential
+lookup because an export in the human operator's interactive zsh could not be
+inherited by Codex's separate command process. No client, token-preflight, AI
+generation, or provider request occurred. Sequence 2 is consumed and its
+activation, transaction, and closure records remain immutable.
+
+Sequence 3 has a distinct inactive candidate, candidate manifest, and fixed
+`003-storage_unknown` operational paths. Its future live call is initiated by
+one human-run zsh command documented in the sequence-3 runbook. The script
+validates active state before prompting, reads the credential silently, exports
+the evaluation-specific credential plus fixed enablement and intent only in its
+own process tree, invokes one fixed Docker launcher, verifies or recovers
+closure, and unsets all three variables on every exit path. Credentials are
+never arguments, files, output, or audit content.
+
+The exact public sequence-3 workflow completed a network-disabled synthetic
+rehearsal with a fake client: render, install, review, plan, activate, same-shell
+preflight, evidence, consumption, closure, and non-reuse. It performed one fake
+preflight, zero generation calls, and restored byte-exact permanent closed
+authority. No real credential or provider request was used.

@@ -137,3 +137,15 @@ future-live preflight launcher is the only reviewed command that may forward
 the evaluation-specific credential. Its synthetic mode uses a fake client with
 `--network none` while exercising the real active-state, audit, evidence, and
 closure path.
+
+Sequence 2 is consumed after bounded closure without a provider request. For
+sequence 3, use only `v2-pilot/sequence-3-operator-runbook.md`. After separate
+activation and live-call approval, the human operator—not Codex—runs exactly:
+
+```zsh
+zsh scripts/experiments/suggest_moving_service_questions/run_v2_sequence_3_live_preflight_operator.zsh
+```
+
+Credential prompting, export, Docker inheritance, preflight invocation,
+closure verification, and unsetting occur in that one process tree. No
+separate export commands are part of the reviewed sequence-3 live workflow.

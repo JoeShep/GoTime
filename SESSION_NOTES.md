@@ -785,3 +785,18 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Review and commit the knowledge-curation milestone.
 - Only after approval, design a separate real-model adapter and controlled
   evaluation run against the frozen deterministic fallback.
+
+---
+
+## Sequence-3 single-shell preflight reconciliation
+
+- Preserved sequence-1 and sequence-2 historical records; sequence 2 closed
+  before credential lookup and made no provider request.
+- Added a distinct inactive sequence-3 preflight candidate and manifest.
+- Added fixed `003-storage_unknown` render, review, activation, preflight, and
+  closure tooling in the pinned evaluation environment.
+- Added one human-run zsh operator command that prompts, exports, launches,
+  closes, and unsets within one process tree.
+- Rehearsed the exact public workflow with a synthetic credential, fake client,
+  and networking disabled; one fake preflight and zero generation calls ran,
+  and the permanent closed manifest was restored.
