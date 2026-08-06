@@ -112,7 +112,7 @@ Any interrupted transaction is non-runnable until the offline recovery path
 restores exact closed state.
 
 Sequence 2 uses the distinct candidate manifest and fixed commands documented
-in `phase-candidates/sequence-2/sequence-2-rendering-and-activation.md`. Every
+in `v2-pilot/sequence-2-operator-runbook.md`. Every
 resolved and operational path uses prefix `002-storage_unknown`; no sequence-2
 command accepts a sequence override or reads a `001` review record. Its exact
 operator-intent literal is `AUTHORIZE_ONE_STORAGE_UNKNOWN_V2_PREFLIGHT_ONLY`.
@@ -130,3 +130,10 @@ review record, and its rendered artifact is invalid for reuse. All four
 preparation commands run in the pinned image with networking disabled and no
 credential or proxy forwarding. A fresh human-approved timestamp package is
 required before restarting preparation.
+
+Atomic activation and closure/recovery also use fixed pinned-image Docker
+launchers with networking disabled and no scope or path overrides. The one
+future-live preflight launcher is the only reviewed command that may forward
+the evaluation-specific credential. Its synthetic mode uses a fake client with
+`--network none` while exercising the real active-state, audit, evidence, and
+closure path.

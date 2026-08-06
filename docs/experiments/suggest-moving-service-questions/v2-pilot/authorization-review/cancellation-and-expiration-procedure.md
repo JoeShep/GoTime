@@ -38,3 +38,13 @@ Sequence-2 cancellation and recovery operate only on `002-storage_unknown`
 active, activation, transaction, audit, evidence, consumption, and closure
 paths. Recovery restores the exact permanent closed manifest without deleting,
 rewriting, or treating sequence-1 records as authority.
+
+The verified operator recovery command is:
+
+```sh
+sh scripts/experiments/suggest_moving_service_questions/close_v2_sequence_2_preflight_authorization_docker.sh \
+  --reason "<success|activation_recovery|operator_cancellation|expiration|bounded_failure>"
+```
+
+It runs in the pinned evaluation image with networking disabled and is safe to
+rerun. It never reads credentials or calls a provider.

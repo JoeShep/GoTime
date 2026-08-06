@@ -358,3 +358,26 @@ host UID/GID, a read-only root and repository, and `--network none`, while
 forwarding no credential or proxy variables. The prior host installation
 attempt failed because `python` was unavailable and created no installed or
 review record. Its artifact and timestamps cannot be reused.
+
+## Sequence-2 operator workflow reconciliation
+
+The reviewed operator workflow is now defined only by
+`v2-pilot/sequence-2-operator-runbook.md`. Render, installation, activation
+review, planning, atomic activation, preflight, and closure all have fixed
+public Docker launchers and fixed container wrappers in the pinned
+`gotime-moving-service-stage-b:openai-2.45.0` environment. No reviewed
+sequence-2 operational step depends on host Python or manual virtual-
+environment activation.
+
+Activation and closure use `--network none`; the future-live preflight launcher
+is the only command that can forward the evaluation-specific credential. Its
+synthetic mode also uses `--network none`, injects a fake client and token
+response, exercises the same committed active-state validator and evidence
+path, performs zero generation calls, and closes immediately.
+
+An isolated end-to-end rehearsal copies only required repository content to a
+temporary root and invokes the exact public commands in order: render, install,
+approve, plan, activate, synthetic preflight, and closure. It verifies dual-
+bound authority, bounded evidence, byte-exact permanent closure, and
+non-reusability, then removes the temporary repository and `/tmp` artifact.
+The real committed repository remains permanently closed throughout testing.

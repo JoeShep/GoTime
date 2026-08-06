@@ -43,7 +43,7 @@ sh scripts/experiments/suggest_moving_service_questions/plan_v2_sequence_2_prefl
 Only a later, explicit milestone may approve the fixed atomic activation command:
 
 ```text
-python scripts/experiments/suggest_moving_service_questions/activate_v2_sequence_2_preflight_authorization.py \
+sh scripts/experiments/suggest_moving_service_questions/activate_v2_sequence_2_preflight_authorization_docker.sh \
   --artifact-sha256 "<INSTALLED_SHA256>" \
   --installation-record-sha256 "<INSTALLATION_RECORD_SHA256>" \
   --activation-review-sha256 "<ACTIVATION_REVIEW_SHA256>" \
@@ -57,6 +57,12 @@ All local paths are fixed beneath run series
 the active authorization, execution manifest, activation evidence, and committed
 journal; interruption recovery restores the exact permanent closed manifest.
 No committed permission is active.
+
+The complete verified sequence-2 operator surface, including the future-live
+preflight and idempotent closure/recovery command, is maintained in
+`v2-pilot/sequence-2-operator-runbook.md`. A network-disabled synthetic
+rehearsal executes those exact public commands from render through closure and
+proves that the closed state is restored and sequence 2 cannot be reused.
 
 The launcher uses image `gotime-moving-service-stage-b:openai-2.45.0`, verifies
 the locked OpenAI and Pydantic versions without downloading packages, mounts
