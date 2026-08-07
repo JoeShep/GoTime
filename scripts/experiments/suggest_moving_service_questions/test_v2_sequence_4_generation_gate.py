@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import shutil
 import sys
@@ -32,9 +33,15 @@ from v2_sequence_4_generation_gate import (  # noqa: E402
     generation_paths,
     review_and_delete_response,
     validate_generated_response,
+    verify_exact_generation_attempt,
     verify_candidate_and_preflight,
     write_generation_outcome,
 )
+from run_openai_stage_b_v2_pilot import prepare_frozen_v2_pilot  # noqa: E402
+from run_openai_stage_b_v2_sequence_4_generation_live import (  # noqa: E402
+    verify_attempt_then_read_credential,
+)
+from dataclasses import replace
 
 NOW = datetime(2030, 1, 1, tzinfo=timezone.utc)
 REAL_STATE = REPOSITORY_ROOT / ".local/evaluations/suggest-moving-service-questions/moving-service-stage-b-v2-pilot-20260802"
@@ -78,6 +85,121 @@ def test_candidate_binds_exact_approved_preflight_and_closed_state(tmp_path) -> 
     assert result["candidate_digest"] == CANDIDATE_DIGEST
     assert result["input_tokens"] == 2228
     assert result["conservative_maximum_generation_cost"] == "0.0016912"
+
+
+def test_exact_generation_attempt_is_credential_free_and_frozen(tmp_path) -> None:
+    repository, output = state(tmp_path)
+    attempt = verify_exact_generation_attempt(output_root=output)
+    assert attempt.deterministic_request_digest == "3150794ae420dfe6671ca141b762cda0a39d5fdeb11b1dbe2d97817b9ef5bfea"
+    assert attempt.canonical_attempt_digest == "d1f6b54caebf3745ba0447b8644edbc71b6f95879d8c6ed64d77b0ee590118ce"
+    assert attempt.provider_fingerprint == "60e29402cc77e914b36d038f04a6a2eb1a0d6fcfb8fe9fd20e6837f3b887d4ef"
+
+
+@pytest.mark.parametrize("drift", [
+    "prompt_digest", "prompt_identifier", "schema_identifier", "provider_schema",
+    "pilot_configuration", "deterministic_request", "canonical_attempt",
+    "provider_fingerprint", "model_identifier", "temperature", "maximum_output_tokens",
+    "retry_count", "generation_timeout",
+])
+def test_every_exact_request_drift_rejects_before_credential_lookup(tmp_path, drift) -> None:
+    repository, output = state(tmp_path)
+    original = prepare_frozen_v2_pilot()
+    prepared = copy.deepcopy(original)
+    fingerprint_builder = None
+    if drift == "prompt_digest":
+        prepared.frozen_manifest["artifact_digests"]["real-model-prompt.toml"] = "0" * 64
+    elif drift == "prompt_identifier":
+        prepared = replace(prepared, request=prepared.request.model_copy(update={"prompt_version": "drift"}))
+    elif drift == "schema_identifier":
+        prepared = replace(prepared, request=prepared.request.model_copy(update={"schema_version": "drift"}))
+    elif drift == "provider_schema":
+        prepared = replace(prepared, provider_request=replace(prepared.provider_request, response_json_schema={"type": "object"}))
+    elif drift == "pilot_configuration":
+        prepared.pilot_configuration["identity"]["provider"] = "Drift"
+    elif drift == "deterministic_request":
+        prepared = replace(prepared, provider_request=replace(prepared.provider_request, deterministic_request_json="{}"))
+    elif drift == "canonical_attempt":
+        fingerprint_builder = lambda value: "0" * 64
+    elif drift == "provider_fingerprint":
+        fingerprint_builder = lambda value: "0" * 64
+    elif drift == "model_identifier":
+        prepared = replace(prepared, provider_request=replace(prepared.provider_request, model_identifier="gpt-drift"))
+    elif drift == "temperature":
+        prepared = replace(prepared, provider_request=replace(prepared.provider_request, model_parameters={"temperature": 1}))
+    elif drift == "maximum_output_tokens":
+        object.__setattr__(prepared.provider_request, "maximum_output_tokens", 499)
+    elif drift == "retry_count":
+        object.__setattr__(prepared.provider_request, "retry_count", 1)
+    else:
+        object.__setattr__(prepared.provider_request, "timeout_seconds", 11.0)
+    observed = {"credential": False, "client": False, "generation": False}
+    def rejected(**kwargs):
+        return verify_exact_generation_attempt(
+            output_root=output, prepared_builder=lambda: prepared,
+            provider_fingerprint_builder=fingerprint_builder,
+        )
+    class CredentialSpy(dict):
+        def get(self, key, default=None):
+            observed["credential"] = True
+            return super().get(key, default)
+    with pytest.raises((Sequence4GenerationGateError, ValueError)):
+        verify_attempt_then_read_credential(environment=CredentialSpy(), attempt_verifier=rejected)
+    assert observed == {"credential": False, "client": False, "generation": False}
+
+
+@pytest.mark.parametrize("filename", [
+    "004-storage_unknown-preflight-evidence.json",
+    "004-storage_unknown-preflight-review.json",
+])
+def test_historical_digest_drift_rejects_before_credential_lookup(tmp_path, filename) -> None:
+    repository, output = state(tmp_path)
+    target = output / "moving-service-stage-b-v2-pilot-20260802" / filename
+    target.write_text("{}\n")
+    touched = {"credential": False}
+    class CredentialSpy(dict):
+        def get(self, key, default=None):
+            touched["credential"] = True
+            return None
+    with pytest.raises(Sequence4GenerationGateError):
+        verify_attempt_then_read_credential(
+            environment=CredentialSpy(),
+            attempt_verifier=lambda **kwargs: verify_exact_generation_attempt(output_root=output),
+        )
+    assert touched["credential"] is False
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("input_tokens", 2227),
+    ("conservative_maximum_generation_cost", "0.0016913"),
+    ("store", True),
+    ("stream", True),
+    ("background", True),
+    ("truncation", "auto"),
+    ("tools", [{"type": "function"}]),
+    ("automatic_retries", 1),
+    ("maximum_output_tokens", 499),
+    ("temperature", 1),
+    ("ai_generation_timeout_seconds", 11),
+])
+def test_evidence_parameter_drift_rejects_before_credential_lookup(
+    tmp_path, field, value
+) -> None:
+    repository, output = state(tmp_path)
+    target = output / "moving-service-stage-b-v2-pilot-20260802/004-storage_unknown-preflight-evidence.json"
+    evidence = json.loads(target.read_text())
+    evidence[field] = value
+    target.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n")
+    touched = {"credential": False}
+    class CredentialSpy(dict):
+        def get(self, key, default=None):
+            touched["credential"] = True
+            return None
+    with pytest.raises(Sequence4GenerationGateError):
+        verify_attempt_then_read_credential(
+            environment=CredentialSpy(),
+            attempt_verifier=lambda **kwargs: verify_exact_generation_attempt(output_root=output),
+        )
+    assert touched["credential"] is False
 
 
 @pytest.mark.parametrize(("filename", "expected"), [

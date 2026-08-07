@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Mapping
 
 from app.moving_service_questions import ResponseValidationError
@@ -20,7 +21,14 @@ from moving_service_questions_v2 import (
     select_fallback_v2,
     validate_response_v2,
 )
-from run_openai_stage_b_v2_pilot import prepare_frozen_v2_pilot
+from run_openai_stage_b_v2_pilot import PreparedV2Pilot, prepare_frozen_v2_pilot
+from run_openai_stage_b_v2_two_gate import (
+    _exact_request_digest,
+    _fingerprint,
+    frozen_binding_identity,
+)
+from openai_transport import OpenAIPreflightResult
+from openai_transport_v2 import make_v2_openai_transport
 
 RUN_SERIES_ID = "moving-service-stage-b-v2-pilot-20260802"
 SEQUENCE = 4
@@ -28,6 +36,7 @@ FIXTURE_ID = "storage_unknown"
 PREFIX = "004-storage_unknown-generation"
 OPERATOR_INTENT = "AUTHORIZE_ONE_STORAGE_UNKNOWN_V2_GENERATION_ONLY"
 CANDIDATE_DIGEST = "0eaf61f75a1026e7dc53bcf7b1cceaa8e2cec106628aba48bc14796f12ce508a"
+MANIFEST_DIGEST = "c86160aaf4781efaca972507876b25579bd5b91a76bbe9eb3141ccabb3f6ff3c"
 PREFLIGHT_EVIDENCE_DIGEST = "e19a7b412f6a7f1517dcef32ab6fb7c305049ced90aac252bd8e55f7b0a9a38c"
 PREFLIGHT_REVIEW_DIGEST = "7846de2614f673e3afb7af9e26c20ba06b785547deb1eb3f76d3409a4168c541"
 REQUEST_DIGEST = "3150794ae420dfe6671ca141b762cda0a39d5fdeb11b1dbe2d97817b9ef5bfea"
@@ -45,6 +54,83 @@ MANIFEST_PATH = PACKAGE_ROOT / "sequence-4-generation-candidate-manifest.json"
 
 class Sequence4GenerationGateError(ValueError):
     pass
+
+
+@dataclass(frozen=True)
+class VerifiedGenerationAttempt:
+    """Credential-free, immutable exact request and reviewed preflight binding."""
+
+    prepared: PreparedV2Pilot
+    preflight: OpenAIPreflightResult
+    deterministic_request_digest: str
+    canonical_attempt_digest: str
+    provider_fingerprint: str
+
+
+def verify_exact_generation_attempt(
+    *,
+    output_root: Path,
+    prepared_builder=prepare_frozen_v2_pilot,
+    provider_fingerprint_builder=None,
+) -> VerifiedGenerationAttempt:
+    """Verify the exact generation attempt before any credential boundary."""
+    verified_history = verify_candidate_and_preflight(
+        output_root=output_root, require_closed_repository=False
+    )
+    prepared = prepared_builder()
+    frozen = frozen_binding_identity(prepared)
+    request_digest = _exact_request_digest(prepared)
+    canonical_digest = _fingerprint(prepared)
+    if provider_fingerprint_builder is None:
+        provider_fingerprint_builder = lambda value: make_v2_openai_transport(
+            SimpleNamespace(max_retries=0), value
+        ).request_fingerprint(value.provider_request)
+    provider_fingerprint = provider_fingerprint_builder(prepared)
+    evidence_path = output_root / RUN_SERIES_ID / "004-storage_unknown-preflight-evidence.json"
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    expected_frozen = {
+        "frozen_v2_manifest_digest": FROZEN_V2_DIGEST,
+        "prompt_version": "moving-service-questions-prompt-v2",
+        "prompt_digest": "9bcc190f9c4c51fba1caed8c5d284de9d29d6fe8d675132a04f741cc9a1af7a6",
+        "schema_version": "moving-service-questions-schema-v2",
+        "provider_schema_digest": "822f23e6c0fc9845626e05bd8131fd5e30a0933f8fd268296ae688cc67ebf411",
+        "pilot_configuration_digest": "08d1d6781cae9150c059736ea92e119226234c8e53c798766f2901f010499ad3",
+        "provider": "OpenAI",
+        "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+        "sdk_pin": "openai==2.45.0",
+    }
+    if any(frozen.get(key) != value for key, value in expected_frozen.items()):
+        raise Sequence4GenerationGateError("frozen generation request binding drifted")
+    expected_parameters = {
+        "temperature": 0,
+        "maximum_output_tokens": 500,
+        "store": False,
+        "stream": False,
+        "background": False,
+        "truncation": "disabled",
+        "tools": [],
+        "automatic_retries": 0,
+        "ai_generation_timeout_seconds": 12,
+    }
+    if any(evidence.get(key) != value for key, value in expected_parameters.items()):
+        raise Sequence4GenerationGateError("generation request parameters drifted")
+    if (
+        request_digest != REQUEST_DIGEST
+        or canonical_digest != CANONICAL_ATTEMPT_DIGEST
+        or provider_fingerprint != PROVIDER_FINGERPRINT
+        or verified_history["input_tokens"] != INPUT_TOKENS
+        or verified_history["conservative_maximum_generation_cost"] != str(CONSERVATIVE_COST)
+    ):
+        raise Sequence4GenerationGateError("exact generation attempt drifted")
+    return VerifiedGenerationAttempt(
+        prepared=prepared,
+        preflight=OpenAIPreflightResult(
+            PROVIDER_FINGERPRINT, INPUT_TOKENS, 0.0, CONSERVATIVE_COST
+        ),
+        deterministic_request_digest=request_digest,
+        canonical_attempt_digest=canonical_digest,
+        provider_fingerprint=provider_fingerprint,
+    )
 
 
 @dataclass(frozen=True)
@@ -255,12 +341,14 @@ def validate_rendered_generation_artifact(artifact: Mapping[str, object], *, now
         raise Sequence4GenerationGateError("rendered generation authorization is not currently valid")
 
 
-def verify_candidate_and_preflight(*, repository_root: Path = REPOSITORY_ROOT, output_root: Path) -> Mapping[str, object]:
+def verify_candidate_and_preflight(*, repository_root: Path = REPOSITORY_ROOT,
+                                   output_root: Path,
+                                   require_closed_repository: bool = True) -> Mapping[str, object]:
     if _digest(CANDIDATE_PATH) != CANDIDATE_DIGEST:
         raise Sequence4GenerationGateError("generation candidate digest drifted")
     candidate = tomllib.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    if manifest.get("candidate_digest") != CANDIDATE_DIGEST:
+    if _digest(MANIFEST_PATH) != MANIFEST_DIGEST or manifest.get("candidate_digest") != CANDIDATE_DIGEST:
         raise Sequence4GenerationGateError("generation manifest binding drifted")
     evidence_path = output_root / RUN_SERIES_ID / "004-storage_unknown-preflight-evidence.json"
     review_path = output_root / RUN_SERIES_ID / "004-storage_unknown-preflight-review.json"
@@ -309,7 +397,7 @@ def verify_candidate_and_preflight(*, repository_root: Path = REPOSITORY_ROOT, o
         raise Sequence4GenerationGateError("inactive candidate grants authority")
     closed = repository_root / "docs/experiments/suggest-moving-service-questions/v2-pilot/closed-execution-manifest.json"
     current = closed.with_name("execution-manifest.json")
-    if current.read_bytes() != closed.read_bytes():
+    if require_closed_repository and current.read_bytes() != closed.read_bytes():
         raise Sequence4GenerationGateError("repository authority is not permanently closed")
     return {"candidate_digest": CANDIDATE_DIGEST, "manifest_digest": _digest(MANIFEST_PATH), **expected}
 

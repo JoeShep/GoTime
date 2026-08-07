@@ -15,6 +15,16 @@ authority remains permanently closed, and no live generation occurred during
 this offline milestone. The generation-only workflow is ready for final human
 review, not activation.
 
+The first post-commit final review returned `request_changes`. The corrected
+live runner now constructs and verifies one immutable generation attempt—its
+candidate, manifest, approved preflight, frozen request, canonical attempt,
+and provider payload—before any credential environment lookup or client
+construction. Generation consumes that verified request rather than rebuilding
+a second request. The network-disabled rehearsal now invokes every exact public
+operator command in the runbook, including the same-shell synthetic credential
+path, and machine-checks complete command coverage. No real credential, client,
+preflight, generation, or provider request was used by this correction.
+
 ## Status
 
 ```text

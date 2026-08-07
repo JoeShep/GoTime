@@ -13,7 +13,17 @@ sh scripts/experiments/suggest_moving_service_questions/verify_v2_sequence_4_gen
 sh scripts/experiments/suggest_moving_service_questions/rehearse_v2_sequence_4_generation_workflow_docker.sh
 ```
 
-Both use the pinned image with `--network none`. No credential is forwarded.
+The inventory command machine-checks all eleven operational commands against
+the rehearsal coverage list. Readiness and rehearsal use the pinned image with
+`--network none`; no real credential is forwarded. The rehearsal invokes the
+exact public commands below in isolated repositories rather than substituting
+internal lifecycle calls.
+
+The prior final review returned `request_changes` because runtime request
+verification occurred after credential inspection and the rehearsal bypassed
+public commands. The live runner now verifies the exact immutable request and
+canonical provider attempt before reading any credential. That same verified
+request object is passed to the one-generation transport.
 
 ## Non-authoritative preparation
 

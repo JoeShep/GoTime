@@ -9,6 +9,11 @@ inactive generation-only candidate and fixed offline workflow passed the
 network-disabled end-to-end rehearsal. Generation remains unauthorized; no
 live generation timestamps may be prepared until final human review.
 
+The two findings from the first final review have been corrected offline:
+exact request verification precedes credential inspection, and the synthetic
+rehearsal executes and accounts for every public generation command. A new
+bounded final human review is still required before any live timestamps.
+
 ## Sequence-4 preflight readiness
 
 Sequences 1, 2, and 3 are consumed historical attempts. Sequence 4 now has a

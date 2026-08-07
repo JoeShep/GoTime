@@ -12,17 +12,30 @@ from openai_client_factory import (
     CONVENTIONAL_OPENAI_ENVIRONMENT_NAMES,
     construct_v2_preflight_openai_client_with_pinned_sdk,
 )
-from openai_transport import OpenAIPreflightResult
 from openai_transport_v2 import make_v2_openai_transport
-from run_openai_stage_b_v2_pilot import DEFAULT_OUTPUT_ROOT, prepare_frozen_v2_pilot
+from run_openai_stage_b_v2_pilot import DEFAULT_OUTPUT_ROOT
 from v2_sequence_4_generation_gate import (
-    CONSERVATIVE_COST, INPUT_TOKENS, OPERATOR_INTENT, PROVIDER_FINGERPRINT,
-    REPOSITORY_ROOT, close_generation_authority,
-    consume_preflight_evidence_for_generation, generation_paths, write_generation_outcome,
+    OPERATOR_INTENT, REPOSITORY_ROOT, close_generation_authority,
+    consume_preflight_evidence_for_generation, generation_paths,
+    verify_exact_generation_attempt, write_generation_outcome,
 )
 
 
-def main() -> int:
+def verify_attempt_then_read_credential(
+    *, environment, attempt_verifier=verify_exact_generation_attempt
+):
+    """Cross the credential boundary only after exact request verification."""
+    verified_attempt = attempt_verifier(output_root=DEFAULT_OUTPUT_ROOT)
+    if environment.get("GOTIME_MOVING_SERVICE_EVAL_ENABLED") != "1" or environment.get("GOTIME_MOVING_SERVICE_EVAL_OPERATOR_INTENT") != OPERATOR_INTENT:
+        raise ValueError("generation operator controls are invalid")
+    credential = environment.get("GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY")
+    if not credential or any(name in environment for name in CONVENTIONAL_OPENAI_ENVIRONMENT_NAMES):
+        raise ValueError("generation credential is unavailable")
+    return verified_attempt, credential
+
+
+def run(*, environment=os.environ, client_builder=construct_v2_preflight_openai_client_with_pinned_sdk,
+        transport_factory=make_v2_openai_transport) -> dict[str, object]:
     now = datetime.now(timezone.utc)
     paths = generation_paths(DEFAULT_OUTPUT_ROOT)
     execution_path = REPOSITORY_ROOT / "docs/experiments/suggest-moving-service-questions/v2-pilot/execution-manifest.json"
@@ -44,36 +57,37 @@ def main() -> int:
     expires = datetime.fromisoformat(artifact["approval"]["expires_at"].replace("Z", "+00:00"))
     if (expires - now).total_seconds() < 180:
         raise ValueError("insufficient generation authorization time remains")
-    if os.environ.get("GOTIME_MOVING_SERVICE_EVAL_ENABLED") != "1" or os.environ.get("GOTIME_MOVING_SERVICE_EVAL_OPERATOR_INTENT") != OPERATOR_INTENT:
-        raise ValueError("generation operator controls are invalid")
-    credential = os.environ.get("GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY")
-    if not credential or any(name in os.environ for name in CONVENTIONAL_OPENAI_ENVIRONMENT_NAMES):
-        raise ValueError("generation credential is unavailable")
-    prepared = prepare_frozen_v2_pilot()
+    verified_attempt, credential = verify_attempt_then_read_credential(environment=environment)
     client = None
     succeeded = False
     try:
         consume_preflight_evidence_for_generation(output_root=DEFAULT_OUTPUT_ROOT,
             authorization_digest=str(manifest["authorization_digest"]), now=now)
-        client = construct_v2_preflight_openai_client_with_pinned_sdk(credential)
-        transport = make_v2_openai_transport(client.client, prepared)
-        if transport.request_fingerprint(prepared.provider_request) != PROVIDER_FINGERPRINT:
+        client = client_builder(credential)
+        transport = transport_factory(client.client, verified_attempt.prepared)
+        if transport.request_fingerprint(verified_attempt.prepared.provider_request) != verified_attempt.provider_fingerprint:
             raise ValueError("preflighted request fingerprint drifted")
-        result = transport.generate(prepared.provider_request, OpenAIPreflightResult(
-            PROVIDER_FINGERPRINT, INPUT_TOKENS, 0.0, CONSERVATIVE_COST))
+        result = transport.generate(
+            verified_attempt.prepared.provider_request, verified_attempt.preflight
+        )
         if result.error_classification is not None:
             raise ValueError("bounded generation provider failure")
         outcome = write_generation_outcome(output_root=DEFAULT_OUTPUT_ROOT, raw=result.response_content, now=now)
-        for key in ("generation_succeeded", "validation_outcome", "response_evidence_sha256", "fallback_used"):
-            print(f"{key}={outcome[key]}")
         succeeded = True
-        return 0
+        return dict(outcome)
     finally:
         if client is not None:
             client.close()
         close_generation_authority(repository_root=REPOSITORY_ROOT, output_root=DEFAULT_OUTPUT_ROOT,
                                    reason="success" if succeeded else "bounded_failure",
                                    now=datetime.now(timezone.utc))
+
+
+def main() -> int:
+    outcome = run()
+    for key in ("generation_succeeded", "validation_outcome", "response_evidence_sha256", "fallback_used"):
+        print(f"{key}={outcome[key]}")
+    return 0
 
 
 if __name__ == "__main__":

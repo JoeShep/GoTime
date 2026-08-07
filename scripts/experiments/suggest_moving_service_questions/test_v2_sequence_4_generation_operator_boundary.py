@@ -50,12 +50,22 @@ def test_live_generation_has_no_preflight_call_and_credential_is_not_an_argument
     assert "maximum_token_preflight_requests" not in launcher
     assert "--env GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY" in launcher
     assert "${GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY}" not in launcher
-    assert "--network none" not in launcher  # future live path; tests use the rehearsal wrapper
+    assert 'network_args="--network none"' in launcher
+    assert 'GOTIME_V2_SEQUENCE_4_GENERATION_OFFLINE_TEST' in launcher
 
 
 def test_rehearsal_is_network_disabled() -> None:
     wrapper = (SCRIPTS / "v2_sequence_4_generation_operator_docker.sh").read_text()
     assert "--network none" in wrapper
+
+
+def test_rehearsal_machine_checks_every_public_command() -> None:
+    rehearsal = (SCRIPTS / "rehearse_v2_sequence_4_generation_workflow.sh").read_text()
+    for name in PUBLIC:
+        assert f"scripts/experiments/suggest_moving_service_questions/{name}" in rehearsal
+    assert "cmp -s \"$expected\" \"$rehearsal_root/actual.txt\"" in rehearsal
+    assert "run_v2_sequence_4_live_generation_operator.zsh" in rehearsal
+    assert "GOTIME_V2_SEQUENCE_4_GENERATION_SYNTHETIC_INPUT_FD" in rehearsal
 
 
 def test_every_runbook_script_exists_and_is_executable() -> None:

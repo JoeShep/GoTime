@@ -46,7 +46,8 @@ def digest(path: Path) -> str:
 
 def exclusive(path: Path, value: bytes) -> None:
     path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
-    path.parent.chmod(0o700)
+    if path.parent != Path("/tmp"):
+        path.parent.chmod(0o700)
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
     with os.fdopen(descriptor, "wb") as stream:
         stream.write(value)
