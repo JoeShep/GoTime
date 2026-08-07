@@ -1,15 +1,16 @@
 # NEXT_SESSION
 
-## Sequence-3 preflight operator readiness
+## Sequence-3 preflight evidence and next-sequence readiness
 
-Sequence 1 and sequence 2 are consumed historical attempts. Sequence 2 closed
-before credential lookup with no provider request because separate processes
-could not share the human operator's interactive export. A distinct inactive
-sequence-3 candidate and a fixed same-shell operator workflow are now prepared
-offline. Before any future live attempt, review the sequence-3 candidate and
-runbook, prepare a fresh short-lived package, and require the human operator to
-run the single zsh command directly. Generation, formal evaluation, Stage C,
-and production remain unauthorized.
+Sequences 1, 2, and 3 are consumed historical attempts. Sequence 3 completed
+one token preflight, attempted no generation, and restored permanent closed
+authority. Its operator script's post-closure zsh reserved-variable defect is
+corrected without changing credential or authorization semantics. Before a
+future sequence is versioned, complete any still-eligible bounded human review
+of the immutable sequence-3 preflight evidence. For every future successful
+live preflight, complete evidence review within its deadline before ending the
+same session. Generation, formal evaluation, Stage C, and production remain
+unauthorized.
 
 ## Goal
 

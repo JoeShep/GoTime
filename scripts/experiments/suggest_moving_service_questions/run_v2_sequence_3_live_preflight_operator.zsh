@@ -15,14 +15,14 @@ cleanup_operator_environment() {
 }
 
 recover_if_required() {
-  local status=$?
+  local exit_code=$?
   trap - EXIT INT TERM HUP
   if [[ "$launcher_started" == true && "$closure_complete" != true ]]; then
     sh scripts/experiments/suggest_moving_service_questions/close_v2_sequence_3_preflight_authorization_docker.sh \
       --reason bounded_failure >/dev/null 2>&1 || true
   fi
   cleanup_operator_environment
-  return $status
+  return $exit_code
 }
 
 trap recover_if_required EXIT

@@ -404,3 +404,12 @@ rehearsal with a fake client: render, install, review, plan, activate, same-shel
 preflight, evidence, consumption, closure, and non-reuse. It performed one fake
 preflight, zero generation calls, and restored byte-exact permanent closed
 authority. No real credential or provider request was used.
+
+The sequence-3 live preflight subsequently completed with 2,228 input tokens
+and a conservative maximum generation cost of $0.0016912. No generation was
+attempted, sequence 3 was consumed, and the permanent closed manifest was
+restored. A cleanup-only zsh defect then reported an assignment to the reserved
+read-only `status` parameter. The EXIT handler now preserves the original code
+in `exit_code`; credential handling, authority validation, and closure semantics
+are unchanged. Future successful live preflights require human evidence review
+within the applicable deadline before the operator session ends.

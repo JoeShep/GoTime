@@ -42,6 +42,15 @@ zsh scripts/experiments/suggest_moving_service_questions/run_v2_sequence_3_live_
 
 Codex must not run this command from its own process. The script performs the silent credential prompt, exports the evaluation-specific variable only inside its process tree, sets fixed enablement and intent, invokes the sequence-3 Docker child once, verifies or recovers closure, and unsets all three variables. The credential is never an argument or file.
 
+The EXIT handler preserves the incoming exit code in a non-reserved local
+variable. Operator scripts must not assign to zsh reserved parameters such as
+`status`. The INT, TERM, and HUP handlers retain their bounded exit codes, and
+closure failure remains visible to the operator after recovery is attempted.
+
+After a successful live preflight, complete the human evidence review within
+its review deadline before ending the same session. Do not defer that review
+to a later day.
+
 ## Closure/recovery
 
 ```sh

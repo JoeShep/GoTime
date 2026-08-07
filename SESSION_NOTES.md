@@ -800,3 +800,14 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Rehearsed the exact public workflow with a synthetic credential, fake client,
   and networking disabled; one fake preflight and zero generation calls ran,
   and the permanent closed manifest was restored.
+
+## Sequence-3 zsh EXIT-trap correction
+
+- Confirmed that `local status=$?` assigned to zsh's reserved read-only
+  `status` parameter after the successful live preflight and closure.
+- Renamed only that local variable to `exit_code`, preserving the incoming exit
+  code, all signal traps, variable cleanup, and closure/recovery behavior.
+- Added focused success, failure, INT, TERM, HUP, non-disclosure, and closure-
+  failure coverage.
+- Recorded that successful live-preflight evidence must receive human review
+  within its deadline before the same operator session ends.

@@ -19,6 +19,10 @@ prompts silently, exports the evaluation-specific credential and fixed controls
 inside the same process tree, invokes the fixed Docker child once, verifies or
 recovers closure, and unsets all variables through traps.
 
+Trap implementations preserve the incoming exit code in a local variable whose
+name is not a zsh reserved parameter. In particular, they must not assign to
+the read-only `status` parameter.
+
 Credentials are never accepted as arguments or files. Codex does not launch
 the live operator script. Synthetic tests inject input only behind an explicit
 network-disabled test boundary.
@@ -28,5 +32,7 @@ network-disabled test boundary.
 - Shell inheritance is deterministic and testable.
 - Credential values do not cross chat, argument, or filesystem boundaries.
 - Closure and variable cleanup cover success, failure, and interruption.
+- Successful live preflight evidence is reviewed within its deadline in the
+  same operator session; it is not deferred to a later day.
 - Each sequence still requires a distinct candidate, reviewed authorization,
   atomic activation, and separate live-call approval.
