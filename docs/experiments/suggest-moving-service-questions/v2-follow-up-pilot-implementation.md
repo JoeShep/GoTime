@@ -1,5 +1,20 @@
 # Offline V2 Follow-Up Pilot Implementation
 
+## Sequence-4 generation gate
+
+The successful sequence-4 preflight produced 2,228 input tokens and a
+conservative maximum generation cost of `$0.0016912`; its evidence and human
+review were completed before the deadline and are immutable. Generation has a
+distinct inactive candidate bound to the evidence digest, review digest,
+deterministic request, canonical attempt, provider fingerprint, and frozen-v2
+identity. Its proposed scope is zero preflights, one generation, and zero
+retries. Automated success requires structural, semantic, and all five ordered
+prose checks. Rejection selects fallback v2 without partial salvage. Validated
+response evidence requires immediate grounding review and deletion. Committed
+authority remains permanently closed, and no live generation occurred during
+this offline milestone. The generation-only workflow is ready for final human
+review, not activation.
+
 ## Status
 
 ```text

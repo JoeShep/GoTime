@@ -1,5 +1,15 @@
 # Session Notes
 
+## Sequence-4 generation-gate milestone
+
+- Verified approved sequence-4 preflight evidence and review exact bytes.
+- Added an inactive generation-only candidate bound to those digests.
+- Added fixed `004-storage_unknown-generation` paths and pinned commands.
+- Reused frozen request, layered validation, stable prose checks, fallback,
+  grounding review, evidence deletion, and permanent closure conventions.
+- Passed the full network-disabled generation rehearsal and repository suites.
+- No credential or provider operation occurred during this offline milestone.
+
 ## Session 0 -- Workstation
 
 ### Completed

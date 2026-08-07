@@ -1,5 +1,14 @@
 # NEXT_SESSION
 
+## Sequence-4 generation-gate design
+
+Sequence-4 preflight succeeded, was reviewed before its deadline, closed, and
+is consumed. The approved evidence binds 2,228 input tokens, conservative cost
+`$0.0016912`, and the exact frozen request/provider identities. A distinct
+inactive generation-only candidate and fixed offline workflow passed the
+network-disabled end-to-end rehearsal. Generation remains unauthorized; no
+live generation timestamps may be prepared until final human review.
+
 ## Sequence-4 preflight readiness
 
 Sequences 1, 2, and 3 are consumed historical attempts. Sequence 4 now has a
