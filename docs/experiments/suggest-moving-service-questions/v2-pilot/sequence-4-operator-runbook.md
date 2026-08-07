@@ -4,6 +4,29 @@ Only commands in this runbook belong to the reviewed sequence-4 workflow. They a
 
 All preparation, verification, activation, and closure commands use the pinned image `gotime-moving-service-stage-b:openai-2.45.0`. Synthetic rehearsals use `--network none`.
 
+## Phase 0 readiness
+
+From a clean repository root, first verify Git synchronization and confirm that
+`execution-manifest.json` is byte-for-byte equal to
+`closed-execution-manifest.json`. Then run these exact reviewed readiness
+commands:
+
+```sh
+sh scripts/experiments/suggest_moving_service_questions/verify_v2_sequence_4_operator_inventory.sh
+sh scripts/experiments/suggest_moving_service_questions/rehearse_v2_sequence_4_operator_workflow.sh
+```
+
+Both must report success before collecting human values or preparing live
+timestamps. The inventory command validates the nine public commands, fixed
+sequence identity, candidate digests, executability, and corrected zsh trap.
+The rehearsal uses isolated synthetic state and the exact public workflow with
+networking disabled. It performs one fake preflight, zero generation calls,
+immediate evidence review, closure, cleanup, and non-reuse rejection.
+
+The previous operational run stopped at Phase 0 because these exact readiness
+commands were not yet included in the runbook even though the underlying tests
+existed. No authority or timestamp package was created during that stopped run.
+
 ## Command inventory
 
 | Phase | Verified public command | Authority effect |

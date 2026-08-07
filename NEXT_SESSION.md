@@ -8,7 +8,9 @@ same-shell credential boundary, and a pinned immediate evidence-review command.
 The complete public workflow passed a network-disabled synthetic rehearsal with
 one fake preflight, zero generation calls, immediate approved evidence review,
 permanent closure, and non-reuse rejection. Before any live timestamps, perform
-the bounded human readiness review. Every successful live preflight must be
+the two exact Phase-0 readiness commands now documented in the sequence-4
+operator runbook, then perform the bounded human readiness review. Every
+successful live preflight must be
 reviewed before its evidence deadline in the same session. Generation, formal
 evaluation, Stage C, and production remain unauthorized.
 

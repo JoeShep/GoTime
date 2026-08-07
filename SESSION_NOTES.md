@@ -824,3 +824,14 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Rehearsed the exact public sequence-4 workflow with networking disabled,
   synthetic credentials, one fake preflight, zero generation calls, immediate
   evidence review, permanent closure, and non-reuse rejection.
+
+## Sequence-4 runbook readiness commands
+
+- The first post-commit operational run stopped safely before human values
+  because the runbook did not expose exact command-inventory and rehearsal
+  commands, although their underlying tests existed.
+- Added fixed host-shell readiness wrappers requiring no host Python, real
+  credential, network access, or real sequence-4 state.
+- The documented inventory validates all nine public commands and fixed
+  sequence identity. The documented rehearsal runs the exact isolated public
+  workflow through immediate evidence review, closure, cleanup, and non-reuse.

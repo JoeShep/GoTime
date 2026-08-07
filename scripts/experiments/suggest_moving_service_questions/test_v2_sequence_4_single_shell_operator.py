@@ -28,10 +28,31 @@ def test_candidate_and_fixed_paths() -> None:
 def test_runbook_paths_exist_are_executable_and_fixed() -> None:
     paths = set(re.findall(r"scripts/experiments/suggest_moving_service_questions/([\w.-]+\.(?:sh|zsh))", RUNBOOK.read_text()))
     assert "run_v2_sequence_4_live_preflight_operator.zsh" in paths
+    assert "verify_v2_sequence_4_operator_inventory.sh" in paths
+    assert "rehearse_v2_sequence_4_operator_workflow.sh" in paths
     for name in paths:
         path = SCRIPTS / name
         assert path.is_file() and os.access(path, os.X_OK)
         assert all(f"sequence_{sequence}" not in name for sequence in (1, 2, 3))
+
+
+def test_documented_inventory_readiness_command_passes() -> None:
+    result = subprocess.run(["sh", str(SCRIPTS / "verify_v2_sequence_4_operator_inventory.sh")],
+        cwd=ROOT, text=True, capture_output=True, timeout=30)
+    assert result.returncode == 0, result.stderr
+    assert "command_inventory=passed" in result.stdout
+
+
+def test_documented_synthetic_rehearsal_command_passes() -> None:
+    if shutil.which("docker") is None or shutil.which("zsh") is None:
+        import pytest
+        pytest.skip("Docker and zsh are required for the exact readiness rehearsal")
+    result = subprocess.run(["sh", str(SCRIPTS / "rehearse_v2_sequence_4_operator_workflow.sh")],
+        cwd=ROOT, text=True, capture_output=True, timeout=180)
+    assert result.returncode == 0, result.stderr
+    assert "synthetic_rehearsal=passed" in result.stdout
+    assert "fake_preflight_requests=1" in result.stdout
+    assert "generation_requests=0" in result.stdout
 
 
 def test_candidate_loaders_reject_cross_sequence_path_substitution(monkeypatch) -> None:
