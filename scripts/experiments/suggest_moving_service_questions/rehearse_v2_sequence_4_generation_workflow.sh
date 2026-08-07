@@ -100,6 +100,7 @@ SYNTHETIC_CREDENTIAL
   if grep -F 'synthetic-generation-credential-never-print' "$stdout" "$stderr" "$state"/*.json >/dev/null 2>&1; then
     exit 7
   fi
+  : >"$state/.network-disabled"
   audit="$state/004-storage_unknown-generation-audit.json"
   [ -f "$audit" ]
   grep -F '"preflight_attempted": false' "$audit" >/dev/null
@@ -132,6 +133,12 @@ SYNTHETIC_CREDENTIAL
     </dev/null >/dev/null 2>&1; then
     exit 8
   fi
+  : >"$state/.second-use-rejected"
+  assertion_output=$(sh scripts/experiments/suggest_moving_service_questions/v2_sequence_4_generation_operator_docker.sh \
+    assert-rehearsal --scenario "$scenario")
+  [ "$(field "$assertion_output" assertions_passed)" = true ]
+  awk -v scenario="$scenario" '{print $0 "\t" scenario "\tpassed"}' "$commands" \
+    >"$sandbox/command-coverage.tsv"
   rm -f "$rendered"
   cd "$source_root"
 }
@@ -139,6 +146,7 @@ SYNTHETIC_CREDENTIAL
 run_scenario compliant
 run_scenario prose_rejection
 run_scenario structural_failure
+run_scenario semantic_failure
 
 expected="$rehearsal_root/expected.txt"
 cat >"$expected" <<'COMMANDS'
@@ -156,14 +164,24 @@ scripts/experiments/suggest_moving_service_questions/verify_v2_sequence_4_genera
 COMMANDS
 sort -u "$rehearsal_root/compliant/invoked-public-commands.txt" >"$rehearsal_root/actual.txt"
 cmp -s "$expected" "$rehearsal_root/actual.txt"
+cat "$rehearsal_root"/*/command-coverage.tsv >"$rehearsal_root/command-coverage.tsv"
+[ "$(awk -F '\t' '$3 == "passed" {print $1}' "$rehearsal_root/command-coverage.tsv" | sort -u | wc -l)" -eq 11 ]
+[ "$(awk -F '\t' '$3 == "passed" {print $2}' "$rehearsal_root/command-coverage.tsv" | sort -u | wc -l)" -eq 4 ]
 cmp -s "$real_execution" "$real_closed"
 [ "$(sha256sum "$real_execution" | cut -d' ' -f1)" = "$before_manifest" ]
 [ -z "$(find "$real_generation_state" -maxdepth 2 -name '004-storage_unknown-generation*' -print 2>/dev/null)" ]
 echo 'exact_public_commands_exercised=11'
 echo 'synthetic_preflight_calls=0'
-echo 'synthetic_generation_calls_per_case=1'
+echo 'compliant_generation_calls=1'
+echo 'prose_rejection_generation_calls=1'
+echo 'structural_failure_generation_calls=1'
+echo 'semantic_failure_generation_calls=1'
+echo 'compliant_validation_passed=true'
 echo 'compliant_grounding_review=approved_and_deleted'
-echo 'all_five_prose_codes=true'
-echo 'structural_failure_distinct=true'
+echo 'prose_violation_codes_exact=true'
+echo 'fallback_identity_exact=true'
+echo 'structural_failure_classification=passed'
+echo 'semantic_failure_classification=passed'
+echo 'structural_semantic_distinction=true'
 echo 'permanent_closed_restored=true'
 echo 'second_use_rejected=true'

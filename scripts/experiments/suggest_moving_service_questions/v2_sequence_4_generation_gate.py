@@ -445,7 +445,13 @@ def write_generation_outcome(*, output_root: Path, raw: object, now: datetime) -
         "generation_attempted": True, "generation_request_count": 1,
         "automatic_retries": 0, "generation_authorized": True,
         "validation_outcome": classification, "prose_violation_codes": [],
+        "pydantic_validation_succeeded": classification != "structural_failure",
+        "semantic_validation_succeeded": classification in {"validated", "prose_failure"},
+        "prose_validation_succeeded": classification == "validated",
+        "complete_response_rejected": classification != "validated",
+        "partial_salvage_used": False,
         "fallback_used": classification != "validated", "fallback_version": None,
+        "fallback_question_id": None,
         "response_evidence_sha256": None, "human_review_status": "pending",
         "authorization_consumed": True, "generation_closed": True,
         "generation_succeeded": classification == "validated",
@@ -459,6 +465,7 @@ def write_generation_outcome(*, output_root: Path, raw: object, now: datetime) -
         fallback = select_fallback_v2(prepare_frozen_v2_pilot().request)
         audit["fallback_used"] = fallback is not None
         audit["fallback_version"] = FALLBACK_VERSION_V2
+        audit["fallback_question_id"] = fallback.question_id if fallback else None
     audit_digest = _exclusive(paths.audit, audit)
     closure = {
         "run_series_id": RUN_SERIES_ID, "sequence": 4, "fixture_id": FIXTURE_ID,

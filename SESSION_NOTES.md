@@ -6,7 +6,11 @@
   now precedes credential inspection, and rehearsal invokes every public
   command rather than substituting lifecycle functions.
 - Added machine-checked command coverage and retained network-disabled fake
-  generation for compliant, prose-rejected, and structural-failure scenarios.
+  generation for compliant, prose-rejected, structural-failure, and independent
+  semantic-failure scenarios.
+- Added scenario-specific assertions over audits, evidence, reviews, deletion,
+  fallback identity, closure, and non-reuse; every printed rehearsal success
+  field now has a checked backing assertion.
 - Verified approved sequence-4 preflight evidence and review exact bytes.
 - Added an inactive generation-only candidate bound to those digests.
 - Added fixed `004-storage_unknown-generation` paths and pinned commands.

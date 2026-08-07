@@ -27,6 +27,7 @@ from v2_sequence_4_generation_gate import (
     validate_rendered_generation_artifact, verify_candidate_and_preflight,
     write_generation_outcome,
 )
+from v2_sequence_4_generation_rehearsal_assertions import assert_rehearsal_scenario
 
 OUTPUT_ROOT = REPOSITORY_ROOT / ".local/evaluations/suggest-moving-service-questions"
 
@@ -207,6 +208,15 @@ def verify_active() -> None:
           "token_preflight_authorized": False, "generation_authorized": True})
 
 
+def assert_rehearsal(args) -> None:
+    result = assert_rehearsal_scenario(
+        state_root=OUTPUT_ROOT / RUN_SERIES_ID,
+        repository_root=REPOSITORY_ROOT,
+        scenario=args.scenario,
+    )
+    emit(result)
+
+
 def rehearse() -> None:
     with tempfile.TemporaryDirectory(prefix="gotime-sequence4-generation-") as temporary:
         root = Path(temporary)
@@ -282,6 +292,10 @@ def parser() -> argparse.ArgumentParser:
     grounding.add_argument("--fallback-comparison", required=True, choices=("materially_better", "slightly_better", "equivalent", "slightly_worse", "materially_worse"))
     grounding.add_argument("--notes", required=True)
     commands.add_parser("verify-deletion")
+    assertion = commands.add_parser("assert-rehearsal")
+    assertion.add_argument("--scenario", required=True, choices=(
+        "compliant", "prose_rejection", "structural_failure", "semantic_failure"
+    ))
     commands.add_parser("verify-readiness"); commands.add_parser("verify-active"); commands.add_parser("rehearse")
     return result
 
@@ -297,6 +311,7 @@ def main(argv=None) -> int:
         elif args.operation == "close": close(args)
         elif args.operation == "grounding-review": grounding_review(args)
         elif args.operation == "verify-deletion": verify_deletion()
+        elif args.operation == "assert-rehearsal": assert_rehearsal(args)
         elif args.operation == "verify-active": verify_active()
         elif args.operation == "rehearse": rehearse()
         else: emit(verify_history())

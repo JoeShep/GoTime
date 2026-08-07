@@ -25,6 +25,15 @@ operator command in the runbook, including the same-shell synthetic credential
 path, and machine-checks complete command coverage. No real credential, client,
 preflight, generation, or provider request was used by this correction.
 
+The subsequent review returned `request_changes` because several rehearsal
+summary claims were not backed by scenario-specific lifecycle assertions. The
+rehearsal now independently executes compliant, historical prose-rejection,
+structural-failure, and semantic-failure provider responses through the public
+command path. It verifies validation stages, the exact ordered prose codes,
+fallback identity, evidence/review/deletion behavior, closure, and non-reuse
+from actual scenario records before printing each success field. Generation
+remains unauthorized.
+
 ## Status
 
 ```text

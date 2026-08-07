@@ -12,7 +12,10 @@ live generation timestamps may be prepared until final human review.
 The two findings from the first final review have been corrected offline:
 exact request verification precedes credential inspection, and the synthetic
 rehearsal executes and accounts for every public generation command. A new
-bounded final human review is still required before any live timestamps.
+rehearsal-assertion finding is also corrected: four independently executed
+scenarios now substantiate every printed success claim from actual lifecycle
+records. A new bounded final human review is still required before any live
+timestamps.
 
 ## Sequence-4 preflight readiness
 

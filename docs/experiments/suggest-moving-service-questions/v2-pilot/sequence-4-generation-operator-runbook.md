@@ -25,6 +25,15 @@ public commands. The live runner now verifies the exact immutable request and
 canonical provider attempt before reading any credential. That same verified
 request object is passed to the one-generation transport.
 
+A later review also returned `request_changes` because the rehearsal summary
+claimed more than its scenario assertions established. The corrected rehearsal
+runs compliant, historical prose-rejection, structural-failure, and independent
+semantic-failure scenarios. Each scenario is checked from its actual audit,
+evidence, review, deletion, transaction, and closure records before any success
+line is printed. The historical response must produce all five prose codes in
+their stable order and the exact approved fallback identity. Generation remains
+unauthorized outside isolated synthetic activation.
+
 ## Non-authoritative preparation
 
 ```sh
