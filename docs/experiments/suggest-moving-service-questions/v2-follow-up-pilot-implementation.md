@@ -413,3 +413,26 @@ read-only `status` parameter. The EXIT handler now preserves the original code
 in `exit_code`; credential handling, authority validation, and closure semantics
 are unchanged. Future successful live preflights require human evidence review
 within the applicable deadline before the operator session ends.
+
+## Sequence-4 fixed preflight workflow
+
+Sequences 1, 2, and 3 remain consumed immutable history. Sequence 4 has a
+distinct inactive candidate and sequence-aware manifest bound to fixed
+`004-storage_unknown` paths. Its renderer, installer, activation reviewer,
+planner, activation, active-state verifier, live preflight, closure, and
+same-shell operator commands are capability-specific and expose no sequence
+override. The same-shell operator preserves the corrected zsh exit-code,
+signal, credential cleanup, and non-disclosure behavior.
+
+Sequence 4 also adds a fixed pinned-environment preflight-evidence reviewer.
+It records approve, reject, or request-changes decisions and binds the exact
+evidence digest, token count, cost, deterministic request, canonical attempt,
+provider fingerprint, frozen-v2 identity, provider, model, SDK, creation time,
+and deadline. Approval after the deadline is rejected. The review is offline,
+non-authoritative, and does not authorize generation; it is only eligible to
+bind a separately reviewed future generation gate.
+
+The exact public sequence-4 workflow was rehearsed with networking disabled,
+a synthetic credential, and a fake client through immediate approved evidence
+review and non-reuse rejection. It performed one fake preflight, zero generation
+calls, consumed synthetic authority, and restored the permanent closed manifest.

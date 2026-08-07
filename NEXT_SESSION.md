@@ -1,16 +1,16 @@
 # NEXT_SESSION
 
-## Sequence-3 preflight evidence and next-sequence readiness
+## Sequence-4 preflight readiness
 
-Sequences 1, 2, and 3 are consumed historical attempts. Sequence 3 completed
-one token preflight, attempted no generation, and restored permanent closed
-authority. Its operator script's post-closure zsh reserved-variable defect is
-corrected without changing credential or authorization semantics. Before a
-future sequence is versioned, complete any still-eligible bounded human review
-of the immutable sequence-3 preflight evidence. For every future successful
-live preflight, complete evidence review within its deadline before ending the
-same session. Generation, formal evaluation, Stage C, and production remain
-unauthorized.
+Sequences 1, 2, and 3 are consumed historical attempts. Sequence 4 now has a
+distinct inactive candidate, fixed `004-storage_unknown` workflow, corrected
+same-shell credential boundary, and a pinned immediate evidence-review command.
+The complete public workflow passed a network-disabled synthetic rehearsal with
+one fake preflight, zero generation calls, immediate approved evidence review,
+permanent closure, and non-reuse rejection. Before any live timestamps, perform
+the bounded human readiness review. Every successful live preflight must be
+reviewed before its evidence deadline in the same session. Generation, formal
+evaluation, Stage C, and production remain unauthorized.
 
 ## Goal
 

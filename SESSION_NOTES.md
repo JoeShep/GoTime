@@ -811,3 +811,16 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   failure coverage.
 - Recorded that successful live-preflight evidence must receive human review
   within its deadline before the same operator session ends.
+
+## Sequence-4 offline preflight versioning
+
+- Preserved sequences 1, 2, and 3 as immutable consumed history and left all
+  frozen v1/v2 artifacts unchanged.
+- Added a distinct inactive sequence-4 candidate and manifest plus fixed
+  `004-storage_unknown` preparation, activation, preflight, recovery, and
+  same-shell operator commands.
+- Added a bounded pinned preflight-evidence review command supporting approve,
+  reject, and request changes; late approval fails closed.
+- Rehearsed the exact public sequence-4 workflow with networking disabled,
+  synthetic credentials, one fake preflight, zero generation calls, immediate
+  evidence review, permanent closure, and non-reuse rejection.
