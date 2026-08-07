@@ -1,5 +1,15 @@
 # Session Notes
 
+## Sequence-4 live prose-failure diagnostic
+
+- Preserved the live audit and closure as immutable evidence; the raw rejected
+  response remains unavailable and was not reconstructed.
+- Added isolated matrices for storage-modality and service-selection lexical
+  behavior without changing the validators or frozen fixtures.
+- Recommended a narrow prompt v3 and separately reviewed bounded diagnostic
+  metadata using canonical triggers rather than retained response text.
+- No credential, client, preflight, generation, or provider operation occurred.
+
 ## Sequence-4 generation-gate milestone
 
 - Corrected the final-review findings: exact generation request verification

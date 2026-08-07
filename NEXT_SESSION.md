@@ -2,6 +2,14 @@
 
 ## Sequence-4 generation-gate design
 
+The consumed live sequence-4 generation passed structural and semantic
+validation but failed the unchanged v2 prose guardrails for storage modality
+and service-selection language. The raw rejected response was intentionally not
+retained. An offline diagnostic maps the exact lexical behavior and recommends
+a narrowly scoped prompt v3 while preserving both validators. Any prompt-v3
+drafting or bounded rejected-prose diagnostic metadata requires a separate
+reviewed milestone; generation remains unauthorized.
+
 Sequence-4 preflight succeeded, was reviewed before its deadline, closed, and
 is consumed. The approved evidence binds 2,228 input tokens, conservative cost
 `$0.0016912`, and the exact frozen request/provider identities. A distinct
