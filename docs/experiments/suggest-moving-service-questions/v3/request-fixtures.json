@@ -1,0 +1,28 @@
+{
+  "fixture_version": "moving-service-request-fixtures-v3",
+  "fixtures": [
+    {
+      "expected_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "expected_missing_categories": [
+        "temporary_storage_need"
+      ],
+      "fixture_id": "storage_unknown",
+      "trusted_fixture": "storage_unknown"
+    },
+    {
+      "expected_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "expected_missing_categories": [],
+      "fixture_id": "complete",
+      "trusted_fixture": "complete"
+    }
+  ],
+  "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+  "prompt_version": "moving-service-questions-prompt-v3",
+  "request_model": "MovingServiceQuestionRequestV3",
+  "schema_version": "moving-service-questions-schema-v3",
+  "status": "reviewed_and_frozen"
+}

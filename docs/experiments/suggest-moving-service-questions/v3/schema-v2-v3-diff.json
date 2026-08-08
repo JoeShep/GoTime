@@ -1,0 +1,35 @@
+{
+  "additional_properties_behavior_changed": false,
+  "allowed_difference_classes": [
+    "generated_title",
+    "prompt_version_literal",
+    "schema_version_literal"
+  ],
+  "artifact_version": "moving-service-schema-v2-v3-diff-v1",
+  "constraints_changed": false,
+  "enums_changed": false,
+  "fields_changed": [],
+  "nested_structures_changed": false,
+  "normalized_schemas_equal": true,
+  "observed_identity_changes": {
+    "prompt_version": {
+      "from": "moving-service-questions-prompt-v2",
+      "to": "moving-service-questions-prompt-v3"
+    },
+    "root_title": {
+      "from": "MovingServiceQuestionResponseV2",
+      "to": "MovingServiceQuestionResponseV3"
+    },
+    "schema_version": {
+      "from": "moving-service-questions-schema-v2",
+      "to": "moving-service-questions-schema-v3"
+    }
+  },
+  "required_lists_changed": false,
+  "source_models": [
+    "MovingServiceQuestionResponseV2",
+    "MovingServiceQuestionResponseV3"
+  ],
+  "status": "reviewed_and_frozen",
+  "types_changed": false
+}

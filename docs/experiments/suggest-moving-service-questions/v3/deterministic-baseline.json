@@ -1,0 +1,94 @@
+{
+  "fallback_version": "moving-service-fallback-v2",
+  "inherits_unchanged_non_storage_questions_from": "moving-service-fallback-v1",
+  "missing_information_contracts": [
+    {
+      "allowed_enum_values": null,
+      "answer_type": "boolean",
+      "category_id": "temporary_storage_need",
+      "reason_missing": "temporary_storage_need has not been confirmed.",
+      "state_field": "temporary_storage_need"
+    },
+    {
+      "allowed_enum_values": null,
+      "answer_type": "boolean",
+      "category_id": "willing_to_drive_rental_truck",
+      "reason_missing": "willing_to_drive_rental_truck has not been confirmed.",
+      "state_field": "willing_to_drive_rental_truck"
+    },
+    {
+      "allowed_enum_values": [
+        "minimize_cost",
+        "balance",
+        "minimize_hands_on_work"
+      ],
+      "answer_type": "enum",
+      "category_id": "cost_vs_convenience_preference",
+      "reason_missing": "cost_vs_convenience_preference has not been confirmed.",
+      "state_field": "cost_vs_convenience_preference"
+    },
+    {
+      "allowed_enum_values": [
+        "self_pack",
+        "partial_help",
+        "full_packing"
+      ],
+      "answer_type": "enum",
+      "category_id": "packing_preference",
+      "reason_missing": "packing_preference has not been confirmed.",
+      "state_field": "packing_preference"
+    },
+    {
+      "allowed_enum_values": null,
+      "answer_type": "boolean",
+      "category_id": "specialty_item_needs",
+      "reason_missing": "specialty_item_needs has not been confirmed.",
+      "state_field": "specialty_item_needs"
+    }
+  ],
+  "questions": [
+    {
+      "category_id": "temporary_storage_need",
+      "priority": 10,
+      "question": "Might you need temporary storage before final delivery?",
+      "question_id": "fallback-temporary-storage-v2",
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "why_it_matters": "For an interstate move handled by a household-goods mover, a possible need for temporary storage before final delivery is relevant when identifying the services to request."
+    },
+    {
+      "category_id": "willing_to_drive_rental_truck",
+      "priority": 20,
+      "question": "Would someone in your household be willing to drive a rental truck?",
+      "question_id": "fallback-rental-truck-driving-v1",
+      "relevant_knowledge_ids": [],
+      "why_it_matters": "Driving willingness determines whether self-drive approaches are practical to investigate."
+    },
+    {
+      "category_id": "cost_vs_convenience_preference",
+      "priority": 30,
+      "question": "Would you rather minimize cost, balance cost and effort, or minimize hands-on work?",
+      "question_id": "fallback-cost-convenience-v1",
+      "relevant_knowledge_ids": [],
+      "why_it_matters": "This tradeoff helps focus later moving-service research on approaches that fit your priorities."
+    },
+    {
+      "category_id": "packing_preference",
+      "priority": 40,
+      "question": "How much packing help would you want from a moving service?",
+      "question_id": "fallback-packing-preference-v1",
+      "relevant_knowledge_ids": [],
+      "why_it_matters": "Packing responsibility can affect which moving-service approaches deserve investigation."
+    },
+    {
+      "category_id": "specialty_item_needs",
+      "priority": 50,
+      "question": "Are there specialty items that require special handling?",
+      "question_id": "fallback-specialty-items-v1",
+      "relevant_knowledge_ids": [],
+      "why_it_matters": "Special handling needs can affect which moving-service approaches are practical."
+    }
+  ],
+  "status": "reviewed_and_frozen"
+}

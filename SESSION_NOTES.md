@@ -1,5 +1,21 @@
 # Session Notes
 
+## Prompt-v3 freezing milestone
+
+- Promoted the approved draft into a complete frozen experimental package with
+  prompt `moving-service-questions-prompt-v3` and schema
+  `moving-service-questions-schema-v3`.
+- Added literal-only v3 request/response models, a machine-readable v2/v3
+  schema-diff proof, title-only provider-schema adaptation, field-by-field
+  review, frozen fixtures, synthetic language cases, and authoritative digests.
+- Preserved the exact approved modality, service-selection,
+  `why_it_matters`, grounding exception, and no-positive-example decisions.
+- Kept all five v2 prose validators and `moving-service-fallback-v2`
+  unchanged.
+- Added drift, mixed-identity, semantic-invariant, and runtime-isolation tests.
+- No live configuration, authorization, credential access, model call, or
+  FastAPI/frontend reachability was added.
+
 ## Sequence-4 live prose-failure diagnostic
 
 - Preserved the live audit and closure as immutable evidence; the raw rejected

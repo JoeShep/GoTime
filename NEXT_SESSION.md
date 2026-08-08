@@ -1,5 +1,20 @@
 # NEXT_SESSION
 
+## Frozen prompt-v3 follow-up
+
+The approved prompt-v3 draft is now materialized as a frozen, offline-only
+experimental package. Prompt and schema identities advance to v3; the schema
+change is literal/title-only, the provider schema removes titles only, all five
+v2 prose validators remain unchanged, and deterministic fallback remains
+`moving-service-fallback-v2`. The package has no live pilot configuration,
+authorization path, backend/frontend reachability, credential permission, or
+generation authority.
+
+The next eligible milestone is a separate offline generation-gate versioning
+and network-disabled rehearsal bound to the frozen-v3 manifest. Do not prepare
+live timestamps or expose prompt v3 at runtime before that work is reviewed.
+Bounded rejected-prose diagnostics remain separate.
+
 ## Sequence-4 generation-gate design
 
 The consumed live sequence-4 generation passed structural and semantic
@@ -10,12 +25,12 @@ a narrowly scoped prompt v3 while preserving both validators. Any prompt-v3
 drafting or bounded rejected-prose diagnostic metadata requires a separate
 reviewed milestone; generation remains unauthorized.
 
-An isolated prompt-v3 review draft now proposes explicit may/might/could
+The approved prompt-v3 design uses explicit may/might/could
 modality, broader prompt-level service-selection prohibitions, neutral
 `why_it_matters` guidance, and confinement of `services to request` to exact
-grounding mirroring. Because the v2 Pydantic classes bind prompt/schema
-literals, later implementation would require literal-only v3 classes. The
-draft is example-free, unfrozen, unauthorized, and has no runtime path.
+grounding mirroring. Literal-only v3 Pydantic identities and a strict provider
+schema are now frozen. The package remains example-free, unauthorized, and
+unreachable from production runtime.
 
 Sequence-4 preflight succeeded, was reviewed before its deadline, closed, and
 is consumed. The approved evidence binds 2,228 input tokens, conservative cost

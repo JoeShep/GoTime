@@ -1,0 +1,22 @@
+{
+  "artifact_version": "moving-service-openai-schema-adaptation-v3",
+  "mechanical_adaptation": {
+    "allowed_values_may_be_broadened": false,
+    "extra_field_prohibitions_may_be_removed": false,
+    "length_or_array_limits_may_be_weakened": false,
+    "remove_nonsemantic_titles_only": true,
+    "required_fields_may_be_removed": false,
+    "types_may_be_broadened": false
+  },
+  "provider": "OpenAI",
+  "provider_snapshot_created": true,
+  "provider_snapshot_frozen": true,
+  "provider_snapshot_path": "docs/experiments/suggest-moving-service-questions/v3/openai-response-schema.json",
+  "provider_snapshot_review_path": "docs/experiments/suggest-moving-service-questions/v3/openai-response-schema-review.md",
+  "provider_snapshot_reviewed": true,
+  "runtime_pydantic_validation_authoritative": true,
+  "source_method": "model_json_schema",
+  "source_model": "MovingServiceQuestionResponseV3",
+  "status": "reviewed_and_frozen",
+  "structured_output_mode": "strict_json_schema"
+}

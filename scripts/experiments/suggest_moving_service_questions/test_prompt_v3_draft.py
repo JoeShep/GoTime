@@ -136,13 +136,17 @@ def test_draft_contains_no_live_configuration_or_authorization_package() -> None
 
 
 def test_no_runtime_path_references_prompt_v3_or_exposes_it() -> None:
-    this_file = Path(__file__).resolve()
+    offline_v3_files = {
+        "freeze_prompt_v3_artifacts.py",
+        "moving_service_questions_v3.py",
+        "test_prompt_v3_draft.py",
+        "test_prompt_v3_frozen.py",
+    }
     runtime_files = list((ROOT / "backend").rglob("*.py")) + list(
         (ROOT / "scripts/experiments/suggest_moving_service_questions").glob("*.py")
     )
     for path in runtime_files:
-        if path.resolve() == this_file:
+        if path.name in offline_v3_files:
             continue
         assert "moving-service-questions-prompt-v3" not in path.read_text(), path
     assert not list((ROOT / "frontend/src").rglob("*v3*"))
-

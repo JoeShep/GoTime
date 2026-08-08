@@ -1,0 +1,44 @@
+{
+  "expected_counts": {
+    "known_prompt_validator_mismatches": 5,
+    "mixed": 2,
+    "service": 13,
+    "storage": 13,
+    "total": 28
+  },
+  "known_mismatch_ids": [
+    "storage-likely-need",
+    "storage-expected-need",
+    "storage-necessary",
+    "service-punctuation",
+    "service-intervening"
+  ],
+  "policy": {
+    "allowed_storage_forms": [
+      "may need",
+      "may be needed",
+      "might need",
+      "might be needed",
+      "could need",
+      "could be needed"
+    ],
+    "positive_examples": false,
+    "prohibited_selection_adjectives": [
+      "appropriate",
+      "best",
+      "suitable",
+      "recommended"
+    ],
+    "prohibited_storage_forms": [
+      "required",
+      "requirement",
+      "must",
+      "will need",
+      "likely need",
+      "expected to need",
+      "necessary"
+    ],
+    "services_to_request": "allowed_only_in_exact_grounding_summary"
+  },
+  "status": "reviewed_and_frozen"
+}

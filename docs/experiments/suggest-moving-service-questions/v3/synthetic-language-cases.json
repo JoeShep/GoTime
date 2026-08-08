@@ -1,0 +1,263 @@
+{
+  "cases": [
+    {
+      "class": "storage",
+      "field": "question",
+      "id": "storage-may-need",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "Could temporary storage be something you may need?",
+      "validator_rejected": false
+    },
+    {
+      "class": "storage",
+      "field": "information_it_would_clarify",
+      "id": "storage-may-be-needed",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "Whether temporary storage may be needed",
+      "validator_rejected": false
+    },
+    {
+      "class": "storage",
+      "field": "question",
+      "id": "storage-might-need",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "Might you need temporary storage?",
+      "validator_rejected": false
+    },
+    {
+      "class": "storage",
+      "field": "why_it_matters",
+      "id": "storage-might-be-needed",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "This clarifies whether storage might be needed.",
+      "validator_rejected": false
+    },
+    {
+      "class": "storage",
+      "field": "question",
+      "id": "storage-could-need",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "Could you need temporary storage?",
+      "validator_rejected": false
+    },
+    {
+      "class": "storage",
+      "field": "information_it_would_clarify",
+      "id": "storage-could-be-needed",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "Whether storage could be needed",
+      "validator_rejected": false
+    },
+    {
+      "class": "storage",
+      "field": "question",
+      "id": "storage-required",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Is temporary storage required?",
+      "validator_rejected": true
+    },
+    {
+      "class": "storage",
+      "field": "why_it_matters",
+      "id": "storage-requirement",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "This identifies the storage requirement.",
+      "validator_rejected": true
+    },
+    {
+      "class": "storage",
+      "field": "question",
+      "id": "storage-must",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Must you arrange temporary storage?",
+      "validator_rejected": true
+    },
+    {
+      "class": "storage",
+      "field": "information_it_would_clarify",
+      "id": "storage-will-need",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Whether you will need storage",
+      "validator_rejected": true
+    },
+    {
+      "class": "storage",
+      "field": "why_it_matters",
+      "id": "storage-likely-need",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "You likely need temporary storage.",
+      "validator_rejected": false
+    },
+    {
+      "class": "storage",
+      "field": "why_it_matters",
+      "id": "storage-expected-need",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "You are expected to need storage.",
+      "validator_rejected": false
+    },
+    {
+      "class": "storage",
+      "field": "why_it_matters",
+      "id": "storage-necessary",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Temporary storage is necessary.",
+      "validator_rejected": false
+    },
+    {
+      "class": "service",
+      "field": "why_it_matters",
+      "id": "service-appropriate-moving",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Identify appropriate moving services.",
+      "validator_rejected": true
+    },
+    {
+      "class": "service",
+      "field": "why_it_matters",
+      "id": "service-best-moving",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Identify the best moving services.",
+      "validator_rejected": true
+    },
+    {
+      "class": "service",
+      "field": "question",
+      "id": "service-suitable-movers",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Which suitable movers should you use?",
+      "validator_rejected": true
+    },
+    {
+      "class": "service",
+      "field": "why_it_matters",
+      "id": "service-recommended-model",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Choose a recommended service model.",
+      "validator_rejected": true
+    },
+    {
+      "class": "service",
+      "field": "why_it_matters",
+      "id": "service-appropriate-provider",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Find an appropriate provider.",
+      "validator_rejected": true
+    },
+    {
+      "class": "service",
+      "field": "question",
+      "id": "service-best-mover",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Which best mover should you choose?",
+      "validator_rejected": true
+    },
+    {
+      "class": "service",
+      "field": "why_it_matters",
+      "id": "service-punctuation",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Identify appropriate, local moving services.",
+      "validator_rejected": false
+    },
+    {
+      "class": "service",
+      "field": "why_it_matters",
+      "id": "service-intervening",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "text": "Identify suitable interstate moving services.",
+      "validator_rejected": false
+    },
+    {
+      "class": "service",
+      "field": "grounding_summary",
+      "id": "service-grounding-exact",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "For an interstate move handled by a household-goods mover, a possible need for temporary storage before final delivery is relevant when identifying the services to request.",
+      "validator_rejected": false
+    },
+    {
+      "class": "service",
+      "field": "why_it_matters",
+      "id": "service-to-discuss",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "This clarifies what to discuss when planning.",
+      "validator_rejected": false
+    },
+    {
+      "class": "service",
+      "field": "information_it_would_clarify",
+      "id": "service-may-request",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "What may need to be requested",
+      "validator_rejected": false
+    },
+    {
+      "class": "service",
+      "field": "why_it_matters",
+      "id": "service-needs",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "This clarifies service needs.",
+      "validator_rejected": false
+    },
+    {
+      "class": "service",
+      "field": "why_it_matters",
+      "id": "service-planning",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "text": "This clarifies planning considerations.",
+      "validator_rejected": false
+    },
+    {
+      "class": "mixed",
+      "field": "multiple",
+      "id": "mixed-compliant-prohibited",
+      "intended_policy": "unacceptable",
+      "prompt_v3_status": "prohibited",
+      "texts": [
+        "Whether storage may be needed",
+        "Identify appropriate moving services"
+      ],
+      "validator_rejected": true
+    },
+    {
+      "class": "mixed",
+      "field": "multiple",
+      "id": "mixed-two-compliant",
+      "intended_policy": "acceptable",
+      "prompt_v3_status": "allowed",
+      "texts": [
+        "Whether storage might be needed",
+        "This clarifies what to discuss when planning"
+      ],
+      "validator_rejected": false
+    }
+  ],
+  "status": "reviewed_and_frozen"
+}

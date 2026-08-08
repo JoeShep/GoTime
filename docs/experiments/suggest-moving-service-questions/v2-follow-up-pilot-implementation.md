@@ -477,3 +477,21 @@ The exact public sequence-4 workflow was rehearsed with networking disabled,
 a synthetic credential, and a fake client through immediate approved evidence
 review and non-reuse rejection. It performed one fake preflight, zero generation
 calls, consumed synthetic authority, and restored the permanent closed manifest.
+
+## Frozen prompt-v3 package
+
+The approved prompt-v3 language draft is frozen under `v3/` as an offline-only
+experimental package. It addresses the two surviving live v2 prose-failure
+classes by narrowing user-facing storage modality and prohibiting service-
+selection framing at the prompt-policy level. Existing deterministic prose
+validators remain unchanged, including the five intentional cases where the
+prompt is stricter than the lexical checks.
+
+Prompt identity is `moving-service-questions-prompt-v3`; schema identity is
+`moving-service-questions-schema-v3`. Request and response contracts differ
+from v2 only in identity literals and generated root titles. The strict OpenAI
+schema adaptation still removes only nonsemantic titles. Fallback remains
+`moving-service-fallback-v2`, and no live v3 pilot config, authorization,
+credential access, runtime endpoint, or generation authority exists. A future
+v3 generation gate requires a separate offline versioning and rehearsal
+milestone before any operational review.
