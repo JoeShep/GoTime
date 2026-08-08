@@ -492,6 +492,13 @@ Prompt identity is `moving-service-questions-prompt-v3`; schema identity is
 from v2 only in identity literals and generated root titles. The strict OpenAI
 schema adaptation still removes only nonsemantic titles. Fallback remains
 `moving-service-fallback-v2`, and no live v3 pilot config, authorization,
-credential access, runtime endpoint, or generation authority exists. A future
-v3 generation gate requires a separate offline versioning and rehearsal
-milestone before any operational review.
+credential access, runtime endpoint, or generation authority exists.
+
+The frozen-v3 sequence-4 generation gate is now separately versioned and
+rehearsed offline. Its deterministic request, canonical attempt, and provider
+fingerprint differ from v2, so the approved v2 preflight cannot be reused and
+the inactive v3 generation candidate remains explicitly unresolved. A fresh,
+approved v3 token preflight is required before any live v3 generation package
+can be rendered. The network-disabled rehearsal uses synthetic v3 preflight
+evidence only and covers all fixed public commands plus five validation cases;
+it does not grant live authority.

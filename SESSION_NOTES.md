@@ -1,5 +1,24 @@
 # Session Notes
 
+## Frozen-v3 sequence-4 generation-gate rebinding
+
+- Verified every frozen-v3 digest before constructing the v3 request.
+- Determined `fresh_v3_preflight_required`: prompt v3 changes the deterministic
+  request, canonical attempt, and provider fingerprint, and its exact provider
+  token count is not knowable offline.
+- Added a distinct inactive v3 generation candidate with unresolved fresh-v3
+  preflight placeholders; live rendering fails closed outside synthetic state.
+- Versioned the fixed sequence-4 generation lifecycle, same-shell operator,
+  grounding review, evidence deletion, closure, command inventory, and runbook
+  without changing the reviewed architecture.
+- Rehearsed all 11 public commands under Docker networking disabled across
+  compliant, historical prose rejection, structural failure, semantic failure,
+  and prompt-policy stress scenarios. Each used one fake generation, zero
+  preflights, restored permanent closure, and rejected reuse.
+- Preserved frozen v1/v2/v3 artifacts, historical sequence records, fallback
+  v2, and the existing semantic/prose validators. No credential or provider
+  operation occurred.
+
 ## Prompt-v3 freezing milestone
 
 - Promoted the approved draft into a complete frozen experimental package with

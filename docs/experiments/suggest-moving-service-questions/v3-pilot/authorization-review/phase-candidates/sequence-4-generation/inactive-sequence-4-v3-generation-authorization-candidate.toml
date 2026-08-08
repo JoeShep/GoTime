@@ -1,0 +1,106 @@
+[metadata]
+capability = "suggest_moving_service_questions"
+candidate_version = "moving-service-openai-v3-generation-sequence-4-candidate-v1"
+candidate_status = "inactive_non_authoritative_blocked"
+phase = "generation"
+active_repository_authority = false
+valid_for_execution = false
+placeholder_bound = true
+fresh_v3_preflight_required = true
+
+[bindings]
+frozen_v3_manifest_path = "docs/experiments/suggest-moving-service-questions/v3/manifest.json"
+frozen_v3_manifest_digest = "44da0c5005515784c2c13737ca12a4382c084f1aa56fea5b4a4d40e66fb8659c"
+prompt_path = "docs/experiments/suggest-moving-service-questions/v3/real-model-prompt.toml"
+prompt_version = "moving-service-questions-prompt-v3"
+prompt_digest = "1146474ad5112a238446a63d4fc797022ca2cd65d8e9cb6c88935d7f4f3376e8"
+schema_version = "moving-service-questions-schema-v3"
+provider_schema_path = "docs/experiments/suggest-moving-service-questions/v3/openai-response-schema.json"
+provider_schema_digest = "333d6923902c46662243e019074b735500904bc49acbafdc1b929bceed9924e2"
+provider_schema_review_digest = "d06f623b1c6daa2c939961325ec92afb9e0fe97f1c5e0e7d995bcf7e4034c96f"
+schema_adaptation_digest = "e7bc2a8c96527759cda4398e2d09a138dec63c64d08add9ed38af51d53148247"
+schema_v2_v3_diff_digest = "aa56116fad48eb13ee50bdf45343e64debe5836c198b9f0ae98e88f7ff8d5e48"
+deterministic_baseline_digest = "e2e185dac7411ad7bd7ea9ed049b9d7146c4e4e2ffa3d2125e67f84a72573dbc"
+request_fixtures_digest = "4edd377721d6d4e70b738508f44877f93dc6856e2eee2fc5da936f0dcce15eb9"
+response_fixtures_digest = "aca6178cbc0438edfe3646535ded2f27fab6fcf7f867793c71c5f14d9b1cf127"
+expected_results_digest = "e9c6fc8973ed05feb545721563b6f43cc3b348f5810c4bb1f7068e1a9afac67e"
+fallback_version = "moving-service-fallback-v2"
+provider = "OpenAI"
+ai_model_identifier = "gpt-4.1-mini-2025-04-14"
+sdk_pin = "openai==2.45.0"
+pilot_configuration_digest = "08d1d6781cae9150c059736ea92e119226234c8e53c798766f2901f010499ad3"
+closed_execution_manifest_digest = "18a22d62a3e368f5a021649be56a211af959fed7b0305eab61d063022b1387fa"
+permanent_closed_authorization_digest = "bb5e2f4a70d71b44a34b59592e0bd30bf4b71f6a3fdd0724afa457340d4921af"
+deterministic_request_digest = "952b8003f184de1ff9617103c8c93ab64d87e63cb4e4daee84647b7dd505ed79"
+canonical_attempt_digest = "d9d8141853b7d034ce30de8c9c2689d9738b0bfd73d812a2150b823111b3bdcf"
+provider_fingerprint = "a5895ad53d54d6d03652152aeadbf8b71a2c672cab86640d1798a3a3680a15e4"
+
+[required_v3_preflight]
+binding_status = "fresh_v3_preflight_required"
+preflight_evidence_digest = "FRESH_V3_PREFLIGHT_EVIDENCE_REQUIRED"
+preflight_review_digest = "FRESH_V3_PREFLIGHT_REVIEW_REQUIRED"
+input_tokens = "FRESH_V3_INPUT_TOKEN_COUNT_REQUIRED"
+conservative_cost = "FRESH_V3_CONSERVATIVE_COST_REQUIRED"
+request_digest = "952b8003f184de1ff9617103c8c93ab64d87e63cb4e4daee84647b7dd505ed79"
+canonical_attempt_digest = "d9d8141853b7d034ce30de8c9c2689d9738b0bfd73d812a2150b823111b3bdcf"
+provider_fingerprint = "a5895ad53d54d6d03652152aeadbf8b71a2c672cab86640d1798a3a3680a15e4"
+
+[authorization]
+credential_access_authorized = false
+token_preflight_authorized = false
+ai_generation_authorized = false
+formal_evaluation_authorized = false
+stage_c_authorized = false
+production_use_authorized = false
+fastapi_exposure_authorized = false
+frontend_exposure_authorized = false
+recurring_execution_authorized = false
+background_execution_authorized = false
+
+[proposed_authorization]
+credential_access_authorized = true
+token_preflight_authorized = false
+ai_generation_authorized = true
+formal_evaluation_authorized = false
+stage_c_authorized = false
+production_use_authorized = false
+fastapi_exposure_authorized = false
+frontend_exposure_authorized = false
+recurring_execution_authorized = false
+background_execution_authorized = false
+
+[scope]
+run_series_id = "moving-service-stage-b-v2-pilot-20260802"
+sequence = 4
+fixture_id = "storage_unknown"
+credential_environment_variable = "GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY"
+operator_enablement_variable = "GOTIME_MOVING_SERVICE_EVAL_ENABLED"
+required_operator_enablement_value = "1"
+operator_intent = "AUTHORIZE_ONE_STORAGE_UNKNOWN_V3_GENERATION_ONLY"
+maximum_credential_reads = 1
+maximum_client_constructions = 1
+maximum_token_preflight_requests = 0
+maximum_ai_generation_requests = 1
+automatic_retries = 0
+token_preflight_timeout_seconds = 5
+ai_generation_timeout_seconds = 12
+maximum_output_tokens = 500
+maximum_total_spend_usd = "0.03"
+human_grounding_review_required = true
+single_use = true
+
+[approval]
+approval_status = "blocked_pending_fresh_v3_preflight"
+approver = "APPROVER_ID_REQUIRED_AFTER_V3_PREFLIGHT"
+approved_at = "APPROVED_AT_UTC_REQUIRED_AFTER_V3_PREFLIGHT"
+activated_at = "ACTIVATED_AT_UTC_REQUIRED_AFTER_V3_PREFLIGHT"
+expires_at = "EXPIRES_AT_UTC_REQUIRED_AFTER_V3_PREFLIGHT"
+maximum_authorization_duration_seconds = 900
+authorization_reason = "AUTHORIZATION_REASON_REQUIRED_AFTER_V3_PREFLIGHT"
+
+[consumption]
+consumed_at_earliest_attempt_stage = true
+consumption_stages = ["credential_lookup_attempt", "client_construction_attempt", "preflight_evidence_consumption", "ai_generation_attempt", "expiration", "operator_cancellation_after_activation", "bounded_failure_after_activation"]
+reuse_after_consumption = false
+return_to_unused_active_state = false
+closure_restores_permanent_closed_authorization = true

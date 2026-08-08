@@ -1,5 +1,23 @@
 # NEXT_SESSION
 
+## Frozen-v3 generation-gate follow-up
+
+The frozen-v3 sequence-4 generation gate is now versioned and fully rehearsed
+offline, but it is intentionally blocked from live preparation. Prompt v3
+changes the deterministic request (`952b8003...`), canonical attempt
+(`d9d81418...`), and provider fingerprint (`a5895ad5...`), so the approved v2
+preflight evidence cannot authorize the v3 request. The exact remaining step is
+a separately versioned, reviewed, network-capable v3 token-preflight workflow;
+only its approved token count and evidence/review digests may resolve the
+generation candidate. Do not prepare v3 generation timestamps first.
+
+The v3 gate otherwise preserves the reviewed architecture: credential-free
+exact-attempt verification, zero generation preflights, one generation, zero
+retries, same-shell credential handling, unchanged semantic/prose validators,
+fallback v2, grounding review, evidence deletion, closure, and non-reuse. Five
+network-disabled exact-command scenarios pass, including the documented
+prompt-policy-stricter-than-validator stress case.
+
 ## Frozen prompt-v3 follow-up
 
 The approved prompt-v3 draft is now materialized as a frozen, offline-only
@@ -10,10 +28,10 @@ v2 prose validators remain unchanged, and deterministic fallback remains
 authorization path, backend/frontend reachability, credential permission, or
 generation authority.
 
-The next eligible milestone is a separate offline generation-gate versioning
-and network-disabled rehearsal bound to the frozen-v3 manifest. Do not prepare
-live timestamps or expose prompt v3 at runtime before that work is reviewed.
-Bounded rejected-prose diagnostics remain separate.
+The generation-gate versioning and network-disabled rehearsal are complete.
+The next eligible milestone is fresh v3 preflight versioning and rehearsal.
+Do not prepare live timestamps or expose prompt v3 at runtime before that work
+is reviewed. Bounded rejected-prose diagnostics remain separate.
 
 ## Sequence-4 generation-gate design
 

@@ -139,8 +139,17 @@ def test_no_runtime_path_references_prompt_v3_or_exposes_it() -> None:
     offline_v3_files = {
         "freeze_prompt_v3_artifacts.py",
         "moving_service_questions_v3.py",
+        "openai_transport_v3.py",
+        "run_openai_stage_b_v3_pilot.py",
+        "run_openai_stage_b_v3_sequence_4_generation_live.py",
+        "run_openai_stage_b_v3_sequence_4_generation_synthetic.py",
         "test_prompt_v3_draft.py",
         "test_prompt_v3_frozen.py",
+        "test_v3_sequence_4_generation_gate.py",
+        "test_v3_sequence_4_generation_operator_boundary.py",
+        "v3_sequence_4_generation_gate.py",
+        "v3_sequence_4_generation_operator_cli.py",
+        "v3_sequence_4_generation_rehearsal_assertions.py",
     }
     runtime_files = list((ROOT / "backend").rglob("*.py")) + list(
         (ROOT / "scripts/experiments/suggest_moving_service_questions").glob("*.py")
