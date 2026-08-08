@@ -1,5 +1,34 @@
 # Session Notes
 
+## Frozen-v4 preflight-gate offline rebind
+
+- Chose fresh run series `moving-service-stage-b-v4-pilot-20260808`, sequence
+  1, fixture `storage_unknown`, independently of all v2/v3 history.
+- Added an inactive preflight-only candidate and manifest bound to the exact
+  frozen-v4 manifest, request-identity artifact, request/canonical digests, and
+  provider fingerprint.
+- Preserved credential-free verification before lookup and reuse of the exact
+  verified prepared request by the transport.
+- Rebound the fixed 12-command operator, same-shell, evidence-review, closure,
+  cleanup, and non-authoritative generation-binding-preview workflow.
+- Passed the exact-command network-disabled rehearsal with 4,242 synthetic
+  tokens, synthetic cost `$0.0024242`, one preflight, zero generations, zero
+  retries, permanent closure, and second-use rejection.
+- Frozen v1/v2/v3/v4, validator, fallback, and historical v2/v3 records remain
+  unchanged. No live v4 preflight, credential access, client, provider call,
+  generation authority, or generation request occurred.
+- Corrected the human-review finding by replacing lifecycle-file presence
+  checks with exact fixed-path semantic and SHA-256 validation across the
+  authorization, activation, final transaction, audit, consumption, closure,
+  evidence, and permanently closed execution state. Review and binding preview
+  now validate the chain independently.
+- Strengthened source semantics against the fixed candidate: complete rendered
+  scope, activation-review and active-manifest bindings, committed-then-closed
+  transaction fields, credential/client success, closed-manifest identity, and
+  whole-second UTC ordering. The positive fixture now invokes the real lifecycle
+  functions; 48 semantic mutations recompute every downstream digest and still
+  fail closed.
+
 ## Prompt-v4 implementation and offline freeze
 
 - Implemented only the approved minimal v4 prompt delta after the single v3

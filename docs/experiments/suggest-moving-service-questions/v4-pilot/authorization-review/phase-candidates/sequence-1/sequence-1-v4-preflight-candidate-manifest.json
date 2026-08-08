@@ -1,0 +1,20 @@
+{
+  "audit_prefix": "001-storage_unknown",
+  "candidate_digest": "dd312d150c39c756d23007699bf8cb5e6e00d885c4794c53ddaf98ead26d5ebc",
+  "candidate_path": "docs/experiments/suggest-moving-service-questions/v4-pilot/authorization-review/phase-candidates/sequence-1/inactive-sequence-1-v4-preflight-authorization-candidate.toml",
+  "candidate_status": "inactive_review_candidate",
+  "capability": "suggest_moving_service_questions",
+  "canonical_attempt_digest": "7a3c0f7ace4ee4289f4149224fc001b215e71d4cc168edea604516fd133f450d",
+  "deterministic_request_digest": "f5a8c7e06d2ad9e133a5b0b92c322f09ed67205feb25314c5114fa1849fcdd0a",
+  "fixture_id": "storage_unknown",
+  "frozen_v4_manifest_digest": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+  "generation_authorized": false,
+  "manifest_version": "moving-service-openai-v4-preflight-sequence-1-candidate-manifest-v1",
+  "phase": "preflight",
+  "provider_fingerprint": "15caaaaa6a3b43860c426c7555be7f4c7a6bf50d658c92c3c8564c1d43cb5656",
+  "prompt_digest": "78b77f31e8cdc68528c08c106fec947123838813d9bdd82978c32a3b011ffb26",
+  "provider_schema_digest": "4119a12b673b693c958aa623ff8d9377e3d27f5fd1ca6655671c65716363269d",
+  "request_identity_artifact_digest": "b5125e2075779306f0a4374676d442fa3016702bdb5143bc8e3a6b7173d9dd35",
+  "run_series_id": "moving-service-stage-b-v4-pilot-20260808",
+  "sequence": 1
+}

@@ -1,5 +1,28 @@
 # NEXT_SESSION
 
+## Frozen-v4 preflight-gate follow-up
+
+Frozen v4 passed post-commit integrity review. A new offline-only preflight
+workflow now uses `moving-service-stage-b-v4-pilot-20260808`, sequence 1,
+fixture `storage_unknown`. Its inactive candidate is bound to the exact v4
+request identities; v2/v3 evidence cannot satisfy it.
+
+The 12-command public workflow passes a network-disabled rehearsal with one
+synthetic preflight, zero generations, same-shell credential isolation,
+immediate evidence review, non-authoritative generation-binding preview,
+closure, non-reuse, and expired-package cleanup. The next milestone is human
+diff review. No live v4 preflight has occurred, no timestamps are prepared,
+and generation remains unauthorized.
+
+Lifecycle approval now validates the exact authorization, activation, final
+transaction, audit, consumption, closure, and permanent-closed chain. Evidence
+binds those records by SHA-256, and the binding preview independently repeats
+the validation; presence-only history checks are no longer accepted.
+Complete authorization scope, activation-manifest identity, final transaction
+semantics, credential/client outcomes, and the UTC lifecycle timeline are also
+validated from their source records. Semantic-mutation tests recompute all
+downstream digests to prove that a self-consistent but wrong chain fails.
+
 ## Frozen prompt-v4 follow-up
 
 The approved minimal prompt-v4 design is now implemented and frozen offline.

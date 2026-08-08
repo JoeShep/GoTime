@@ -34,3 +34,31 @@ require literal equality, and reject mutation of any identity.
 V4 has no FastAPI/frontend reachability, credential permission, live pilot,
 authorization package, or provider operation. Freezing does not authorize
 execution.
+
+## Offline preflight-gate rebind
+
+The proven preflight-only lifecycle is now rebound offline to run series
+`moving-service-stage-b-v4-pilot-20260808`, sequence 1, fixture
+`storage_unknown`. The inactive candidate binds the exact frozen-v4 manifest,
+request-identity artifact, deterministic request, canonical attempt, provider
+fingerprint, provider/model/SDK, and one-preflight/zero-generation scope.
+
+All 12 fixed public commands pass an isolated network-disabled rehearsal using
+4,242 synthetic tokens and synthetic cost `$0.0024242`. V2/v3 evidence is
+rejected, credential-free request verification precedes credential access,
+closure restores permanent closed state, and the generation-binding preview is
+non-writing and non-authoritative. No live v4 preflight has occurred and no v4
+generation candidate or authority exists.
+
+Evidence approval no longer treats lifecycle-file presence as history proof.
+The bounded evidence binds activation, final transaction, audit, consumption,
+and closure bytes by SHA-256, with explicit token-preflight, non-reuse,
+closure, and permanent-closed-state fields. Both review and generation-binding
+preview independently validate the exact fixed-path lifecycle chain.
+
+The semantic layer uses the complete candidate bindings/scope as its source of
+truth, recomputes the expected active-manifest identity, validates activation
+review and committed-then-closed transaction state, requires successful
+credential/client audit outcomes, and enforces the whole-second UTC lifecycle
+order. Tests separately cover stale-digest failures and self-consistent source
+mutations whose downstream digests have all been recomputed.
