@@ -1,0 +1,111 @@
+{
+  "artifact_version": "moving-service-prompt-v4-policy-cases-v1",
+  "cases": [
+    {
+      "field": "question",
+      "id": "required",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true,
+      "text": "Storage is required."
+    },
+    {
+      "field": "question",
+      "id": "requirement",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true,
+      "text": "Storage is a requirement."
+    },
+    {
+      "field": "question",
+      "id": "must",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true,
+      "text": "Storage must be discussed."
+    },
+    {
+      "field": "question",
+      "id": "will_need",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true,
+      "text": "Storage will need discussion."
+    },
+    {
+      "field": "question",
+      "id": "question_field",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true,
+      "text": "Is storage required?"
+    },
+    {
+      "field": "information_it_would_clarify",
+      "id": "clarify_field",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true,
+      "text": "Whether storage is required."
+    },
+    {
+      "field": "why_it_matters",
+      "id": "why_field",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true,
+      "text": "Storage must be discussed."
+    },
+    {
+      "field": "grounding_summary",
+      "id": "grounding_field",
+      "prompt_policy": "preparation_fail_closed",
+      "runtime_validator_rejected": true,
+      "text": "Storage is required."
+    },
+    {
+      "field": "question",
+      "id": "safe_may",
+      "prompt_policy": "allow",
+      "runtime_validator_rejected": false,
+      "text": "May you need storage?"
+    },
+    {
+      "field": "question",
+      "id": "safe_might",
+      "prompt_policy": "allow",
+      "runtime_validator_rejected": false,
+      "text": "Might you need storage?"
+    },
+    {
+      "field": "question",
+      "id": "safe_could",
+      "prompt_policy": "allow",
+      "runtime_validator_rejected": false,
+      "text": "Could you need storage?"
+    },
+    {
+      "field": "why_it_matters",
+      "id": "service_selection",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true,
+      "text": "Identify appropriate moving services."
+    },
+    {
+      "field": "why_it_matters",
+      "id": "combined",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true,
+      "text": "Storage is required for appropriate moving services."
+    },
+    {
+      "field": "why_it_matters",
+      "id": "prompt_stricter",
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": false,
+      "text": "Storage is likely necessary for appropriate, local services."
+    },
+    {
+      "field": "grounding_summary",
+      "id": "exact_grounding",
+      "prompt_policy": "exact_copy",
+      "runtime_validator_rejected": false,
+      "text": "For an interstate move handled by a household-goods mover, a possible need for temporary storage before final delivery is relevant when identifying the services to request."
+    }
+  ],
+  "status": "reviewed_and_frozen"
+}

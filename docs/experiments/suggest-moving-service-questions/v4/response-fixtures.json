@@ -1,0 +1,93 @@
+{
+  "cases": [
+    {
+      "expected_valid": true,
+      "human_grounding_review_required": true,
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "fallback_recommended": false,
+        "prompt_version": "moving-service-questions-prompt-v4",
+        "schema_version": "moving-service-questions-schema-v4",
+        "suggestions": [
+          {
+            "affected_decision_id": "moving-service-model",
+            "grounding_summary": "For an interstate move handled by a household-goods mover, a possible need for temporary storage before final delivery is relevant when identifying the services to request.",
+            "information_it_would_clarify": "Whether temporary storage may be needed",
+            "question": "Might you need temporary storage before final delivery?",
+            "question_id": "ai-temporary_storage_need-v2",
+            "reason_not_deterministic": "The information is not present in trusted state and must be confirmed by the user.",
+            "relevant_knowledge_ids": [
+              "moving-service.temporary-storage-planning.fmcsa.v1"
+            ],
+            "requires_user_confirmation": true,
+            "selected_missing_information_category": "temporary_storage_need",
+            "suggested_answer_type": "boolean",
+            "uncertainties": [
+              "The possible need for temporary storage is unconfirmed."
+            ],
+            "why_it_matters": "This clarifies what to discuss when planning the move."
+          }
+        ],
+        "warnings": []
+      },
+      "response_fixture_id": "valid_storage_suggestion_v4"
+    },
+    {
+      "expected_valid": true,
+      "human_grounding_review_required": false,
+      "request_fixture_id": "complete",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "fallback_recommended": false,
+        "prompt_version": "moving-service-questions-prompt-v4",
+        "schema_version": "moving-service-questions-schema-v4",
+        "suggestions": [],
+        "warnings": []
+      },
+      "response_fixture_id": "valid_zero_suggestions_v4"
+    },
+    {
+      "expected_fallback_question_id": "fallback-temporary-storage-v2",
+      "expected_valid": false,
+      "expected_violation_codes": [
+        "irrelevant_location_reference",
+        "unsupported_home_or_property_assertion",
+        "storage_modality_overstatement",
+        "unsupported_service_selection_language",
+        "grounding_summary_mismatch"
+      ],
+      "human_grounding_review_required": true,
+      "request_fixture_id": "storage_unknown",
+      "response": {
+        "capability": "suggest_moving_service_questions",
+        "fallback_recommended": false,
+        "prompt_version": "moving-service-questions-prompt-v4",
+        "schema_version": "moving-service-questions-schema-v4",
+        "suggestions": [
+          {
+            "affected_decision_id": "moving-service-model",
+            "grounding_summary": "Broadened grounding.",
+            "information_it_would_clarify": "Whether storage will be required",
+            "question": "Will storage be required at your new home in Northern California?",
+            "question_id": "ai-temporary_storage_need-v2",
+            "reason_not_deterministic": "The user must confirm the missing value.",
+            "relevant_knowledge_ids": [
+              "moving-service.temporary-storage-planning.fmcsa.v1"
+            ],
+            "requires_user_confirmation": true,
+            "selected_missing_information_category": "temporary_storage_need",
+            "suggested_answer_type": "boolean",
+            "uncertainties": [],
+            "why_it_matters": "This identifies appropriate moving services."
+          }
+        ],
+        "warnings": []
+      },
+      "response_fixture_id": "invalid_multiple_prose_violations_v4"
+    }
+  ],
+  "fixture_version": "moving-service-response-fixtures-v4",
+  "response_model": "MovingServiceQuestionResponseV4",
+  "status": "reviewed_and_frozen"
+}

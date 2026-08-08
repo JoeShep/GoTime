@@ -544,3 +544,17 @@ text. Validator and fallback behavior remain unchanged. See
 `v3-live-generation-prose-failure-postmortem.md`. A prompt-v4 design review is
 recommended separately; no prompt-v4 implementation or live authorization is
 part of this work.
+
+## Frozen prompt-v4 follow-up
+
+Prompt v4 implements only the approved salience changes: evidence/generated-
+prose/grounding separation, the exact four-trigger alignment block, and a final
+silent rewrite/recheck for generated user-facing fields. Grounding remains an
+exact copy and deterministically fails preparation if its approved source
+contains a closed trigger. Existing validators and fallback v2 are unchanged.
+
+The offline frozen package uses literal-only v4 schema identities and the
+unchanged provider/model/SDK and generation parameters. Its request identity
+differs from v3, so a fresh v4 preflight—not v3 evidence—is required before any
+future live generation gate can be resolved. No live v4 operation is
+authorized.

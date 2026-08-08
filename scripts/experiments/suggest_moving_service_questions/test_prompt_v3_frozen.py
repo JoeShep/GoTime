@@ -286,6 +286,11 @@ def test_prompt_v3_has_no_backend_frontend_or_authorization_reachability() -> No
             "v3_sequence_4_generation_gate.py",
             "v3_sequence_4_generation_operator_cli.py",
             "v3_sequence_4_generation_rehearsal_assertions.py",
+            "freeze_prompt_v4_artifacts.py",
+            "moving_service_questions_v4.py",
+            "openai_transport_v4.py",
+            "run_openai_stage_b_v4_pilot.py",
+            "test_prompt_v4_frozen.py",
         }
     ]
     assert not any(

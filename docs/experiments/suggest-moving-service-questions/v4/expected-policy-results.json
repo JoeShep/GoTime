@@ -1,0 +1,65 @@
+{
+  "artifact_version": "moving-service-prompt-v4-policy-expectations-v1",
+  "case_expectations": {
+    "clarify_field": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true
+    },
+    "combined": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true
+    },
+    "exact_grounding": {
+      "prompt_policy": "exact_copy",
+      "runtime_validator_rejected": false
+    },
+    "grounding_field": {
+      "prompt_policy": "preparation_fail_closed",
+      "runtime_validator_rejected": true
+    },
+    "must": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true
+    },
+    "prompt_stricter": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": false
+    },
+    "question_field": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true
+    },
+    "required": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true
+    },
+    "requirement": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true
+    },
+    "safe_could": {
+      "prompt_policy": "allow",
+      "runtime_validator_rejected": false
+    },
+    "safe_may": {
+      "prompt_policy": "allow",
+      "runtime_validator_rejected": false
+    },
+    "safe_might": {
+      "prompt_policy": "allow",
+      "runtime_validator_rejected": false
+    },
+    "service_selection": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true
+    },
+    "why_field": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true
+    },
+    "will_need": {
+      "prompt_policy": "rewrite",
+      "runtime_validator_rejected": true
+    }
+  }
+}

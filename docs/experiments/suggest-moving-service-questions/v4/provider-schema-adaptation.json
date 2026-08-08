@@ -1,0 +1,12 @@
+{
+  "artifact_version": "moving-service-openai-schema-adaptation-v4",
+  "constraints_preserved": true,
+  "provider": "OpenAI",
+  "provider_snapshot_path": "docs/experiments/suggest-moving-service-questions/v4/openai-response-schema.json",
+  "remove_nonsemantic_titles_only": true,
+  "runtime_pydantic_validation_authoritative": true,
+  "source_method": "model_json_schema",
+  "source_model": "MovingServiceQuestionResponseV4",
+  "status": "reviewed_and_frozen",
+  "structured_output_mode": "strict_json_schema"
+}

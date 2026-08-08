@@ -1,0 +1,24 @@
+{
+  "accepted": [
+    "Storage may be needed.",
+    "Storage might be needed.",
+    "Storage could be needed.",
+    "Storage and mustard.",
+    "A requirementful storage note."
+  ],
+  "artifact_version": "moving-service-v4-grounding-cases-v1",
+  "closed_triggers": [
+    "required",
+    "requirement",
+    "must",
+    "will need"
+  ],
+  "rejected": [
+    "Storage is required.",
+    "Storage is a REQUIREMENT.",
+    "Storage MuSt wait.",
+    "Storage WILL\n NEED review.",
+    "Required storage must wait and will need review."
+  ],
+  "status": "reviewed_and_frozen"
+}

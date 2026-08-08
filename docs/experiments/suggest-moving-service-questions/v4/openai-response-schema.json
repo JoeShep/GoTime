@@ -1,0 +1,142 @@
+{
+  "$defs": {
+    "AnswerType": {
+      "enum": [
+        "boolean",
+        "enum"
+      ],
+      "type": "string"
+    },
+    "MissingInformationCategory": {
+      "enum": [
+        "temporary_storage_need",
+        "willing_to_drive_rental_truck",
+        "cost_vs_convenience_preference",
+        "packing_preference",
+        "specialty_item_needs"
+      ],
+      "type": "string"
+    },
+    "MovingServiceQuestionSuggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_decision_id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "grounding_summary": {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        "information_it_would_clarify": {
+          "maxLength": 160,
+          "minLength": 1,
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 240,
+          "minLength": 1,
+          "type": "string"
+        },
+        "question_id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "type": "string"
+        },
+        "reason_not_deterministic": {
+          "maxLength": 300,
+          "minLength": 1,
+          "type": "string"
+        },
+        "relevant_knowledge_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "type": "array"
+        },
+        "requires_user_confirmation": {
+          "const": true,
+          "type": "boolean"
+        },
+        "selected_missing_information_category": {
+          "$ref": "#/$defs/MissingInformationCategory"
+        },
+        "suggested_answer_type": {
+          "$ref": "#/$defs/AnswerType"
+        },
+        "uncertainties": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 5,
+          "type": "array"
+        },
+        "why_it_matters": {
+          "maxLength": 400,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "question_id",
+        "question",
+        "why_it_matters",
+        "information_it_would_clarify",
+        "affected_decision_id",
+        "selected_missing_information_category",
+        "relevant_knowledge_ids",
+        "grounding_summary",
+        "reason_not_deterministic",
+        "uncertainties",
+        "suggested_answer_type",
+        "requires_user_confirmation"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "capability": {
+      "const": "suggest_moving_service_questions",
+      "type": "string"
+    },
+    "fallback_recommended": {
+      "type": "boolean"
+    },
+    "prompt_version": {
+      "const": "moving-service-questions-prompt-v4",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "moving-service-questions-schema-v4",
+      "type": "string"
+    },
+    "suggestions": {
+      "items": {
+        "$ref": "#/$defs/MovingServiceQuestionSuggestion"
+      },
+      "maxItems": 3,
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 5,
+      "type": "array"
+    }
+  },
+  "required": [
+    "capability",
+    "prompt_version",
+    "schema_version",
+    "suggestions",
+    "fallback_recommended",
+    "warnings"
+  ],
+  "type": "object"
+}

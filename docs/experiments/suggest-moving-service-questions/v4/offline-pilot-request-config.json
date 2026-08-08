@@ -1,0 +1,23 @@
+{
+  "automatic_retries": 0,
+  "background": false,
+  "category": "temporary_storage_need",
+  "fixture": "storage_unknown",
+  "generation_authorized": false,
+  "generation_timeout_seconds": 12,
+  "maximum_output_tokens": 500,
+  "maximum_total_spend_usd": "0.03",
+  "model": "gpt-4.1-mini-2025-04-14",
+  "provider": "OpenAI",
+  "sdk": "openai==2.45.0",
+  "seed": "omitted",
+  "status": "frozen_offline_only",
+  "store": false,
+  "stream": false,
+  "temperature": 0,
+  "token_preflight_authorized": false,
+  "token_preflight_timeout_seconds": 5,
+  "tools": [],
+  "top_p": "omitted",
+  "truncation": "disabled"
+}

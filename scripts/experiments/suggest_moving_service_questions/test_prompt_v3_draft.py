@@ -156,6 +156,11 @@ def test_no_runtime_path_references_prompt_v3_or_exposes_it() -> None:
         "v3_sequence_4_generation_gate.py",
         "v3_sequence_4_generation_operator_cli.py",
         "v3_sequence_4_generation_rehearsal_assertions.py",
+        "freeze_prompt_v4_artifacts.py",
+        "moving_service_questions_v4.py",
+        "openai_transport_v4.py",
+        "run_openai_stage_b_v4_pilot.py",
+        "test_prompt_v4_frozen.py",
     }
     runtime_files = list((ROOT / "backend").rglob("*.py")) + list(
         (ROOT / "scripts/experiments/suggest_moving_service_questions").glob("*.py")

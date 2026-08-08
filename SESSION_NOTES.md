@@ -1,5 +1,22 @@
 # Session Notes
 
+## Prompt-v4 implementation and offline freeze
+
+- Implemented only the approved minimal v4 prompt delta after the single v3
+  modality rejection; the unavailable historical wording was not guessed.
+- Added literal-only v4 request/response identities and a title-only strict
+  provider-schema adaptation.
+- Added deterministic grounding-source rejection for the exact closed trigger
+  set before provider-request construction; grounding remains byte-exact.
+- Frozen request/response fixtures, policy cases, grounding cases, schema diff,
+  request configuration, adaptation evidence, and authoritative digests.
+- Preserved the exact v2 prose-validator bytes, fallback v2, frozen v1/v2/v3,
+  historical records, and permanent closed state.
+- Confirmed the generation-gate architecture needs only thin v4 rebinding, but
+  a fresh v4 preflight is required because request identity changes.
+- No credential, client, preflight, generation, network request, or live v4
+  authorization occurred.
+
 ## Frozen-v3 live prose-failure postmortem
 
 - Recorded that the single live frozen-v3 generation passed structural and

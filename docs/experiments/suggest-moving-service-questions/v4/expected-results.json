@@ -1,0 +1,49 @@
+{
+  "cases": [
+    {
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_suggestion_count": 1,
+      "expected_violation_codes": [],
+      "fixture_id": "storage_unknown",
+      "requires_user_confirmation": true
+    },
+    {
+      "expected_suggestion_count": 0,
+      "expected_violation_codes": [],
+      "fallback_recommended": false,
+      "fixture_id": "complete",
+      "warnings": []
+    },
+    {
+      "expected_fallback_question_id": "fallback-temporary-storage-v2",
+      "expected_suggestion_count": 0,
+      "expected_violation_codes": [
+        "irrelevant_location_reference",
+        "unsupported_home_or_property_assertion",
+        "storage_modality_overstatement",
+        "unsupported_service_selection_language",
+        "grounding_summary_mismatch"
+      ],
+      "fixture_id": "storage_unknown_invalid_prose",
+      "human_grounding_review_required": true
+    }
+  ],
+  "expectations_version": "moving-service-expectations-v4",
+  "prose_validation": {
+    "complete_response_rejection": true,
+    "fallback_owner": "deterministic_gotime_runtime_orchestration",
+    "fallback_question_id_after_rejection": "fallback-temporary-storage-v2",
+    "fallback_version": "moving-service-fallback-v2",
+    "human_grounding_review_required": true,
+    "record_all_violation_codes": true,
+    "violation_code_order": [
+      "irrelevant_location_reference",
+      "unsupported_home_or_property_assertion",
+      "storage_modality_overstatement",
+      "unsupported_service_selection_language",
+      "grounding_summary_mismatch"
+    ]
+  },
+  "status": "reviewed_and_frozen"
+}

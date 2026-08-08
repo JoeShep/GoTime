@@ -1,0 +1,14 @@
+{
+  "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+  "artifact_version": "moving-service-request-identity-v4",
+  "canonical_attempt_sha256": "7a3c0f7ace4ee4289f4149224fc001b215e71d4cc168edea604516fd133f450d",
+  "category": "temporary_storage_need",
+  "deterministic_request_sha256": "f5a8c7e06d2ad9e133a5b0b92c322f09ed67205feb25314c5114fa1849fcdd0a",
+  "fixture": "storage_unknown",
+  "prompt_version": "moving-service-questions-prompt-v4",
+  "provider": "OpenAI",
+  "provider_fingerprint": "15caaaaa6a3b43860c426c7555be7f4c7a6bf50d658c92c3c8564c1d43cb5656",
+  "schema_version": "moving-service-questions-schema-v4",
+  "sdk": "openai==2.45.0",
+  "status": "reviewed_and_frozen"
+}

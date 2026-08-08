@@ -1,5 +1,20 @@
 # NEXT_SESSION
 
+## Frozen prompt-v4 follow-up
+
+The approved minimal prompt-v4 design is now implemented and frozen offline.
+It adds explicit evidence/generated-prose/grounding separation, the exact four-
+trigger runtime-alignment rule, and a final silent user-facing-field lexical
+self-check. Exact grounding is never paraphrased; prohibited grounding now
+fails before provider-request construction. Validator and fallback v2 remain
+unchanged.
+
+The existing generation gate can be mechanically rebound, but prompt v4 has a
+new deterministic request, canonical attempt, and provider fingerprint. The
+next eligible milestone is post-commit review of the frozen package. Any later
+live path requires a fresh separately versioned v4 token preflight first.
+Generation remains unauthorized.
+
 ## Frozen-v3 rejected-prose diagnostics
 
 The one consumed live frozen-v3 generation passed structural and semantic
