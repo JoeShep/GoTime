@@ -10,6 +10,16 @@
   metadata using canonical triggers rather than retained response text.
 - No credential, client, preflight, generation, or provider operation occurred.
 
+## Prompt-v3 drafting milestone
+
+- Added an isolated, non-executable prompt-v3 delta for human review.
+- Preserved the response shape, curated knowledge, grounding equality,
+  confirmation requirement, fallback, and all five existing prose validators.
+- Proposed only literal prompt/schema v3 identity changes for a later
+  implementation because the existing v2 classes bind both literals.
+- Added 28 synthetic language cases and prompt/validator consistency checks;
+  positive examples remain excluded and generation remains unauthorized.
+
 ## Sequence-4 generation-gate milestone
 
 - Corrected the final-review findings: exact generation request verification

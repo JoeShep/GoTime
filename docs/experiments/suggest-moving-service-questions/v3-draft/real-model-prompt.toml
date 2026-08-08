@@ -1,0 +1,134 @@
+[draft]
+status = "draft_unfrozen_unauthorized"
+artifact_form = "reviewable_delta_from_frozen_v2_not_executable_prompt"
+live_execution_valid = false
+frozen = false
+authorized = false
+
+[identity]
+capability = "suggest_moving_service_questions"
+prompt_version = "moving-service-questions-prompt-v3"
+proposed_schema_version = "moving-service-questions-schema-v3"
+base_prompt_path = "docs/experiments/suggest-moving-service-questions/v2/real-model-prompt.toml"
+base_prompt_sha256 = "9bcc190f9c4c51fba1caed8c5d284de9d29d6fe8d675132a04f741cc9a1af7a6"
+sole_supported_nonempty_category = "temporary_storage_need"
+
+[unchanged_scope]
+maximum_questions = 3
+preferred_effective_questions = 1
+exact_response_shape = true
+exact_curated_grounding_statement = true
+requires_user_confirmation = true
+provider_recommendation_prohibited = true
+live_research_prohibited = true
+date_calculation_prohibited = true
+state_mutation_prohibited = true
+service_model_selection_prohibited = true
+general_chat_prohibited = true
+deterministic_fallback_unchanged = true
+existing_five_prose_validators_unchanged = true
+
+[replacement.storage_modality]
+review_text = """
+In `question`, `information_it_would_clarify`, and `why_it_matters`, refer to
+temporary storage only as something the user may, might, or could need, or as
+something that may, might, or could be needed. These fields ask whether
+temporary storage might be relevant; they must not assert or predict that
+storage is required, a requirement, mandatory, necessary, expected, likely, or
+something the user must or will need. Prohibited wording includes `required`,
+`requirement`, `must`, `will need`, `likely need`, `expected to need`, and
+`necessary`, plus equivalent wording that asserts necessity rather than
+possibility. `grounding_summary` remains the exact supplied knowledge statement
+and is not rewritten under this rule.
+"""
+allowed_forms = [
+  "may need",
+  "may be needed",
+  "might need",
+  "might be needed",
+  "could need",
+  "could be needed",
+]
+prohibited_forms = [
+  "required",
+  "requirement",
+  "must",
+  "will need",
+  "likely need",
+  "expected to need",
+  "necessary",
+]
+
+[replacement.service_selection]
+review_text = """
+In `question`, `information_it_would_clarify`, and `why_it_matters`, do not
+frame the task as selecting, optimizing, recommending, ranking, comparing, or
+choosing a service, mover, provider, or service model. Do not use `appropriate`,
+`best`, `suitable`, or `recommended` to characterize any such option, even when
+punctuation or other words separate the adjective from the service noun. This
+capability identifies missing information relevant to later planning; it does
+not claim that GoTime evaluated or selected the right service.
+"""
+prohibited_forms = [
+  "appropriate moving services",
+  "best moving services",
+  "suitable moving services",
+  "recommended moving services",
+  "appropriate mover",
+  "best mover",
+  "suitable mover",
+  "recommended mover",
+  "appropriate service model",
+  "best service model",
+  "suitable service model",
+  "recommended service model",
+]
+
+[replacement.services_to_request]
+review_text = """
+The exact phrase `services to request` may appear in `grounding_summary` only as
+part of the exact supplied knowledge statement. Do not reuse or paraphrase that
+phrase in `question`, `information_it_would_clarify`, or `why_it_matters`.
+Prefer neutral planning language such as what to discuss, what may need to be
+requested, service needs, or planning considerations.
+"""
+
+[replacement.why_it_matters]
+review_text = """
+`why_it_matters` must explain only why the missing information is relevant to
+planning. It must not recommend or characterize a provider or service, imply
+optimization or selection, imply that storage is required, likely, expected,
+or necessary, or introduce location, property, booking, provider, or
+service-arrangement facts. Keep it concise and neutral.
+"""
+
+[grounding_summary]
+policy = "unchanged_exact_supplied_statement_equality"
+services_to_request_allowed_only_inside_exact_statement = true
+
+[examples]
+positive_examples_included = false
+decision = "retain_example_free_strategy"
+reason = "Explicit lexical and semantic constraints are sufficient for review without adding imitation anchors."
+
+[schema_review]
+schema_v3_identity_required = true
+reason = "Current request and response classes require prompt-v2 and schema-v2 literals."
+proposed_change = "Add prompt-v3/schema-v3 literal-only request and response subclasses in a later implementation milestone."
+field_changes = []
+type_changes = []
+enum_changes = []
+constraint_changes = []
+required_field_changes = []
+extra_field_behavior_changes = []
+
+[authorization]
+credential_access_authorized = false
+token_preflight_authorized = false
+ai_generation_authorized = false
+formal_evaluation_authorized = false
+stage_c_authorized = false
+production_use_authorized = false
+fastapi_exposure_authorized = false
+frontend_exposure_authorized = false
+

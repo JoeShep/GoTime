@@ -1,0 +1,33 @@
+{
+  "status": "draft_unfrozen_unauthorized",
+  "cases": [
+    {"id":"storage-may-need","class":"storage","field":"question","text":"Could temporary storage be something you may need?","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"storage-may-be-needed","class":"storage","field":"information_it_would_clarify","text":"Whether temporary storage may be needed","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"storage-might-need","class":"storage","field":"question","text":"Might you need temporary storage?","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"storage-might-be-needed","class":"storage","field":"why_it_matters","text":"This clarifies whether storage might be needed.","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"storage-could-need","class":"storage","field":"question","text":"Could you need temporary storage?","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"storage-could-be-needed","class":"storage","field":"information_it_would_clarify","text":"Whether storage could be needed","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"storage-required","class":"storage","field":"question","text":"Is temporary storage required?","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"storage-requirement","class":"storage","field":"why_it_matters","text":"This identifies the storage requirement.","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"storage-must","class":"storage","field":"question","text":"Must you arrange temporary storage?","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"storage-will-need","class":"storage","field":"information_it_would_clarify","text":"Whether you will need storage","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"storage-likely-need","class":"storage","field":"why_it_matters","text":"You likely need temporary storage.","prompt_v3_status":"prohibited","validator_rejected":false,"intended_policy":"unacceptable"},
+    {"id":"storage-expected-need","class":"storage","field":"why_it_matters","text":"You are expected to need storage.","prompt_v3_status":"prohibited","validator_rejected":false,"intended_policy":"unacceptable"},
+    {"id":"storage-necessary","class":"storage","field":"why_it_matters","text":"Temporary storage is necessary.","prompt_v3_status":"prohibited","validator_rejected":false,"intended_policy":"unacceptable"},
+    {"id":"service-appropriate-moving","class":"service","field":"why_it_matters","text":"Identify appropriate moving services.","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"service-best-moving","class":"service","field":"why_it_matters","text":"Identify the best moving services.","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"service-suitable-movers","class":"service","field":"question","text":"Which suitable movers should you use?","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"service-recommended-model","class":"service","field":"why_it_matters","text":"Choose a recommended service model.","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"service-appropriate-provider","class":"service","field":"why_it_matters","text":"Find an appropriate provider.","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"service-best-mover","class":"service","field":"question","text":"Which best mover should you choose?","prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"service-punctuation","class":"service","field":"why_it_matters","text":"Identify appropriate, local moving services.","prompt_v3_status":"prohibited","validator_rejected":false,"intended_policy":"unacceptable"},
+    {"id":"service-intervening","class":"service","field":"why_it_matters","text":"Identify suitable interstate moving services.","prompt_v3_status":"prohibited","validator_rejected":false,"intended_policy":"unacceptable"},
+    {"id":"service-grounding-exact","class":"service","field":"grounding_summary","text":"For an interstate move handled by a household-goods mover, a possible need for temporary storage before final delivery is relevant when identifying the services to request.","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"service-to-discuss","class":"service","field":"why_it_matters","text":"This clarifies what to discuss when planning.","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"service-may-request","class":"service","field":"information_it_would_clarify","text":"What may need to be requested","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"service-needs","class":"service","field":"why_it_matters","text":"This clarifies service needs.","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"service-planning","class":"service","field":"why_it_matters","text":"This clarifies planning considerations.","prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"},
+    {"id":"mixed-compliant-prohibited","class":"mixed","field":"multiple","texts":["Whether storage may be needed","Identify appropriate moving services"],"prompt_v3_status":"prohibited","validator_rejected":true,"intended_policy":"unacceptable"},
+    {"id":"mixed-two-compliant","class":"mixed","field":"multiple","texts":["Whether storage might be needed","This clarifies what to discuss when planning"],"prompt_v3_status":"allowed","validator_rejected":false,"intended_policy":"acceptable"}
+  ]
+}

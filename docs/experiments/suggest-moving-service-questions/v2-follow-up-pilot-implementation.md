@@ -1,5 +1,12 @@
 # Offline V2 Follow-Up Pilot Implementation
 
+An isolated, unfrozen prompt-v3 review draft now follows the consumed
+sequence-4 prose-failure diagnostic. It tightens prompt-level modality,
+service-selection, and `why_it_matters` language while leaving frozen v2,
+curated knowledge, schemas, validators, runtime paths, and authorization
+unchanged. The draft proposes literal-only prompt/schema v3 identities for a
+later reviewed implementation and remains unauthorized for execution.
+
 ## Sequence-4 generation gate
 
 The successful sequence-4 preflight produced 2,228 input tokens and a

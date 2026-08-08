@@ -10,6 +10,13 @@ a narrowly scoped prompt v3 while preserving both validators. Any prompt-v3
 drafting or bounded rejected-prose diagnostic metadata requires a separate
 reviewed milestone; generation remains unauthorized.
 
+An isolated prompt-v3 review draft now proposes explicit may/might/could
+modality, broader prompt-level service-selection prohibitions, neutral
+`why_it_matters` guidance, and confinement of `services to request` to exact
+grounding mirroring. Because the v2 Pydantic classes bind prompt/schema
+literals, later implementation would require literal-only v3 classes. The
+draft is example-free, unfrozen, unauthorized, and has no runtime path.
+
 Sequence-4 preflight succeeded, was reviewed before its deadline, closed, and
 is consumed. The approved evidence binds 2,228 input tokens, conservative cost
 `$0.0016912`, and the exact frozen request/provider identities. A distinct
