@@ -1,5 +1,19 @@
 # Session Notes
 
+## Frozen-v3 generation-candidate resolution
+
+- Bound a separate inactive resolved generation candidate to the exact approved
+  live v3 sequence-1 preflight evidence and review without changing either
+  historical record.
+- Recorded 2,542 input tokens, conservative maximum cost `$0.0018168`, exact
+  request/canonical/provider bindings, and the non-writing binding preview.
+- Preserved the original unresolved candidate as historical design input.
+- Rehearsed all five generation scenarios through the exact public commands
+  with networking disabled, zero generation preflights, one fake generation
+  per scenario, grounding review/deletion, closure, and non-reuse.
+- Generation remains unauthorized; no live generation timestamp, credential,
+  client, or provider request was created.
+
 ## Frozen-v3 sequence-1 preflight workflow
 
 - Started a distinct v3 run series rather than rewriting or extending consumed

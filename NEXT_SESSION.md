@@ -1,5 +1,19 @@
 # NEXT_SESSION
 
+## Resolved frozen-v3 generation candidate
+
+The inactive frozen-v3 sequence-4 generation candidate is now deterministically
+resolved against the approved live v3 sequence-1 preflight evidence. The exact
+binding is 2,542 input tokens, conservative maximum cost `$0.0018168`, evidence
+digest `0de37564...`, review digest `5e61e2a7...`, and binding-preview digest
+`58d6c4d6...`. The resolved candidate remains non-authoritative, placeholder-
+bound, and invalid for execution; generation remains unauthorized.
+
+The next milestone is final human review of the resolved candidate, its 12
+fixed public commands, and the exact five-scenario rehearsal. A fixed,
+dry-run-by-default expired-review cleanup command is included. No live v3
+generation has occurred.
+
 ## Frozen-v3 token-preflight workflow
 
 A distinct frozen-v3 preflight workflow now uses run series

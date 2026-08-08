@@ -21,11 +21,11 @@ for import_path in (SCRIPT_ROOT, BACKEND_ROOT):
 
 from app.moving_service_questions import STORAGE_KNOWLEDGE
 from v3_sequence_4_generation_gate import (
-    CANDIDATE_DIGEST, MANIFEST_PATH, OPERATOR_INTENT, PREFIX, REPOSITORY_ROOT,
+    CANDIDATE_DIGEST, CANDIDATE_PATH, MANIFEST_PATH, OPERATOR_INTENT, PREFIX, REPOSITORY_ROOT,
     RUN_SERIES_ID, activate_generation_authority, close_generation_authority,
     generation_paths, review_and_delete_response,
     validate_rendered_generation_artifact, verify_candidate_and_preflight,
-    verify_unresolved_generation_candidate, write_generation_outcome,
+    verify_resolved_generation_candidate, write_generation_outcome,
 )
 from v3_sequence_4_generation_rehearsal_assertions import assert_rehearsal_scenario
 
@@ -38,6 +38,10 @@ def emit(values):
 
 
 def now() -> datetime:
+    if os.environ.get("GOTIME_V3_SEQUENCE_4_GENERATION_OFFLINE_TEST") == "1":
+        synthetic = os.environ.get("GOTIME_V3_SEQUENCE_4_GENERATION_SYNTHETIC_NOW")
+        if synthetic:
+            return datetime.fromisoformat(synthetic.replace("Z", "+00:00"))
     return datetime.now(timezone.utc)
 
 
@@ -105,7 +109,7 @@ def verify_history(output_root=OUTPUT_ROOT):
 
 
 def verify_readiness():
-    result = verify_unresolved_generation_candidate()
+    result = verify_resolved_generation_candidate()
     paths = state_paths()
     if any(path.exists() for path in vars(paths).values()):
         raise ValueError("real v3 generation state exists")
@@ -122,7 +126,7 @@ def render(args) -> None:
     expires = datetime.fromisoformat(args.expires_at.replace("Z", "+00:00"))
     if not approved <= activated < expires or (expires - activated).total_seconds() > 900 or not activated <= now() < expires:
         raise ValueError("generation authorization window is invalid")
-    candidate = tomllib.loads((MANIFEST_PATH.parent / "inactive-sequence-4-v3-generation-authorization-candidate.toml").read_text())
+    candidate = tomllib.loads(CANDIDATE_PATH.read_text())
     artifact = {
         "metadata": {"capability": "suggest_moving_service_questions", "authorization_version": "moving-service-openai-v3-generation-sequence-4-v1", "authorization_status": "approved_v3_generation", "phase": "generation", "active_repository_authority": True},
         "bindings": candidate["bindings"], "required_v3_preflight": candidate["required_v3_preflight"],
@@ -205,6 +209,43 @@ def verify_deletion() -> None:
           "response_evidence_absent": True})
 
 
+def cleanup_expired_review(args) -> None:
+    paths = state_paths()
+    rendered = Path("/tmp/gotime-v3-sequence-4-generation-authorization.toml")
+    exact = (rendered, paths.review_rendered, paths.installation, paths.activation_review)
+    if any(path.is_symlink() or not path.is_file() for path in exact):
+        raise ValueError("fixed expired generation review package is incomplete")
+    if (digest(rendered) != args.artifact_sha256
+            or digest(paths.review_rendered) != args.artifact_sha256
+            or digest(paths.installation) != args.installation_record_sha256
+            or digest(paths.activation_review) != args.activation_review_sha256):
+        raise ValueError("expired generation review digest mismatch")
+    artifact = tomllib.loads(paths.review_rendered.read_text())
+    expires = datetime.fromisoformat(artifact["approval"]["expires_at"].replace("Z", "+00:00"))
+    forbidden = (paths.active, paths.activation, paths.transaction, paths.audit,
+                 paths.preflight_consumption, paths.response_evidence,
+                 paths.grounding_review, paths.deletion, paths.closure)
+    if now() <= expires or any(path.exists() for path in forbidden):
+        raise ValueError("generation review package is not cleanup eligible")
+    result = {"expired": True, "authoritative": False, "activated": False,
+              "exact_paths": [str(path) for path in exact], "writes_performed": False}
+    if not args.confirm_delete:
+        emit(result)
+        return
+    if not args.operator or not args.operator.strip():
+        raise ValueError("cleanup operator is required")
+    record = {"phase": "generation_review_cleanup", "sequence": 4,
+              "fixture_id": "storage_unknown", "operator": args.operator,
+              "reason": "expired_unactivated_review_package",
+              "pre_deletion_digests": {str(path): digest(path) for path in exact},
+              "authoritative": False, "activated": False, "generation_authorized": False}
+    exclusive(paths.cleanup, (json.dumps(record, indent=2, sort_keys=True) + "\n").encode())
+    for exact_file in exact:
+        exact_file.unlink()
+    emit({**result, "writes_performed": True, "cleanup_path": paths.cleanup,
+          "cleanup_sha256": digest(paths.cleanup)})
+
+
 def verify_active() -> None:
     paths = state_paths()
     execution_path = REPOSITORY_ROOT / "docs/experiments/suggest-moving-service-questions/v2-pilot/execution-manifest.json"
@@ -245,7 +286,7 @@ def rehearse() -> None:
         shutil.copyfile(source_closed, docs / "execution-manifest.json")
         output = root / "compliant"
         paths = generation_paths(output)
-        candidate = tomllib.loads((MANIFEST_PATH.parent / "inactive-sequence-4-v3-generation-authorization-candidate.toml").read_text())
+        candidate = tomllib.loads(CANDIDATE_PATH.read_text())
         artifact = {
             "metadata": {"capability": "suggest_moving_service_questions", "authorization_version": "moving-service-openai-v3-generation-sequence-4-v1", "authorization_status": "approved_v3_generation", "phase": "generation", "active_repository_authority": True},
             "bindings": candidate["bindings"], "required_v3_preflight": candidate["required_v3_preflight"],
@@ -309,6 +350,12 @@ def parser() -> argparse.ArgumentParser:
     grounding.add_argument("--fallback-comparison", required=True, choices=("materially_better", "slightly_better", "equivalent", "slightly_worse", "materially_worse"))
     grounding.add_argument("--notes", required=True)
     commands.add_parser("verify-deletion")
+    cleanup = commands.add_parser("cleanup-expired-review")
+    cleanup.add_argument("--artifact-sha256", required=True)
+    cleanup.add_argument("--installation-record-sha256", required=True)
+    cleanup.add_argument("--activation-review-sha256", required=True)
+    cleanup.add_argument("--confirm-delete", action="store_true")
+    cleanup.add_argument("--operator")
     assertion = commands.add_parser("assert-rehearsal")
     assertion.add_argument("--scenario", required=True, choices=(
         "compliant", "prose_rejection", "structural_failure", "semantic_failure",
@@ -329,6 +376,7 @@ def main(argv=None) -> int:
         elif args.operation == "close": close(args)
         elif args.operation == "grounding-review": grounding_review(args)
         elif args.operation == "verify-deletion": verify_deletion()
+        elif args.operation == "cleanup-expired-review": cleanup_expired_review(args)
         elif args.operation == "assert-rehearsal": assert_rehearsal(args)
         elif args.operation == "verify-active": verify_active()
         elif args.operation == "rehearse": rehearse()

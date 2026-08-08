@@ -1,12 +1,16 @@
 # Frozen-v3 sequence-4 generation operator runbook
 
-Status: **offline rehearsed; live blocked pending a fresh approved v3 preflight**.
+Status: **offline resolved and rehearsed; generation remains unauthorized**.
 
-The frozen-v2 preflight cannot bind this request. Frozen v3 changes the exact
-deterministic request, canonical attempt, provider fingerprint, and necessarily
-requires a fresh provider token count. These commands refuse non-synthetic
-preparation until a separately reviewed v3 preflight package replaces the
-explicit unresolved bindings. No live timestamp package is currently valid.
+The frozen-v2 preflight cannot bind this request. The approved frozen-v3
+sequence-1 preflight supplied 2,542 input tokens, conservative maximum cost
+`$0.0018168`, evidence digest `0de37564...`, and review digest `5e61e2a7...`.
+The separate resolved candidate binds those exact bytes while remaining
+inactive, non-authoritative, placeholder-bound, and invalid for execution.
+No live timestamp package is currently valid.
+
+Resolved candidate SHA-256: `197c87a6fd56717d7abba4ac342a87d825e6770bb10efbe42d56b5b15a32217b`.
+Resolved manifest SHA-256: `380fd2d0bd3a1968cd0300a4f9ef805363f36403af0f31bfe018b8c48a8cb13e`.
 
 Fixed identity: sequence 4, fixture `storage_unknown`, prompt
 `moving-service-questions-prompt-v3`, schema
@@ -22,8 +26,9 @@ sh scripts/experiments/suggest_moving_service_questions/verify_v3_sequence_4_gen
 sh scripts/experiments/suggest_moving_service_questions/rehearse_v3_sequence_4_generation_workflow_docker.sh
 ```
 
-The rehearsal uses only synthetic v3 preflight evidence in isolated state and
-Docker networking is disabled. It exercises every operational command below.
+Readiness validates the exact approved live v3 evidence and review. The
+rehearsal uses synthetic v3 preflight evidence in isolated state and Docker
+networking is disabled. It exercises every operational command below.
 
 ## Non-authoritative preparation
 
@@ -61,9 +66,17 @@ sh scripts/experiments/suggest_moving_service_questions/delete_v3_sequence_4_gen
 sh scripts/experiments/suggest_moving_service_questions/close_v3_sequence_4_generation_authorization_docker.sh --reason "<success|bounded_failure|expiration|operator_cancellation|activation_recovery>"
 ```
 
-Expired-package cleanup is not applicable while the live package is blocked
-and cannot be rendered. A future resolved candidate must add and rehearse that
-command before live preparation. V3 is stricter than unchanged lexical
+For an expired, never-activated review package, first run the fixed command as
+a dry-run. A later explicit human deletion approval adds `--confirm-delete`
+and `--operator`; no wildcard or recursive deletion is used.
+
+```sh
+sh scripts/experiments/suggest_moving_service_questions/cleanup_v3_sequence_4_expired_generation_review_package_docker.sh --artifact-sha256 "<ARTIFACT_SHA256>" --installation-record-sha256 "<INSTALL_SHA256>" --activation-review-sha256 "<REVIEW_SHA256>"
+```
+
+V3 is stricter than unchanged lexical
 validators in five documented cases; the stress rehearsal records that a
 human review must catch those phrases when lexical validation accepts them.
-Bounded rejected-response diagnostics remain a separate milestone.
+Grounding review is never pre-approved: generation, automated validation, and
+closure precede human review, followed by immediate evidence deletion after
+sign-off. Bounded rejected-response diagnostics remain a separate milestone.

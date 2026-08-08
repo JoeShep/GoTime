@@ -518,3 +518,13 @@ shows how later approved live v3 evidence can resolve the currently blocked
 generation candidate; it does not modify that candidate or authorize
 generation. A final human review and a separately approved live timestamp
 milestone remain required.
+
+# Frozen-v3 generation resolution follow-up
+
+The approved live frozen-v3 sequence-1 preflight produced 2,542 input tokens
+and a conservative maximum generation cost of `$0.0018168`. Its exact evidence
+and timely approved review now resolve a separate inactive v3 generation
+candidate. Resolution does not activate authority: live human timestamps,
+activation review, atomic activation, and separate live-call approval remain
+future milestones. The original unresolved v3 candidate and all v2/v3 history
+remain unchanged.

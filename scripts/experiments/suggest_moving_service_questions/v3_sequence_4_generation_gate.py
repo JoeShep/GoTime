@@ -36,20 +36,28 @@ SEQUENCE = 4
 FIXTURE_ID = "storage_unknown"
 PREFIX = "004-storage_unknown-generation-v3"
 OPERATOR_INTENT = "AUTHORIZE_ONE_STORAGE_UNKNOWN_V3_GENERATION_ONLY"
-CANDIDATE_DIGEST = "c1d1cc5b8c58bed26a26335b7e46c85c60df1c89c4810fd89afa2212d34dbf67"
-MANIFEST_DIGEST = "62dbb32536d4068da35a094e95bedb76fe6959a37ca1e41f99632d7d8c4c13a6"
-PREFLIGHT_EVIDENCE_DIGEST = "FRESH_V3_PREFLIGHT_EVIDENCE_REQUIRED"
-PREFLIGHT_REVIEW_DIGEST = "FRESH_V3_PREFLIGHT_REVIEW_REQUIRED"
+CANDIDATE_DIGEST = "197c87a6fd56717d7abba4ac342a87d825e6770bb10efbe42d56b5b15a32217b"
+MANIFEST_DIGEST = "380fd2d0bd3a1968cd0300a4f9ef805363f36403af0f31bfe018b8c48a8cb13e"
+UNRESOLVED_CANDIDATE_DIGEST = "c1d1cc5b8c58bed26a26335b7e46c85c60df1c89c4810fd89afa2212d34dbf67"
+UNRESOLVED_MANIFEST_DIGEST = "62dbb32536d4068da35a094e95bedb76fe6959a37ca1e41f99632d7d8c4c13a6"
+PREFLIGHT_EVIDENCE_DIGEST = "0de3756455a948472c53c34124a83815dde3ac7b89ec8b1743bbf6371b3c2360"
+PREFLIGHT_REVIEW_DIGEST = "5e61e2a7eb6e1e4b054ca40dc3b7a9058cb6d10b3ba31096cde31e998f32ee20"
+PREFLIGHT_BINDING_PREVIEW_DIGEST = "58d6c4d6392f6c9c1a4c9fde9ca4c4e167c9de75d36950c9566e7343448e25c2"
 REQUEST_DIGEST = "952b8003f184de1ff9617103c8c93ab64d87e63cb4e4daee84647b7dd505ed79"
 CANONICAL_ATTEMPT_DIGEST = "d9d8141853b7d034ce30de8c9c2689d9738b0bfd73d812a2150b823111b3bdcf"
 PROVIDER_FINGERPRINT = "a5895ad53d54d6d03652152aeadbf8b71a2c672cab86640d1798a3a3680a15e4"
-INPUT_TOKENS = None
-CONSERVATIVE_COST = None
+INPUT_TOKENS = 2542
+CONSERVATIVE_COST = "0.0018168"
+PREFLIGHT_RUN_SERIES_ID = "moving-service-stage-b-v3-pilot-20260807"
+PREFLIGHT_PREFIX = "001-storage_unknown-preflight"
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 PACKAGE_ROOT = REPOSITORY_ROOT / "docs/experiments/suggest-moving-service-questions/v3-pilot/authorization-review/phase-candidates/sequence-4-generation"
-CANDIDATE_PATH = PACKAGE_ROOT / "inactive-sequence-4-v3-generation-authorization-candidate.toml"
-MANIFEST_PATH = PACKAGE_ROOT / "sequence-4-v3-generation-candidate-manifest.json"
+UNRESOLVED_CANDIDATE_PATH = PACKAGE_ROOT / "inactive-sequence-4-v3-generation-authorization-candidate.toml"
+UNRESOLVED_MANIFEST_PATH = PACKAGE_ROOT / "sequence-4-v3-generation-candidate-manifest.json"
+RESOLVED_PACKAGE_ROOT = PACKAGE_ROOT / "resolved-live-preflight"
+CANDIDATE_PATH = RESOLVED_PACKAGE_ROOT / "inactive-sequence-4-v3-generation-authorization-candidate.toml"
+MANIFEST_PATH = RESOLVED_PACKAGE_ROOT / "sequence-4-v3-generation-candidate-manifest.json"
 
 
 class Sequence4GenerationGateError(ValueError):
@@ -97,8 +105,6 @@ def verify_exact_generation_attempt(
             SimpleNamespace(max_retries=0), value
         ).request_fingerprint(value.provider_request)
     provider_fingerprint = provider_fingerprint_builder(prepared)
-    evidence_path = output_root / RUN_SERIES_ID / "004-storage_unknown-v3-preflight-evidence.json"
-    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     expected_frozen = {
         "frozen_v3_manifest_digest": FROZEN_V3_MANIFEST_DIGEST,
         "prompt_version": "moving-service-questions-prompt-v3",
@@ -112,6 +118,17 @@ def verify_exact_generation_attempt(
     }
     if any(frozen.get(key) != value for key, value in expected_frozen.items()):
         raise Sequence4GenerationGateError("frozen generation request binding drifted")
+    actual_parameters = {
+        "temperature": prepared.provider_request.model_parameters.get("temperature"),
+        "maximum_output_tokens": prepared.provider_request.maximum_output_tokens,
+        "store": False,
+        "stream": False,
+        "background": False,
+        "truncation": "disabled",
+        "tools": [],
+        "automatic_retries": prepared.provider_request.retry_count,
+        "ai_generation_timeout_seconds": int(prepared.provider_request.timeout_seconds),
+    }
     expected_parameters = {
         "temperature": 0,
         "maximum_output_tokens": 500,
@@ -123,7 +140,7 @@ def verify_exact_generation_attempt(
         "automatic_retries": 0,
         "ai_generation_timeout_seconds": 12,
     }
-    if any(evidence.get(key) != value for key, value in expected_parameters.items()):
+    if actual_parameters != expected_parameters:
         raise Sequence4GenerationGateError("generation request parameters drifted")
     if (
         request_digest != REQUEST_DIGEST
@@ -161,6 +178,7 @@ class GenerationPaths:
     grounding_review: Path
     deletion: Path
     closure: Path
+    cleanup: Path
 
 
 def activate_generation_authority(*, repository_root: Path, output_root: Path,
@@ -274,6 +292,7 @@ def generation_paths(output_root: Path) -> GenerationPaths:
         base / f"{PREFIX}-grounding-review.json",
         base / f"{PREFIX}-evidence-deletion.json",
         base / f"{PREFIX}-closure.json",
+        base / f"{PREFIX}-expired-review-package-cleanup.json",
     )
 
 
@@ -359,21 +378,22 @@ def validate_rendered_generation_artifact(artifact: Mapping[str, object], *, now
 def verify_candidate_and_preflight(*, repository_root: Path = REPOSITORY_ROOT,
                                    output_root: Path,
                                    require_closed_repository: bool = True) -> Mapping[str, object]:
-    candidate_status = verify_unresolved_generation_candidate(
+    candidate_status = verify_resolved_generation_candidate(
         repository_root=repository_root,
         require_closed_repository=require_closed_repository,
     )
     synthetic = os.environ.get("GOTIME_V3_SEQUENCE_4_GENERATION_OFFLINE_TEST") == "1"
-    if not synthetic:
-        raise Sequence4GenerationGateError("fresh_v3_preflight_required")
-    evidence_path = output_root / RUN_SERIES_ID / "004-storage_unknown-v3-preflight-evidence.json"
-    review_path = output_root / RUN_SERIES_ID / "004-storage_unknown-v3-preflight-review.json"
+    if synthetic:
+        evidence_path = output_root / RUN_SERIES_ID / "004-storage_unknown-v3-preflight-evidence.json"
+        review_path = output_root / RUN_SERIES_ID / "004-storage_unknown-v3-preflight-review.json"
+    else:
+        evidence_path = output_root / PREFLIGHT_RUN_SERIES_ID / f"{PREFLIGHT_PREFIX}-evidence.json"
+        review_path = output_root / PREFLIGHT_RUN_SERIES_ID / f"{PREFLIGHT_PREFIX}-review.json"
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     review = json.loads(review_path.read_text(encoding="utf-8"))
     expected = {
-        "sequence": SEQUENCE,
+        "sequence": SEQUENCE if synthetic else 1,
         "fixture_id": FIXTURE_ID,
-        "synthetic": True,
         "deterministic_request_digest": REQUEST_DIGEST,
         "canonical_attempt_digest": CANONICAL_ATTEMPT_DIGEST,
         "provider_preflight_fingerprint": PROVIDER_FINGERPRINT,
@@ -382,13 +402,22 @@ def verify_candidate_and_preflight(*, repository_root: Path = REPOSITORY_ROOT,
         "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
         "sdk_pin": "openai==2.45.0",
     }
+    if synthetic:
+        expected["synthetic"] = True
     if any(evidence.get(key) != value for key, value in expected.items()):
         raise Sequence4GenerationGateError("approved preflight binding drifted")
     if (review.get("decision") != "approve"
             or review.get("generation_gate_binding_eligible") is not True
-            or review.get("synthetic") is not True
             or review.get("preflight_evidence_digest") != _digest(evidence_path)):
         raise Sequence4GenerationGateError("preflight evidence review is not approved")
+    if synthetic:
+        if review.get("synthetic") is not True:
+            raise Sequence4GenerationGateError("synthetic preflight review marker is absent")
+    elif (_digest(evidence_path) != PREFLIGHT_EVIDENCE_DIGEST
+          or _digest(review_path) != PREFLIGHT_REVIEW_DIGEST
+          or evidence.get("input_tokens") != INPUT_TOKENS
+          or str(evidence.get("conservative_maximum_generation_cost")) != CONSERVATIVE_COST):
+        raise Sequence4GenerationGateError("approved live preflight bytes drifted")
     return {
         **candidate_status,
         **expected,
@@ -402,12 +431,13 @@ def verify_unresolved_generation_candidate(
     require_closed_repository: bool = True,
 ) -> Mapping[str, object]:
     """Verify the inactive v3 candidate without claiming preflight resolution."""
-    if _digest(CANDIDATE_PATH) != CANDIDATE_DIGEST:
-        raise Sequence4GenerationGateError("generation candidate digest drifted")
-    candidate = tomllib.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
-    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
-    if _digest(MANIFEST_PATH) != MANIFEST_DIGEST or manifest.get("candidate_digest") != CANDIDATE_DIGEST:
-        raise Sequence4GenerationGateError("generation manifest binding drifted")
+    if _digest(UNRESOLVED_CANDIDATE_PATH) != UNRESOLVED_CANDIDATE_DIGEST:
+        raise Sequence4GenerationGateError("unresolved generation candidate drifted")
+    candidate = tomllib.loads(UNRESOLVED_CANDIDATE_PATH.read_text(encoding="utf-8"))
+    manifest = json.loads(UNRESOLVED_MANIFEST_PATH.read_text(encoding="utf-8"))
+    if (_digest(UNRESOLVED_MANIFEST_PATH) != UNRESOLVED_MANIFEST_DIGEST
+            or manifest.get("candidate_digest") != UNRESOLVED_CANDIDATE_DIGEST):
+        raise Sequence4GenerationGateError("unresolved generation manifest drifted")
     scope = candidate["scope"]
     required_scope = {
         "run_series_id": RUN_SERIES_ID, "sequence": 4, "fixture_id": FIXTURE_ID,
@@ -429,9 +459,62 @@ def verify_unresolved_generation_candidate(
     if require_closed_repository and current.read_bytes() != closed.read_bytes():
         raise Sequence4GenerationGateError("repository authority is not permanently closed")
     return {
-        "candidate_digest": CANDIDATE_DIGEST,
-        "manifest_digest": _digest(MANIFEST_PATH),
+        "candidate_digest": _digest(UNRESOLVED_CANDIDATE_PATH),
+        "manifest_digest": _digest(UNRESOLVED_MANIFEST_PATH),
         "binding_status": "fresh_v3_preflight_required",
+        "live_generation_authorized": False,
+    }
+
+
+def verify_resolved_generation_candidate(
+    *, repository_root: Path = REPOSITORY_ROOT,
+    require_closed_repository: bool = True,
+) -> Mapping[str, object]:
+    """Verify the resolved candidate remains inactive and exactly preflight-bound."""
+    if _digest(CANDIDATE_PATH) != CANDIDATE_DIGEST:
+        raise Sequence4GenerationGateError("resolved generation candidate digest drifted")
+    candidate = tomllib.loads(CANDIDATE_PATH.read_text(encoding="utf-8"))
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    if _digest(MANIFEST_PATH) != MANIFEST_DIGEST or manifest.get("candidate_digest") != CANDIDATE_DIGEST:
+        raise Sequence4GenerationGateError("resolved generation manifest binding drifted")
+    scope = candidate["scope"]
+    required_scope = {
+        "run_series_id": RUN_SERIES_ID, "sequence": 4, "fixture_id": FIXTURE_ID,
+        "operator_intent": OPERATOR_INTENT, "maximum_credential_reads": 1,
+        "maximum_client_constructions": 1, "maximum_token_preflight_requests": 0,
+        "maximum_ai_generation_requests": 1, "automatic_retries": 0,
+        "ai_generation_timeout_seconds": 12, "maximum_output_tokens": 500,
+        "maximum_total_spend_usd": "0.03", "human_grounding_review_required": True,
+        "single_use": True,
+    }
+    if any(scope.get(key) != value for key, value in required_scope.items()):
+        raise Sequence4GenerationGateError("resolved generation-only scope drifted")
+    approved = candidate["required_v3_preflight"]
+    required_preflight = {
+        "binding_status": "approved_v3_preflight_bound",
+        "run_series_id": PREFLIGHT_RUN_SERIES_ID, "sequence": 1,
+        "fixture_id": FIXTURE_ID, "preflight_evidence_digest": PREFLIGHT_EVIDENCE_DIGEST,
+        "preflight_review_digest": PREFLIGHT_REVIEW_DIGEST,
+        "binding_preview_digest": PREFLIGHT_BINDING_PREVIEW_DIGEST,
+        "input_tokens": INPUT_TOKENS, "conservative_cost": CONSERVATIVE_COST,
+        "request_digest": REQUEST_DIGEST,
+        "canonical_attempt_digest": CANONICAL_ATTEMPT_DIGEST,
+        "provider_fingerprint": PROVIDER_FINGERPRINT,
+    }
+    if any(approved.get(key) != value for key, value in required_preflight.items()):
+        raise Sequence4GenerationGateError("resolved preflight binding drifted")
+    if (candidate["authorization"]["ai_generation_authorized"] is not False
+            or candidate["metadata"]["active_repository_authority"] is not False
+            or candidate["metadata"]["valid_for_execution"] is not False):
+        raise Sequence4GenerationGateError("resolved candidate grants authority")
+    closed = repository_root / "docs/experiments/suggest-moving-service-questions/v2-pilot/closed-execution-manifest.json"
+    current = closed.with_name("execution-manifest.json")
+    if require_closed_repository and current.read_bytes() != closed.read_bytes():
+        raise Sequence4GenerationGateError("repository authority is not permanently closed")
+    return {
+        "candidate_digest": CANDIDATE_DIGEST,
+        "manifest_digest": MANIFEST_DIGEST,
+        "binding_status": "approved_v3_preflight_bound",
         "live_generation_authorized": False,
     }
 

@@ -40,6 +40,7 @@ from v3_sequence_4_generation_gate import (  # noqa: E402
     Sequence4GenerationGateError,
     validate_generated_response,
     verify_candidate_and_preflight,
+    verify_resolved_generation_candidate,
     verify_unresolved_generation_candidate,
 )
 
@@ -48,7 +49,7 @@ def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_v3_request_bindings_differ_from_v2_and_require_fresh_preflight() -> None:
+def test_v3_request_bindings_differ_from_v2_and_are_live_preflight_resolved() -> None:
     v2 = prepare_frozen_v2_pilot()
     v3 = prepare_frozen_v3_pilot()
     assert deterministic_request_digest(v3) == REQUEST_DIGEST
@@ -60,12 +61,11 @@ def test_v3_request_bindings_differ_from_v2_and_require_fresh_preflight() -> Non
     assert v3.request.schema_version == "moving-service-questions-schema-v3"
     assert v3.frozen_manifest["fallback_version"] == "moving-service-fallback-v2"
     assert v3.frozen_manifest["fallback_v2_reused"] is True
-    with pytest.raises(Sequence4GenerationGateError, match="fresh_v3_preflight_required"):
-        verify_candidate_and_preflight(output_root=Path("/does/not/matter"))
     assert verify_unresolved_generation_candidate()["binding_status"] == "fresh_v3_preflight_required"
+    assert verify_resolved_generation_candidate()["binding_status"] == "approved_v3_preflight_bound"
 
 
-def test_candidate_is_inactive_v3_only_and_digest_bound() -> None:
+def test_resolved_candidate_is_inactive_v3_only_and_digest_bound() -> None:
     candidate = tomllib.loads(CANDIDATE_PATH.read_text())
     manifest = json.loads(MANIFEST_PATH.read_text())
     assert _digest(CANDIDATE_PATH) == CANDIDATE_DIGEST
@@ -73,7 +73,11 @@ def test_candidate_is_inactive_v3_only_and_digest_bound() -> None:
     assert manifest["candidate_digest"] == CANDIDATE_DIGEST
     assert candidate["metadata"]["active_repository_authority"] is False
     assert candidate["authorization"]["ai_generation_authorized"] is False
-    assert candidate["required_v3_preflight"]["binding_status"] == "fresh_v3_preflight_required"
+    assert candidate["required_v3_preflight"]["binding_status"] == "approved_v3_preflight_bound"
+    assert candidate["required_v3_preflight"]["preflight_evidence_digest"] == "0de3756455a948472c53c34124a83815dde3ac7b89ec8b1743bbf6371b3c2360"
+    assert candidate["required_v3_preflight"]["preflight_review_digest"] == "5e61e2a7eb6e1e4b054ca40dc3b7a9058cb6d10b3ba31096cde31e998f32ee20"
+    assert candidate["required_v3_preflight"]["input_tokens"] == 2542
+    assert candidate["required_v3_preflight"]["conservative_cost"] == "0.0018168"
     assert candidate["bindings"]["frozen_v3_manifest_digest"] == FROZEN_V3_MANIFEST_DIGEST
     assert candidate["bindings"]["prompt_version"] == "moving-service-questions-prompt-v3"
     assert candidate["bindings"]["schema_version"] == "moving-service-questions-schema-v3"

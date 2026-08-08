@@ -69,6 +69,17 @@ EVIDENCE
     --decision approve --reviewed-at "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" --notes "Synthetic approval")
   activation_review_digest=$(field "$review_output" review_sha256)
 
+  cleanup_rendered=/tmp/gotime-v3-sequence-4-generation-authorization.toml
+  cp "$rendered" "$cleanup_rendered"
+  command_path=scripts/experiments/suggest_moving_service_questions/cleanup_v3_sequence_4_expired_generation_review_package_docker.sh
+  record_command "$command_path" "$commands"
+  cleanup_output=$(GOTIME_V3_SEQUENCE_4_GENERATION_SYNTHETIC_NOW="$(date -u -d "$expires + 1 second" '+%Y-%m-%dT%H:%M:%SZ')" \
+    sh "$command_path" --artifact-sha256 "$artifact_digest" \
+    --installation-record-sha256 "$installation_digest" \
+    --activation-review-sha256 "$activation_review_digest")
+  [ "$(field "$cleanup_output" writes_performed)" = false ]
+  rm -f "$cleanup_rendered"
+
   command_path=scripts/experiments/suggest_moving_service_questions/plan_v3_sequence_4_generation_authorization_activation_docker.sh
   record_command "$command_path" "$commands"
   plan_output=$(sh "$command_path" --artifact-sha256 "$artifact_digest" \
@@ -159,6 +170,7 @@ run_scenario prompt_policy_stress
 expected="$rehearsal_root/expected.txt"
 cat >"$expected" <<'COMMANDS'
 scripts/experiments/suggest_moving_service_questions/activate_v3_sequence_4_generation_authorization_docker.sh
+scripts/experiments/suggest_moving_service_questions/cleanup_v3_sequence_4_expired_generation_review_package_docker.sh
 scripts/experiments/suggest_moving_service_questions/close_v3_sequence_4_generation_authorization_docker.sh
 scripts/experiments/suggest_moving_service_questions/delete_v3_sequence_4_generation_response_evidence_docker.sh
 scripts/experiments/suggest_moving_service_questions/install_v3_sequence_4_generation_authorization_for_review_docker.sh
@@ -173,12 +185,12 @@ COMMANDS
 sort -u "$rehearsal_root/compliant/invoked-public-commands.txt" >"$rehearsal_root/actual.txt"
 cmp -s "$expected" "$rehearsal_root/actual.txt"
 cat "$rehearsal_root"/*/command-coverage.tsv >"$rehearsal_root/command-coverage.tsv"
-[ "$(awk -F '\t' '$3 == "passed" {print $1}' "$rehearsal_root/command-coverage.tsv" | sort -u | wc -l)" -eq 11 ]
+[ "$(awk -F '\t' '$3 == "passed" {print $1}' "$rehearsal_root/command-coverage.tsv" | sort -u | wc -l)" -eq 12 ]
 [ "$(awk -F '\t' '$3 == "passed" {print $2}' "$rehearsal_root/command-coverage.tsv" | sort -u | wc -l)" -eq 5 ]
 cmp -s "$real_execution" "$real_closed"
 [ "$(sha256sum "$real_execution" | cut -d' ' -f1)" = "$before_manifest" ]
 [ -z "$(find "$real_generation_state" -maxdepth 2 -name '004-storage_unknown-generation-v3*' -print 2>/dev/null)" ]
-echo 'exact_public_commands_exercised=11'
+echo 'exact_public_commands_exercised=12'
 echo 'synthetic_preflight_calls=0'
 echo 'compliant_generation_calls=1'
 echo 'prose_rejection_generation_calls=1'
