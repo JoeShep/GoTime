@@ -1,5 +1,22 @@
 # NEXT_SESSION
 
+## Frozen-v3 token-preflight workflow
+
+A distinct frozen-v3 preflight workflow now uses run series
+`moving-service-stage-b-v3-pilot-20260807`, sequence 1, and prefix
+`001-storage_unknown`. It is fixed to the exact frozen-v3 deterministic
+request, canonical attempt, and provider fingerprint. The complete public
+workflow passes a network-disabled rehearsal with one fake preflight, zero
+generation, immediate approved evidence review, a non-writing generation-gate
+binding preview, closure, cleanup, and non-reuse.
+
+The next milestone is final human review of the committed v3 preflight
+candidate, public commands, same-shell boundary, evidence-review deadline, and
+synthetic rehearsal. Do not prepare live timestamps until that review passes.
+After a later successful live v3 preflight and same-session evidence approval,
+a separate offline milestone must version the resolved v3 generation candidate
+before live generation can be reconsidered.
+
 ## Frozen-v3 generation-gate follow-up
 
 The frozen-v3 sequence-4 generation gate is now versioned and fully rehearsed

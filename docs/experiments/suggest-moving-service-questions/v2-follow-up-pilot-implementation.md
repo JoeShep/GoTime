@@ -502,3 +502,19 @@ approved v3 token preflight is required before any live v3 generation package
 can be rendered. The network-disabled rehearsal uses synthetic v3 preflight
 evidence only and covers all fixed public commands plus five validation cases;
 it does not grant live authority.
+
+## Frozen-v3 fresh token preflight
+
+Because prompt v3 changes the exact provider request, its token count requires
+a distinct preflight history. The fixed v3 workflow starts a new pilot series,
+`moving-service-stage-b-v3-pilot-20260807`, at sequence 1 rather than reusing
+the consumed v2 sequence-4 preflight. It binds the frozen-v3 request digest,
+canonical attempt, and provider fingerprint and permits one token preflight,
+zero generation calls, and zero retries.
+
+The exact public workflow is rehearsed offline through immediate evidence
+review and a non-writing generation-candidate binding preview. The preview
+shows how later approved live v3 evidence can resolve the currently blocked
+generation candidate; it does not modify that candidate or authorize
+generation. A final human review and a separately approved live timestamp
+milestone remain required.

@@ -1,5 +1,23 @@
 # Session Notes
 
+## Frozen-v3 sequence-1 preflight workflow
+
+- Started a distinct v3 run series rather than rewriting or extending consumed
+  v2 history: `moving-service-stage-b-v3-pilot-20260807`, sequence 1.
+- Added an inactive preflight-only candidate bound to the exact frozen-v3
+  request, canonical attempt, provider fingerprint, limits, and closed state.
+- Added fixed render, install, review, plan, activation, verification,
+  same-shell preflight, evidence review, generation-binding preview, closure,
+  and expired-review cleanup commands.
+- The network-disabled exact-command rehearsal produced one fake 2,300-token
+  preflight, zero generation calls, immediate approved evidence review,
+  permanent closure, and second-use rejection.
+- The generation-binding operation is dry-run-only and non-authoritative; live
+  generation remains blocked pending real v3 evidence and later candidate
+  versioning.
+- No real credential, client, provider call, authorization, or timestamp
+  package was created.
+
 ## Frozen-v3 sequence-4 generation-gate rebinding
 
 - Verified every frozen-v3 digest before constructing the v3 request.

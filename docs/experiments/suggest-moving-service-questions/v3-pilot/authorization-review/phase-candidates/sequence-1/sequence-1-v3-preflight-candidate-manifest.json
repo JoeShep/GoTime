@@ -1,0 +1,17 @@
+{
+  "audit_prefix": "001-storage_unknown",
+  "candidate_digest": "62e341e0519b292c9802f6f2ff734bd3b5a31c4484acdcb7e200d2542898a4f7",
+  "candidate_path": "docs/experiments/suggest-moving-service-questions/v3-pilot/authorization-review/phase-candidates/sequence-1/inactive-sequence-1-v3-preflight-authorization-candidate.toml",
+  "candidate_status": "inactive_review_candidate",
+  "capability": "suggest_moving_service_questions",
+  "canonical_attempt_digest": "d9d8141853b7d034ce30de8c9c2689d9738b0bfd73d812a2150b823111b3bdcf",
+  "deterministic_request_digest": "952b8003f184de1ff9617103c8c93ab64d87e63cb4e4daee84647b7dd505ed79",
+  "fixture_id": "storage_unknown",
+  "frozen_v3_manifest_digest": "44da0c5005515784c2c13737ca12a4382c084f1aa56fea5b4a4d40e66fb8659c",
+  "generation_authorized": false,
+  "manifest_version": "moving-service-openai-v3-preflight-sequence-1-candidate-manifest-v1",
+  "phase": "preflight",
+  "provider_fingerprint": "a5895ad53d54d6d03652152aeadbf8b71a2c672cab86640d1798a3a3680a15e4",
+  "run_series_id": "moving-service-stage-b-v3-pilot-20260807",
+  "sequence": 1
+}

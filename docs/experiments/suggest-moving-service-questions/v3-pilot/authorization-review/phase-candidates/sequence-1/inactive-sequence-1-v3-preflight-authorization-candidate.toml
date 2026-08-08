@@ -1,0 +1,69 @@
+[metadata]
+capability = "suggest_moving_service_questions"
+candidate_version = "moving-service-openai-v3-preflight-sequence-1-candidate-v1"
+status = "inactive_review_candidate"
+phase = "preflight"
+active_repository_authority = false
+live_execution_valid = false
+
+[bindings]
+run_series_id = "moving-service-stage-b-v3-pilot-20260807"
+sequence = 1
+fixture_id = "storage_unknown"
+audit_prefix = "001-storage_unknown"
+prompt_version = "moving-service-questions-prompt-v3"
+schema_version = "moving-service-questions-schema-v3"
+fallback_version = "moving-service-fallback-v2"
+frozen_v3_manifest_digest = "44da0c5005515784c2c13737ca12a4382c084f1aa56fea5b4a4d40e66fb8659c"
+prompt_digest = "1146474ad5112a238446a63d4fc797022ca2cd65d8e9cb6c88935d7f4f3376e8"
+provider_schema_digest = "333d6923902c46662243e019074b735500904bc49acbafdc1b929bceed9924e2"
+deterministic_request_digest = "952b8003f184de1ff9617103c8c93ab64d87e63cb4e4daee84647b7dd505ed79"
+canonical_attempt_digest = "d9d8141853b7d034ce30de8c9c2689d9738b0bfd73d812a2150b823111b3bdcf"
+provider_fingerprint = "a5895ad53d54d6d03652152aeadbf8b71a2c672cab86640d1798a3a3680a15e4"
+permanent_closed_manifest_digest = "18a22d62a3e368f5a021649be56a211af959fed7b0305eab61d063022b1387fa"
+provider = "OpenAI"
+ai_model_identifier = "gpt-4.1-mini-2025-04-14"
+sdk_pin = "openai==2.45.0"
+
+[scope]
+operator_intent = "AUTHORIZE_ONE_STORAGE_UNKNOWN_V3_PREFLIGHT_ONLY"
+maximum_credential_lookups = 1
+maximum_client_constructions = 1
+maximum_token_preflight_requests = 1
+maximum_ai_generation_requests = 0
+automatic_retries = 0
+preflight_timeout_seconds = 5
+maximum_output_tokens = 500
+maximum_total_spend_usd = "0.03"
+formal_evaluation_authorized = false
+stage_c_authorized = false
+production_use_authorized = false
+single_use = true
+immediate_evidence_review_required = true
+
+[authorization]
+credential_access_authorized = false
+token_preflight_authorized = false
+ai_generation_authorized = false
+
+[paths]
+rendered_tmp = "/tmp/gotime-v3-sequence-1-preflight-authorization.toml"
+review_rendered = "authorization-review/001-storage_unknown-preflight-rendered.toml"
+installation_record = "authorization-review/001-storage_unknown-preflight-installation.json"
+activation_review = "authorization-review/001-storage_unknown-preflight-activation-review.json"
+active_authorization = "001-storage_unknown-preflight-authorization.toml"
+activation_record = "001-storage_unknown-preflight-activation.json"
+transaction_journal = "001-storage_unknown-preflight-activation-transaction.json"
+preflight_audit = "001-storage_unknown-preflight.json"
+preflight_evidence = "001-storage_unknown-preflight-evidence.json"
+preflight_review = "001-storage_unknown-preflight-review.json"
+evidence_consumption = "001-storage_unknown-preflight-evidence-consumption.json"
+closure_record = "001-storage_unknown-preflight-closure.json"
+cleanup_record = "001-storage_unknown-expired-review-package-cleanup.json"
+
+[human_placeholders]
+approver = "<REQUIRED>"
+approved_at = "<REQUIRED_UTC_Z>"
+activated_at = "<REQUIRED_UTC_Z>"
+expires_at = "<REQUIRED_UTC_Z>"
+authorization_reason = "<REQUIRED>"
