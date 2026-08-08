@@ -1,5 +1,22 @@
 # Session Notes
 
+## Frozen-v3 live prose-failure postmortem
+
+- Recorded that the single live frozen-v3 generation passed structural and
+  semantic validation, failed only `storage_modality_overstatement`, selected
+  fallback v2, created no validated response evidence, received no grounding
+  review or retry, and restored permanent closure.
+- Preserved the audit, closure, consumption, preflight, and frozen artifacts as
+  immutable history. The rejected prose remains unavailable and was not
+  reconstructed; its exact lexical cause is unknowable.
+- Added observational rejected-prose diagnostics containing only rule, field,
+  original-field offsets, closed canonical trigger, and occurrence count.
+- Proved diagnostics do not change validator decisions or code order and do
+  not retain complete fields, surrounding prose, raw provider output, or
+  credentials.
+- Recommended a separate narrow prompt-v4 design review while retaining the
+  current modality validator unchanged. No provider operation occurred.
+
 ## Frozen-v3 generation-candidate resolution
 
 - Bound a separate inactive resolved generation candidate to the exact approved

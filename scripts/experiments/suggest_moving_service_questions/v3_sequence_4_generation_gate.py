@@ -16,10 +16,12 @@ from typing import Mapping
 from app.moving_service_questions import ResponseValidationError
 from moving_service_questions_v2 import (
     FALLBACK_VERSION_V2,
+    MovingServiceQuestionResponseV2,
     ProseValidationError,
     select_fallback_v2,
     validate_response_v2,
 )
+from rejected_prose_diagnostics import collect_prose_violation_diagnostics
 from moving_service_questions_v3 import MovingServiceQuestionResponseV3
 from run_openai_stage_b_v2_pilot import PreparedV2Pilot, prepare_frozen_v2_pilot
 from run_openai_stage_b_v3_pilot import (
@@ -584,6 +586,20 @@ def write_generation_outcome(*, output_root: Path, raw: object, now: datetime) -
     else:
         if classification == "prose_failure":
             audit["prose_violation_codes"] = list(result)  # type: ignore[arg-type]
+            diagnostic_raw = (
+                json.loads(raw, object_pairs_hook=_reject_duplicate_keys)
+                if isinstance(raw, str) else raw
+            )
+            assert isinstance(diagnostic_raw, Mapping)
+            v3_response = MovingServiceQuestionResponseV3.model_validate(diagnostic_raw)
+            v2_document = v3_response.model_dump(mode="json")
+            v2_document["prompt_version"] = "moving-service-questions-prompt-v2"
+            v2_document["schema_version"] = "moving-service-questions-schema-v2"
+            v2_response = MovingServiceQuestionResponseV2.model_validate(v2_document)
+            diagnostics = collect_prose_violation_diagnostics(
+                prepare_frozen_v2_pilot().request, v2_response
+            )
+            audit["rejected_prose_diagnostics"] = [item.as_dict() for item in diagnostics]
         fallback = select_fallback_v2(prepare_frozen_v2_pilot().request)
         audit["fallback_used"] = fallback is not None
         audit["fallback_version"] = FALLBACK_VERSION_V2

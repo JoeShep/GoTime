@@ -1,5 +1,18 @@
 # NEXT_SESSION
 
+## Frozen-v3 rejected-prose diagnostics
+
+The one consumed live frozen-v3 generation passed structural and semantic
+validation, then failed only `storage_modality_overstatement`; fallback v2 was
+selected and permanent closure was restored. Rejected prose was intentionally
+not retained, so the exact field, trigger, and wording are unknowable.
+
+Future prose failures now record only bounded rule/field/offset/canonical-
+trigger metadata, with behavioral-equivalence and privacy tests. The existing
+validators and fallback are unchanged. The next eligible design milestone is a
+narrow prompt-v4 review focused on instruction salience; it must not assume the
+unavailable historical wording or authorize another live attempt.
+
 ## Resolved frozen-v3 generation candidate
 
 The inactive frozen-v3 sequence-4 generation candidate is now deterministically

@@ -528,3 +528,19 @@ candidate. Resolution does not activate authority: live human timestamps,
 activation review, atomic activation, and separate live-call approval remain
 future milestones. The original unresolved v3 candidate and all v2/v3 history
 remain unchanged.
+
+## Frozen-v3 rejected-prose follow-up
+
+The single live frozen-v3 generation passed structural and semantic validation
+but failed the unchanged prose guardrail only for
+`storage_modality_overstatement`. Fallback v2 was selected, no validated
+response evidence or grounding review existed, no retry occurred, and closure
+was restored. Because rejected prose was intentionally not retained, its exact
+field, trigger, and wording are unknowable.
+
+Future rejected prose may record bounded observational diagnostics (rule,
+field, offsets, canonical fixed trigger, and occurrence count) without response
+text. Validator and fallback behavior remain unchanged. See
+`v3-live-generation-prose-failure-postmortem.md`. A prompt-v4 design review is
+recommended separately; no prompt-v4 implementation or live authorization is
+part of this work.
