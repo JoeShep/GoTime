@@ -1,0 +1,115 @@
+{
+  "evaluation_set_id": "suggest-moving-service-questions-v4-formal-evaluation-set-v1",
+  "request_identities": [
+    {
+      "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+      "canonical_attempt_sha256": "7a3c0f7ace4ee4289f4149224fc001b215e71d4cc168edea604516fd133f450d",
+      "case_id": "eval-v4-01",
+      "deterministic_case_input_sha256": "10dbcf24cb1a656fe3de1892f873b2fe43c07bc95185a5728488c321bdadd328",
+      "deterministic_request_sha256": "f5a8c7e06d2ad9e133a5b0b92c322f09ed67205feb25314c5114fa1849fcdd0a",
+      "provider": "OpenAI",
+      "provider_fingerprint": "15caaaaa6a3b43860c426c7555be7f4c7a6bf50d658c92c3c8564c1d43cb5656",
+      "provider_request_expected": true,
+      "sdk": "openai==2.45.0"
+    },
+    {
+      "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+      "canonical_attempt_sha256": "84c48181c8a9872e3429a5d8555b048808f30e71fca400a11ac998bbc91556be",
+      "case_id": "eval-v4-02",
+      "deterministic_case_input_sha256": "458f510cad775437b14310512c741b977896cc5182abca42da0048f3a0a72c3b",
+      "deterministic_request_sha256": "3148281b4c699a04ca21970e99a0d996620e2edfed722ad66a6fdcf3fda4bbdd",
+      "provider": "OpenAI",
+      "provider_fingerprint": "84766f0749c8e1a4933e19b34aeeaee75d5691ef5b32b9a00bcc1d135953a6eb",
+      "provider_request_expected": true,
+      "sdk": "openai==2.45.0"
+    },
+    {
+      "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+      "canonical_attempt_sha256": "e5afeed28bf3077e2f036367e444b35ece97c2b422467a7f8eab404028cfc3d3",
+      "case_id": "eval-v4-03",
+      "deterministic_case_input_sha256": "541134e246bd0db3d35fb75ca8afd01b4e9197ad02a54789c83d9f996f66ed12",
+      "deterministic_request_sha256": "ca02884ee9d3436f27f5093ec4d0c58bb311cce0c7cb6e6db80a3e3941f2e59f",
+      "provider": "OpenAI",
+      "provider_fingerprint": "50f9380967c1b1b125bfd9b4eb9fcba1e9227b9c1b588e6c58d28f6ac08e20b4",
+      "provider_request_expected": true,
+      "sdk": "openai==2.45.0"
+    },
+    {
+      "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+      "canonical_attempt_sha256": "430ce154bebff7cf855dc23f7b87f2ae88f46b2a19ac17eb74c15252efe1cca6",
+      "case_id": "eval-v4-04",
+      "deterministic_case_input_sha256": "f8c8cec42eb32fe496fb1811a31e20148c0596f2bc5109960591e3b633796673",
+      "deterministic_request_sha256": "85fe16de4fa49d3e62537d51fb7af243b89faf661f8297c94b7c94329a3409c7",
+      "provider": "OpenAI",
+      "provider_fingerprint": "576ee005c31f6a2e0c51a5e232a23d167f4926fae6729d0e328d1a19030f3468",
+      "provider_request_expected": true,
+      "sdk": "openai==2.45.0"
+    },
+    {
+      "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+      "canonical_attempt_sha256": "268d022c35c3f25e1c742bf7a765a242e574cc5e737357e8cca47deb88219ad6",
+      "case_id": "eval-v4-05",
+      "deterministic_case_input_sha256": "37b10a593ae5abb555d18a40e3eb901528a24e5c44ec4620304691de8e174d09",
+      "deterministic_request_sha256": "b16966d265b0f61adf17ee3572ddc31956bcb2c3d309bea0a98789ea16edb842",
+      "provider": "OpenAI",
+      "provider_fingerprint": "3bb193ec17dc60b0702bec4cf9668094e4751bf234825e48ffdcc8fdc009e595",
+      "provider_request_expected": true,
+      "sdk": "openai==2.45.0"
+    },
+    {
+      "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+      "canonical_attempt_sha256": "71f7b8e4e51d1c6a7eec39fe9eec3ad1fd1e32d78ce623834bcda98c215a895d",
+      "case_id": "eval-v4-06",
+      "deterministic_case_input_sha256": "9311f91bfb49ff3138b7871582de049fb9b35d913eee8662c0bf9c7dad6c94cd",
+      "deterministic_request_sha256": "53fa84d57a2c79ab268132ba75b85c4a5c25673223acf5d533a899c6817a58b0",
+      "provider": "OpenAI",
+      "provider_fingerprint": "ae963d3b195ae5b74791ed03362ace156facfff897bffa26c862232e4c35b7c7",
+      "provider_request_expected": true,
+      "sdk": "openai==2.45.0"
+    },
+    {
+      "ai_model_identifier": null,
+      "canonical_attempt_sha256": null,
+      "case_id": "eval-v4-07",
+      "deterministic_case_input_sha256": "7cd9a1550204fbe6f228bca12f1598534ba920dfaedbd74ae7254e7f02ec2ae3",
+      "deterministic_request_sha256": null,
+      "provider": null,
+      "provider_fingerprint": null,
+      "provider_request_expected": false,
+      "sdk": null
+    },
+    {
+      "ai_model_identifier": null,
+      "canonical_attempt_sha256": null,
+      "case_id": "eval-v4-08",
+      "deterministic_case_input_sha256": "bfc1ab4f6666ce10ddac6a666d8c537b63609291341db4072aa36aad0e78698e",
+      "deterministic_request_sha256": null,
+      "provider": null,
+      "provider_fingerprint": null,
+      "provider_request_expected": false,
+      "sdk": null
+    },
+    {
+      "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+      "canonical_attempt_sha256": "042246d50846e1d9db44dbfb07ddf867c8597f4c645958435a8ac379fda9a755",
+      "case_id": "eval-v4-09",
+      "deterministic_case_input_sha256": "b05c696fa867a45bf2ab28c0c4a3da368d4ccfb3f4f14cc95efc4560a5a9632e",
+      "deterministic_request_sha256": "10948a677230e1e959c1ac176921a701cb1a9f0a76f4e3b03e6b0cda4e2d9d00",
+      "provider": "OpenAI",
+      "provider_fingerprint": "0e0aaea2d0b7446281afffd9df2737598c637458cfc17e60e958bede2dd092a8",
+      "provider_request_expected": true,
+      "sdk": "openai==2.45.0"
+    },
+    {
+      "ai_model_identifier": "gpt-4.1-mini-2025-04-14",
+      "canonical_attempt_sha256": "8e1015bf7d2f7b800d0426d1daa848b0d1d6e7f7a36adfe88394f4299de459b2",
+      "case_id": "eval-v4-10",
+      "deterministic_case_input_sha256": "1e34e5a2d4e41eef8c45b51adac3f07d31b8ecf47209bdb3b9482c902b2c652d",
+      "deterministic_request_sha256": "c56e6ed36c6a509d772d9466fbf74c994d1fa86ea3394eddf6b0198d1613cfaa",
+      "provider": "OpenAI",
+      "provider_fingerprint": "5dde7725b2c5bf3775b50fc500d56858dc1be754f44abc89ec519610ad2e2075",
+      "provider_request_expected": true,
+      "sdk": "openai==2.45.0"
+    }
+  ]
+}

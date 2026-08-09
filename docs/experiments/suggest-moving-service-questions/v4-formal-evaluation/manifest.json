@@ -1,0 +1,20 @@
+{
+  "artifact_sha256": {
+    "case-binding-review.md": "0d020407cd3e9c8e09f4bc9876712f88cddab2351f990d7369b4e506538e7d07",
+    "evaluation-cases.json": "64251f882287dae201f6b23aa33df00b137b9c5585d5c95fb78c1046840cb458",
+    "execution-budget.json": "0d848bce8866023a5b7f7912795a6ee80b3aae471189f447911244da10777b6b",
+    "expected-behavior.json": "6ecf327b80ecf52bb8766502e6329a866353066096d6339153f284e6e56e47df",
+    "request-identities.json": "a23de86e93c3b83b7d51ffa5f73c5d694cd8266c5013c6d14833ad64bddd40ee"
+  },
+  "case_count": 10,
+  "deterministic_empty_case_count": 2,
+  "evaluation_set_id": "suggest-moving-service-questions-v4-formal-evaluation-set-v1",
+  "evaluation_set_version": 1,
+  "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+  "generation_eligible_case_count": 8,
+  "live_authorized": false,
+  "plan_path": "docs/experiments/suggest-moving-service-questions/v4-formal-evaluation-plan.md",
+  "plan_sha256": "5c5d84effe84fa7a951ae991759db05b2fea1038f4ef20a8aa297a3feff78a22",
+  "runtime_reachable": false,
+  "status": "frozen_offline_only"
+}

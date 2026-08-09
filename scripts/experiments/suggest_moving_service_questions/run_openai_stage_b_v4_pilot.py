@@ -6,8 +6,9 @@ import hashlib
 import json
 import re
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Mapping
 
 from app.moving_service_questions import ExperimentFixture, STORAGE_KNOWLEDGE, build_trusted_fixture
 from moving_service_questions_v2 import construct_request_v2
@@ -33,6 +34,16 @@ class ProhibitedGroundingSourceError(V4PilotError):
     classification = "prohibited_grounding_source"
 
 
+@dataclass(frozen=True)
+class FrozenV4ProviderMetadata:
+    """Validated frozen metadata that carries no constructed provider request."""
+
+    manifest: Mapping[str, object]
+    pilot_configuration: Mapping[str, object]
+    system_instructions: str
+    response_json_schema: Mapping[str, object]
+
+
 def _digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -51,11 +62,10 @@ def validate_grounding_source(statement: str) -> None:
         )
 
 
-def prepare_frozen_v4_pilot(
+def prepare_frozen_v4_provider_metadata(
     *, grounding_statement: str = STORAGE_KNOWLEDGE.statement,
-    provider_request_constructor: Callable[..., MovingServiceProviderRequest] = MovingServiceProviderRequest,
-) -> PreparedV2Pilot:
-    """Validate grounding first, then construct the exact offline v4 request."""
+) -> FrozenV4ProviderMetadata:
+    """Load exact frozen-v4 provider metadata without constructing a request."""
     validate_grounding_source(grounding_statement)
     manifest_path = V4_ROOT / "manifest.json"
     if _digest(manifest_path) != FROZEN_V4_MANIFEST_DIGEST:
@@ -82,22 +92,50 @@ def prepare_frozen_v4_pilot(
         "provider_schema_path": str(V4_ROOT.relative_to(REPOSITORY_ROOT) / "openai-response-schema.json"),
         "provider_schema_digest": manifest["artifact_digests"]["openai-response-schema.json"],
     }
+    return FrozenV4ProviderMetadata(
+        manifest=manifest,
+        pilot_configuration=pilot,
+        system_instructions=prompt["system_instructions"],
+        response_json_schema=schema,
+    )
+
+
+def construct_frozen_v4_provider_request(
+    metadata: FrozenV4ProviderMetadata,
+    request: MovingServiceQuestionRequestV4,
+    provider_request_constructor: Callable[..., MovingServiceProviderRequest] = MovingServiceProviderRequest,
+) -> MovingServiceProviderRequest:
+    """Construct the provider request only after deterministic eligibility succeeds."""
+    pilot = metadata.pilot_configuration
+    return provider_request_constructor(
+        model_identifier=pilot["identity"]["ai_model_identifier"],
+        model_parameters={"temperature": pilot["model_parameters"]["temperature"]},
+        system_instructions=metadata.system_instructions,
+        deterministic_request_json=request.model_dump_json(exclude_none=False, exclude_defaults=False),
+        response_json_schema=metadata.response_json_schema,
+        maximum_output_tokens=pilot["model_parameters"]["maximum_output_tokens"],
+        timeout_seconds=float(pilot["transport"]["ai_generation_timeout_seconds"]),
+        retry_count=pilot["transport"]["automatic_retries"],
+    )
+
+
+def prepare_frozen_v4_pilot(
+    *, grounding_statement: str = STORAGE_KNOWLEDGE.statement,
+    provider_request_constructor: Callable[..., MovingServiceProviderRequest] = MovingServiceProviderRequest,
+) -> PreparedV2Pilot:
+    """Validate grounding first, then construct the exact offline v4 request."""
+    metadata = prepare_frozen_v4_provider_metadata(grounding_statement=grounding_statement)
     v2_request = construct_request_v2(build_trusted_fixture(ExperimentFixture.STORAGE_UNKNOWN))
     document = v2_request.model_dump(mode="python")
     document["prompt_version"] = PROMPT_VERSION_V4
     document["schema_version"] = SCHEMA_VERSION_V4
     request = MovingServiceQuestionRequestV4.model_validate(document)
-    provider_request = provider_request_constructor(
-        model_identifier=pilot["identity"]["ai_model_identifier"],
-        model_parameters={"temperature": pilot["model_parameters"]["temperature"]},
-        system_instructions=prompt["system_instructions"],
-        deterministic_request_json=request.model_dump_json(exclude_none=False, exclude_defaults=False),
-        response_json_schema=schema,
-        maximum_output_tokens=pilot["model_parameters"]["maximum_output_tokens"],
-        timeout_seconds=float(pilot["transport"]["ai_generation_timeout_seconds"]),
-        retry_count=pilot["transport"]["automatic_retries"],
+    provider_request = construct_frozen_v4_provider_request(
+        metadata, request, provider_request_constructor
     )
-    return PreparedV2Pilot(request, provider_request, manifest, pilot)
+    return PreparedV2Pilot(
+        request, provider_request, metadata.manifest, metadata.pilot_configuration
+    )
 
 
 def deterministic_request_digest(prepared: PreparedV2Pilot) -> str:

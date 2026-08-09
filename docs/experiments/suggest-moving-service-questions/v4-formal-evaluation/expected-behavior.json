@@ -1,0 +1,120 @@
+{
+  "deterministic_empty_results": 2,
+  "evaluation_set_id": "suggest-moving-service-questions-v4-formal-evaluation-set-v1",
+  "expected_behaviors": [
+    {
+      "case_id": "eval-v4-01",
+      "deterministic_gate_action": "invoke_ai_generation",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_requires_user_confirmation": true,
+      "expected_suggestion_count": 1,
+      "fallback_recommended": false,
+      "provider_request_expected": true,
+      "warnings": []
+    },
+    {
+      "case_id": "eval-v4-02",
+      "deterministic_gate_action": "invoke_ai_generation",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_requires_user_confirmation": true,
+      "expected_suggestion_count": 1,
+      "fallback_recommended": false,
+      "provider_request_expected": true,
+      "warnings": []
+    },
+    {
+      "case_id": "eval-v4-03",
+      "deterministic_gate_action": "invoke_ai_generation",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_requires_user_confirmation": true,
+      "expected_suggestion_count": 1,
+      "fallback_recommended": false,
+      "provider_request_expected": true,
+      "warnings": []
+    },
+    {
+      "case_id": "eval-v4-04",
+      "deterministic_gate_action": "invoke_ai_generation",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_requires_user_confirmation": true,
+      "expected_suggestion_count": 1,
+      "fallback_recommended": false,
+      "provider_request_expected": true,
+      "warnings": []
+    },
+    {
+      "case_id": "eval-v4-05",
+      "deterministic_gate_action": "invoke_ai_generation",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_requires_user_confirmation": true,
+      "expected_suggestion_count": 1,
+      "fallback_recommended": false,
+      "provider_request_expected": true,
+      "warnings": []
+    },
+    {
+      "case_id": "eval-v4-06",
+      "deterministic_gate_action": "invoke_ai_generation",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_requires_user_confirmation": true,
+      "expected_suggestion_count": 1,
+      "fallback_recommended": false,
+      "provider_request_expected": true,
+      "warnings": []
+    },
+    {
+      "case_id": "eval-v4-07",
+      "deterministic_gate_action": "return_empty_without_generation",
+      "expected_answer_type": null,
+      "expected_category": null,
+      "expected_requires_user_confirmation": null,
+      "expected_suggestion_count": 0,
+      "fallback_recommended": false,
+      "provider_request_expected": false,
+      "warnings": []
+    },
+    {
+      "case_id": "eval-v4-08",
+      "deterministic_gate_action": "return_empty_without_generation",
+      "expected_answer_type": null,
+      "expected_category": null,
+      "expected_requires_user_confirmation": null,
+      "expected_suggestion_count": 0,
+      "fallback_recommended": false,
+      "provider_request_expected": false,
+      "warnings": []
+    },
+    {
+      "case_id": "eval-v4-09",
+      "deterministic_gate_action": "invoke_ai_generation",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_requires_user_confirmation": true,
+      "expected_suggestion_count": 1,
+      "fallback_recommended": false,
+      "provider_request_expected": true,
+      "warnings": []
+    },
+    {
+      "case_id": "eval-v4-10",
+      "deterministic_gate_action": "invoke_ai_generation",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_requires_user_confirmation": true,
+      "expected_suggestion_count": 1,
+      "fallback_recommended": false,
+      "provider_request_expected": true,
+      "warnings": []
+    }
+  ],
+  "future_generation_attempts": 8,
+  "future_token_preflight_measurements": 8,
+  "maximum_provider_spend_usd": "0.24",
+  "retries": 0
+}

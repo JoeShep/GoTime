@@ -1,0 +1,695 @@
+{
+  "cases": [
+    {
+      "applicable_missing_information_categories": [
+        "temporary_storage_need"
+      ],
+      "canonical_attempt_sha256": "7a3c0f7ace4ee4289f4149224fc001b215e71d4cc168edea604516fd133f450d",
+      "case_id": "eval-v4-01",
+      "case_purpose": "ordinary baseline",
+      "deterministic_case_input_sha256": "10dbcf24cb1a656fe3de1892f873b2fe43c07bc95185a5728488c321bdadd328",
+      "deterministic_context_current_recommendation": "Clarify unresolved moving-service needs before investigating service models.",
+      "deterministic_request_sha256": "f5a8c7e06d2ad9e133a5b0b92c322f09ed67205feb25314c5114fa1849fcdd0a",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_empty_reason": null,
+      "expected_nonempty": true,
+      "expected_requires_user_confirmation": true,
+      "fallback_comparison_basis": "Compare clarity and usefulness with fallback-temporary-storage-v2: Might you need temporary storage before final delivery?",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [
+        "temporary_storage_need"
+      ],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "wrong_category",
+        "unsupported_fact",
+        "grounding_failure",
+        "modality_overstatement"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": "15caaaaa6a3b43860c426c7555be7f4c7a6bf50d658c92c3c8564c1d43cb5656",
+      "provider_request_expected": true,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "destination_region": "Northern California",
+        "goal_summary": "Relocate the household from Tennessee to Northern California.",
+        "household_size": {
+          "status": "known",
+          "value": "household"
+        },
+        "known_constraints": [
+          "The household is unwilling to drive a rental truck."
+        ],
+        "move_type": "interstate",
+        "origin_region": "Tennessee",
+        "packing_preference": {
+          "status": "known",
+          "value": "full_packing"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "target_move_window": "explicitly_unknown",
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        }
+      }
+    },
+    {
+      "applicable_missing_information_categories": [
+        "temporary_storage_need"
+      ],
+      "canonical_attempt_sha256": "84c48181c8a9872e3429a5d8555b048808f30e71fca400a11ac998bbc91556be",
+      "case_id": "eval-v4-02",
+      "case_purpose": "ordinary concrete timing and self-packing",
+      "deterministic_case_input_sha256": "458f510cad775437b14310512c741b977896cc5182abca42da0048f3a0a72c3b",
+      "deterministic_context_current_recommendation": "Clarify unresolved moving-service needs before investigating service models.",
+      "deterministic_request_sha256": "3148281b4c699a04ca21970e99a0d996620e2edfed722ad66a6fdcf3fda4bbdd",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_empty_reason": null,
+      "expected_nonempty": true,
+      "expected_requires_user_confirmation": true,
+      "fallback_comparison_basis": "Compare clarity and usefulness with fallback-temporary-storage-v2: Might you need temporary storage before final delivery?",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [
+        "temporary_storage_need"
+      ],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "irrelevant_location_or_timing",
+        "invented_delivery_plan",
+        "missing_confirmation"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": "84766f0749c8e1a4933e19b34aeeaee75d5691ef5b32b9a00bcc1d135953a6eb",
+      "provider_request_expected": true,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "destination_region": "Oregon",
+        "goal_summary": "Relocate the household from Illinois to Oregon.",
+        "household_size": {
+          "status": "known",
+          "value": "two_adults"
+        },
+        "known_constraints": [],
+        "move_type": "interstate",
+        "origin_region": "Illinois",
+        "packing_preference": {
+          "status": "known",
+          "value": "self_pack"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "target_move_window": "September-October 2026",
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        }
+      }
+    },
+    {
+      "applicable_missing_information_categories": [
+        "temporary_storage_need"
+      ],
+      "canonical_attempt_sha256": "e5afeed28bf3077e2f036367e444b35ece97c2b422467a7f8eab404028cfc3d3",
+      "case_id": "eval-v4-03",
+      "case_purpose": "ordinary larger move with specialty-item distraction",
+      "deterministic_case_input_sha256": "541134e246bd0db3d35fb75ca8afd01b4e9197ad02a54789c83d9f996f66ed12",
+      "deterministic_context_current_recommendation": "Clarify unresolved moving-service needs before investigating service models.",
+      "deterministic_request_sha256": "ca02884ee9d3436f27f5093ec4d0c58bb311cce0c7cb6e6db80a3e3941f2e59f",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_empty_reason": null,
+      "expected_nonempty": true,
+      "expected_requires_user_confirmation": true,
+      "fallback_comparison_basis": "Compare clarity and usefulness with fallback-temporary-storage-v2: Might you need temporary storage before final delivery?",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [
+        "temporary_storage_need"
+      ],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "category_drift",
+        "specialty_item_diversion",
+        "unsupported_service_claim"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": "50f9380967c1b1b125bfd9b4eb9fcba1e9227b9c1b588e6c58d28f6ac08e20b4",
+      "provider_request_expected": true,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "destination_region": "Colorado",
+        "goal_summary": "Relocate the household from Georgia to Colorado.",
+        "household_size": {
+          "status": "known",
+          "value": "family_of_five"
+        },
+        "known_constraints": [
+          "A piano may need special handling."
+        ],
+        "move_type": "interstate",
+        "origin_region": "Georgia",
+        "packing_preference": {
+          "status": "known",
+          "value": "partial_help"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": true
+        },
+        "target_move_window": "explicitly_unknown",
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        }
+      }
+    },
+    {
+      "applicable_missing_information_categories": [
+        "temporary_storage_need"
+      ],
+      "canonical_attempt_sha256": "430ce154bebff7cf855dc23f7b87f2ae88f46b2a19ac17eb74c15252efe1cca6",
+      "case_id": "eval-v4-04",
+      "case_purpose": "ordinary cost-sensitive self-drive context",
+      "deterministic_case_input_sha256": "f8c8cec42eb32fe496fb1811a31e20148c0596f2bc5109960591e3b633796673",
+      "deterministic_context_current_recommendation": "Clarify unresolved moving-service needs before investigating service models.",
+      "deterministic_request_sha256": "85fe16de4fa49d3e62537d51fb7af243b89faf661f8297c94b7c94329a3409c7",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_empty_reason": null,
+      "expected_nonempty": true,
+      "expected_requires_user_confirmation": true,
+      "fallback_comparison_basis": "Compare clarity and usefulness with fallback-temporary-storage-v2: Might you need temporary storage before final delivery?",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [
+        "temporary_storage_need"
+      ],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "price_claim",
+        "self_drive_recommendation",
+        "service_selection",
+        "modality_overstatement"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": "576ee005c31f6a2e0c51a5e232a23d167f4926fae6729d0e328d1a19030f3468",
+      "provider_request_expected": true,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "minimize_cost"
+        },
+        "destination_region": "Texas",
+        "goal_summary": "Relocate the household from New York to Texas.",
+        "household_size": {
+          "status": "known",
+          "value": "one_adult"
+        },
+        "known_constraints": [],
+        "move_type": "interstate",
+        "origin_region": "New York",
+        "packing_preference": {
+          "status": "known",
+          "value": "self_pack"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "target_move_window": "explicitly_unknown",
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": true
+        }
+      }
+    },
+    {
+      "applicable_missing_information_categories": [
+        "temporary_storage_need"
+      ],
+      "canonical_attempt_sha256": "268d022c35c3f25e1c742bf7a765a242e574cc5e737357e8cca47deb88219ad6",
+      "case_id": "eval-v4-05",
+      "case_purpose": "ambiguous lease and delivery scheduling",
+      "deterministic_case_input_sha256": "37b10a593ae5abb555d18a40e3eb901528a24e5c44ec4620304691de8e174d09",
+      "deterministic_context_current_recommendation": "Clarify unresolved moving-service needs before investigating service models.",
+      "deterministic_request_sha256": "b16966d265b0f61adf17ee3572ddc31956bcb2c3d309bea0a98789ea16edb842",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_empty_reason": null,
+      "expected_nonempty": true,
+      "expected_requires_user_confirmation": true,
+      "fallback_comparison_basis": "Compare clarity and usefulness with fallback-temporary-storage-v2: Might you need temporary storage before final delivery?",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [
+        "temporary_storage_need"
+      ],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "inferred_timing_gap",
+        "invented_booking",
+        "invented_delivery_arrangement",
+        "storage_necessity"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": "3bb193ec17dc60b0702bec4cf9668094e4751bf234825e48ffdcc8fdc009e595",
+      "provider_request_expected": true,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "destination_region": "Washington",
+        "goal_summary": "Relocate the household from Minnesota to Washington.",
+        "household_size": {
+          "status": "known",
+          "value": "household"
+        },
+        "known_constraints": [
+          "The current lease end is not final.",
+          "The delivery schedule is not known."
+        ],
+        "move_type": "interstate",
+        "origin_region": "Minnesota",
+        "packing_preference": {
+          "status": "known",
+          "value": "full_packing"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "target_move_window": "date_not_final",
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        }
+      }
+    },
+    {
+      "applicable_missing_information_categories": [
+        "temporary_storage_need"
+      ],
+      "canonical_attempt_sha256": "71f7b8e4e51d1c6a7eec39fe9eec3ad1fd1e32d78ce623834bcda98c215a895d",
+      "case_id": "eval-v4-06",
+      "case_purpose": "ambiguous packing, effort, and artwork distractions",
+      "deterministic_case_input_sha256": "9311f91bfb49ff3138b7871582de049fb9b35d913eee8662c0bf9c7dad6c94cd",
+      "deterministic_context_current_recommendation": "Clarify unresolved moving-service needs before investigating service models.",
+      "deterministic_request_sha256": "53fa84d57a2c79ab268132ba75b85c4a5c25673223acf5d533a899c6817a58b0",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_empty_reason": null,
+      "expected_nonempty": true,
+      "expected_requires_user_confirmation": true,
+      "fallback_comparison_basis": "Compare clarity and usefulness with fallback-temporary-storage-v2: Might you need temporary storage before final delivery?",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [
+        "temporary_storage_need"
+      ],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "irrelevant_detail",
+        "provider_recommendation",
+        "specialty_item_diversion",
+        "invented_fact"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": "ae963d3b195ae5b74791ed03362ace156facfff897bffa26c862232e4c35b7c7",
+      "provider_request_expected": true,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "minimize_hands_on_work"
+        },
+        "destination_region": "Virginia",
+        "goal_summary": "Relocate the household from Florida to Virginia.",
+        "household_size": {
+          "status": "known",
+          "value": "two_adults"
+        },
+        "known_constraints": [
+          "Fragile artwork may need special handling."
+        ],
+        "move_type": "interstate",
+        "origin_region": "Florida",
+        "packing_preference": {
+          "status": "known",
+          "value": "full_packing"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": true
+        },
+        "target_move_window": "explicitly_unknown",
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        }
+      }
+    },
+    {
+      "applicable_missing_information_categories": [],
+      "canonical_attempt_sha256": null,
+      "case_id": "eval-v4-07",
+      "case_purpose": "expected empty because storage is known false",
+      "deterministic_case_input_sha256": "7cd9a1550204fbe6f228bca12f1598534ba920dfaedbd74ae7254e7f02ec2ae3",
+      "deterministic_context_current_recommendation": "Clarify unresolved moving-service needs before investigating service models.",
+      "deterministic_request_sha256": null,
+      "expected_answer_type": null,
+      "expected_category": null,
+      "expected_empty_reason": "temporary_storage_need is already known false",
+      "expected_nonempty": false,
+      "expected_requires_user_confirmation": null,
+      "fallback_comparison_basis": "Correct empty result versus erroneously asking fallback-temporary-storage-v2.",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "reask_known_state",
+        "manufactured_alternative_question",
+        "fallback_selection"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": null,
+      "provider_request_expected": false,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "destination_region": "Northern California",
+        "goal_summary": "Relocate the household from Tennessee to Northern California.",
+        "household_size": {
+          "status": "known",
+          "value": "household"
+        },
+        "known_constraints": [
+          "The household is unwilling to drive a rental truck."
+        ],
+        "move_type": "interstate",
+        "origin_region": "Tennessee",
+        "packing_preference": {
+          "status": "known",
+          "value": "full_packing"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "target_move_window": "explicitly_unknown",
+        "temporary_storage_need": {
+          "status": "known",
+          "value": false
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        }
+      }
+    },
+    {
+      "applicable_missing_information_categories": [],
+      "canonical_attempt_sha256": null,
+      "case_id": "eval-v4-08",
+      "case_purpose": "expected empty because storage is not applicable",
+      "deterministic_case_input_sha256": "bfc1ab4f6666ce10ddac6a666d8c537b63609291341db4072aa36aad0e78698e",
+      "deterministic_context_current_recommendation": "Clarify unresolved moving-service needs before investigating service models.",
+      "deterministic_request_sha256": null,
+      "expected_answer_type": null,
+      "expected_category": null,
+      "expected_empty_reason": "temporary_storage_need uses existing status not_applicable and is not missing",
+      "expected_nonempty": false,
+      "expected_requires_user_confirmation": null,
+      "fallback_comparison_basis": "Correct empty result versus any generated or fallback question.",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "treat_not_applicable_as_missing",
+        "manufactured_question",
+        "manufactured_warning"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": null,
+      "provider_request_expected": false,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "minimize_cost"
+        },
+        "destination_region": "Washington",
+        "goal_summary": "Relocate the household from Alaska to Washington.",
+        "household_size": {
+          "status": "known",
+          "value": "one_adult"
+        },
+        "known_constraints": [],
+        "move_type": "interstate",
+        "origin_region": "Alaska",
+        "packing_preference": {
+          "status": "known",
+          "value": "self_pack"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "target_move_window": "explicitly_unknown",
+        "temporary_storage_need": {
+          "status": "not_applicable",
+          "value": null
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": true
+        }
+      }
+    },
+    {
+      "applicable_missing_information_categories": [
+        "temporary_storage_need"
+      ],
+      "canonical_attempt_sha256": "042246d50846e1d9db44dbfb07ddf867c8597f4c645958435a8ac379fda9a755",
+      "case_id": "eval-v4-09",
+      "case_purpose": "modality and service-selection stress",
+      "deterministic_case_input_sha256": "b05c696fa867a45bf2ab28c0c4a3da368d4ccfb3f4f14cc95efc4560a5a9632e",
+      "deterministic_context_current_recommendation": "Determine whether storage is required and choose the best full-service mover.",
+      "deterministic_request_sha256": "10948a677230e1e959c1ac176921a701cb1a9f0a76f4e3b03e6b0cda4e2d9d00",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_empty_reason": null,
+      "expected_nonempty": true,
+      "expected_requires_user_confirmation": true,
+      "fallback_comparison_basis": "Compare clarity and usefulness with fallback-temporary-storage-v2: Might you need temporary storage before final delivery?",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [
+        "temporary_storage_need"
+      ],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "required",
+        "requirement",
+        "must",
+        "will_need",
+        "necessity_equivalent",
+        "service_provider_or_model_selection"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": "0e0aaea2d0b7446281afffd9df2737598c637458cfc17e60e958bede2dd092a8",
+      "provider_request_expected": true,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "destination_region": "Arizona",
+        "goal_summary": "Relocate the household from Ohio to Arizona.",
+        "household_size": {
+          "status": "known",
+          "value": "household"
+        },
+        "known_constraints": [
+          "A planning worksheet labels storage necessary."
+        ],
+        "move_type": "interstate",
+        "origin_region": "Ohio",
+        "packing_preference": {
+          "status": "known",
+          "value": "full_packing"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "target_move_window": "explicitly_unknown",
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        }
+      }
+    },
+    {
+      "applicable_missing_information_categories": [
+        "temporary_storage_need"
+      ],
+      "canonical_attempt_sha256": "8e1015bf7d2f7b800d0426d1daa848b0d1d6e7f7a36adfe88394f4299de459b2",
+      "case_id": "eval-v4-10",
+      "case_purpose": "grounding and unsupported-inference stress",
+      "deterministic_case_input_sha256": "1e34e5a2d4e41eef8c45b51adac3f07d31b8ecf47209bdb3b9482c902b2c652d",
+      "deterministic_context_current_recommendation": "Clarify unresolved moving-service needs before investigating service models.",
+      "deterministic_request_sha256": "c56e6ed36c6a509d772d9466fbf74c994d1fa86ea3394eddf6b0198d1613cfaa",
+      "expected_answer_type": "boolean",
+      "expected_category": "temporary_storage_need",
+      "expected_empty_reason": null,
+      "expected_nonempty": true,
+      "expected_requires_user_confirmation": true,
+      "fallback_comparison_basis": "Compare clarity and usefulness with fallback-temporary-storage-v2: Might you need temporary storage before final delivery?",
+      "frozen_v4_manifest_sha256": "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649",
+      "intentionally_missing_information": [
+        "temporary_storage_need"
+      ],
+      "knowledge_fixture_version": "moving-service-storage-fixture-v2",
+      "primary_failure_modes": [
+        "invented_home_or_property_fact",
+        "invented_destination_fact",
+        "invented_timing_fact",
+        "invented_storage_circumstance",
+        "service_requirement",
+        "grounding_mismatch"
+      ],
+      "prompt_version": "moving-service-questions-prompt-v4",
+      "provider_fingerprint": "5dde7725b2c5bf3775b50fc500d56858dc1be754f44abc89ec519610ad2e2075",
+      "provider_request_expected": true,
+      "relevant_knowledge_ids": [
+        "moving-service.temporary-storage-planning.fmcsa.v1"
+      ],
+      "request_model": "MovingServiceQuestionRequestV4",
+      "schema_version": "moving-service-questions-schema-v4",
+      "trusted_input_state": {
+        "cost_vs_convenience_preference": {
+          "status": "known",
+          "value": "balance"
+        },
+        "destination_region": "California",
+        "goal_summary": "Relocate after a possible home sale from Tennessee to California.",
+        "household_size": {
+          "status": "known",
+          "value": "family"
+        },
+        "known_constraints": [
+          "Destination housing is undecided.",
+          "No delivery arrangement is confirmed."
+        ],
+        "move_type": "interstate",
+        "origin_region": "Tennessee",
+        "packing_preference": {
+          "status": "known",
+          "value": "full_packing"
+        },
+        "specialty_item_needs": {
+          "status": "known",
+          "value": false
+        },
+        "target_move_window": "after_sale_timing_unconfirmed",
+        "temporary_storage_need": {
+          "status": "missing",
+          "value": null
+        },
+        "willing_to_drive_rental_truck": {
+          "status": "known",
+          "value": false
+        }
+      }
+    }
+  ],
+  "evaluation_set_id": "suggest-moving-service-questions-v4-formal-evaluation-set-v1",
+  "evaluation_set_version": 1,
+  "plan_sha256": "5c5d84effe84fa7a951ae991759db05b2fea1038f4ef20a8aa297a3feff78a22"
+}
