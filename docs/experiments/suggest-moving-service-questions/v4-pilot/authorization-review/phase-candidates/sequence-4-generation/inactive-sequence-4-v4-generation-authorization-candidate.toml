@@ -1,0 +1,108 @@
+[metadata]
+capability = "suggest_moving_service_questions"
+candidate_version = "moving-service-openai-v4-generation-sequence-4-candidate-v1"
+candidate_status = "inactive_non_authoritative_blocked"
+phase = "generation"
+active_repository_authority = false
+valid_for_execution = false
+placeholder_bound = true
+fresh_v4_preflight_required = true
+
+[bindings]
+frozen_v4_manifest_path = "docs/experiments/suggest-moving-service-questions/v4/manifest.json"
+frozen_v4_manifest_digest = "3cdbd2bf3606191aa52108d8284c8ab300d58a511f313f78a06be51d95fac649"
+prompt_path = "docs/experiments/suggest-moving-service-questions/v4/real-model-prompt.toml"
+prompt_version = "moving-service-questions-prompt-v4"
+prompt_digest = "78b77f31e8cdc68528c08c106fec947123838813d9bdd82978c32a3b011ffb26"
+schema_version = "moving-service-questions-schema-v4"
+request_identity_path = "docs/experiments/suggest-moving-service-questions/v4/request-identity.json"
+request_identity_digest = "b5125e2075779306f0a4374676d442fa3016702bdb5143bc8e3a6b7173d9dd35"
+provider_schema_path = "docs/experiments/suggest-moving-service-questions/v4/openai-response-schema.json"
+provider_schema_digest = "4119a12b673b693c958aa623ff8d9377e3d27f5fd1ca6655671c65716363269d"
+provider_schema_review_digest = "a1faf4649132ddbd71bc0f86b429788da60e4ac42dce93fa0485846db4489dcf"
+schema_adaptation_digest = "8d53ac72f32d948e787baa645133c7953354784350777032c0f873d8b6ab7624"
+schema_v3_v4_diff_digest = "5318a3064aa423121683800aa9b7ff2f28512c13724506c9f94a8c1b1e1b428b"
+deterministic_baseline_digest = "e2e185dac7411ad7bd7ea9ed049b9d7146c4e4e2ffa3d2125e67f84a72573dbc"
+request_fixtures_digest = "08619f1890d1ebf39659ad397733cc4559bb97bfdaa3aaf83d62b08a33a2fac5"
+response_fixtures_digest = "c3e8196128d3cff8ddbd54aaeb2d13b5b986ee0711520efd46fc764c3b7d43cc"
+expected_results_digest = "452b1a8b87f9e4ed438c130559dd62ce1e6725136f9f307bbc008bb424848d9b"
+fallback_version = "moving-service-fallback-v2"
+provider = "OpenAI"
+ai_model_identifier = "gpt-4.1-mini-2025-04-14"
+sdk_pin = "openai==2.45.0"
+pilot_configuration_digest = "9459094de6b42de7827179fae1f4523712cad1432c4bbc6a3f2a679a6703d82a"
+closed_execution_manifest_digest = "18a22d62a3e368f5a021649be56a211af959fed7b0305eab61d063022b1387fa"
+permanent_closed_authorization_digest = "bb5e2f4a70d71b44a34b59592e0bd30bf4b71f6a3fdd0724afa457340d4921af"
+deterministic_request_digest = "f5a8c7e06d2ad9e133a5b0b92c322f09ed67205feb25314c5114fa1849fcdd0a"
+canonical_attempt_digest = "7a3c0f7ace4ee4289f4149224fc001b215e71d4cc168edea604516fd133f450d"
+provider_fingerprint = "15caaaaa6a3b43860c426c7555be7f4c7a6bf50d658c92c3c8564c1d43cb5656"
+
+[required_v4_preflight]
+binding_status = "fresh_v4_preflight_required"
+preflight_evidence_digest = "FRESH_V4_PREFLIGHT_EVIDENCE_REQUIRED"
+preflight_review_digest = "FRESH_V4_PREFLIGHT_REVIEW_REQUIRED"
+input_tokens = "FRESH_V4_INPUT_TOKEN_COUNT_REQUIRED"
+conservative_cost = "FRESH_V4_CONSERVATIVE_COST_REQUIRED"
+request_digest = "f5a8c7e06d2ad9e133a5b0b92c322f09ed67205feb25314c5114fa1849fcdd0a"
+canonical_attempt_digest = "7a3c0f7ace4ee4289f4149224fc001b215e71d4cc168edea604516fd133f450d"
+provider_fingerprint = "15caaaaa6a3b43860c426c7555be7f4c7a6bf50d658c92c3c8564c1d43cb5656"
+
+[authorization]
+credential_access_authorized = false
+token_preflight_authorized = false
+ai_generation_authorized = false
+formal_evaluation_authorized = false
+stage_c_authorized = false
+production_use_authorized = false
+fastapi_exposure_authorized = false
+frontend_exposure_authorized = false
+recurring_execution_authorized = false
+background_execution_authorized = false
+
+[proposed_authorization]
+credential_access_authorized = true
+token_preflight_authorized = false
+ai_generation_authorized = true
+formal_evaluation_authorized = false
+stage_c_authorized = false
+production_use_authorized = false
+fastapi_exposure_authorized = false
+frontend_exposure_authorized = false
+recurring_execution_authorized = false
+background_execution_authorized = false
+
+[scope]
+run_series_id = "moving-service-stage-b-v4-pilot-20260808"
+sequence = 4
+fixture_id = "storage_unknown"
+credential_environment_variable = "GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY"
+operator_enablement_variable = "GOTIME_MOVING_SERVICE_EVAL_ENABLED"
+required_operator_enablement_value = "1"
+operator_intent = "AUTHORIZE_ONE_STORAGE_UNKNOWN_V4_GENERATION_ONLY"
+maximum_credential_reads = 1
+maximum_client_constructions = 1
+maximum_token_preflight_requests = 0
+maximum_ai_generation_requests = 1
+automatic_retries = 0
+token_preflight_timeout_seconds = 5
+ai_generation_timeout_seconds = 12
+maximum_output_tokens = 500
+maximum_total_spend_usd = "0.03"
+human_grounding_review_required = true
+single_use = true
+
+[approval]
+approval_status = "blocked_pending_fresh_v4_preflight"
+approver = "APPROVER_ID_REQUIRED_AFTER_V4_PREFLIGHT"
+approved_at = "APPROVED_AT_UTC_REQUIRED_AFTER_V4_PREFLIGHT"
+activated_at = "ACTIVATED_AT_UTC_REQUIRED_AFTER_V4_PREFLIGHT"
+expires_at = "EXPIRES_AT_UTC_REQUIRED_AFTER_V4_PREFLIGHT"
+maximum_authorization_duration_seconds = 900
+authorization_reason = "AUTHORIZATION_REASON_REQUIRED_AFTER_V4_PREFLIGHT"
+
+[consumption]
+consumed_at_earliest_attempt_stage = true
+consumption_stages = ["credential_lookup_attempt", "client_construction_attempt", "preflight_evidence_consumption", "ai_generation_attempt", "expiration", "operator_cancellation_after_activation", "bounded_failure_after_activation"]
+reuse_after_consumption = false
+return_to_unused_active_state = false
+closure_restores_permanent_closed_authorization = true

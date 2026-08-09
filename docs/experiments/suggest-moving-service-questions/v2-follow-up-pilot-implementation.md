@@ -556,5 +556,12 @@ contains a closed trigger. Existing validators and fallback v2 are unchanged.
 The offline frozen package uses literal-only v4 schema identities and the
 unchanged provider/model/SDK and generation parameters. Its request identity
 differs from v3, so a fresh v4 preflight—not v3 evidence—is required before any
-future live generation gate can be resolved. No live v4 operation is
-authorized.
+future live generation gate can be resolved.
+
+That fresh frozen-v4 preflight has now completed once: 2,852 input tokens,
+conservative maximum generation cost `$0.0019408`, timely approved evidence,
+consumed authority, and permanent closure. A new inactive v4 generation
+candidate is resolved against the exact evidence/review and full lifecycle
+history. It remains non-authoritative and invalid for execution until a later
+separately reviewed timestamp and activation milestone. No live v4 generation
+has occurred.

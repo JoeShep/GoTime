@@ -411,18 +411,18 @@ def execute_preflight(*, environment: Mapping[str, str], now: datetime,
         close(reason="success", now=datetime.now(timezone.utc), output_root=output_root, repository_root=repository_root)
 
 
-def verify_lifecycle_history(*, evidence: Mapping[str, object],
-                             output_root: Path = DEFAULT_OUTPUT_ROOT,
-                             repository_root: Path = REPOSITORY_ROOT) -> Mapping[str, str]:
-    """Verify the exact completed v4 preflight chain from fixed local paths."""
+def verify_completed_lifecycle_history(*, evidence: Mapping[str, object],
+                                       output_root: Path = DEFAULT_OUTPUT_ROOT,
+                                       repository_root: Path = REPOSITORY_ROOT) -> Mapping[str, str]:
+    """Verify completed preflight history without constraining later authority."""
     target = paths(output_root, repository_root)
     history_paths = (target.rendered, target.installation, target.activation_review,
                      target.activation, target.transaction, target.audit,
                      target.consumption, target.closure)
     if target.active.exists() or not all(path.is_file() and not path.is_symlink() for path in history_paths):
         raise V4PreflightError("v4 preflight lifecycle history is incomplete")
-    if target.execution.read_bytes() != target.closed.read_bytes() or digest(target.closed) != CLOSED_DIGEST:
-        raise V4PreflightError("v4 preflight lifecycle is not permanently closed")
+    if digest(target.closed) != CLOSED_DIGEST:
+        raise V4PreflightError("v4 permanent closed manifest drifted")
     try:
         authorization = tomllib.loads(target.rendered.read_text())
         installation = json.loads(target.installation.read_text())
@@ -619,6 +619,17 @@ def verify_lifecycle_history(*, evidence: Mapping[str, object],
     if any(evidence.get(key) != value for key, value in evidence_state.items()):
         raise V4PreflightError("v4 preflight evidence lifecycle state differs")
     return digests
+
+
+def verify_lifecycle_history(*, evidence: Mapping[str, object],
+                             output_root: Path = DEFAULT_OUTPUT_ROOT,
+                             repository_root: Path = REPOSITORY_ROOT) -> Mapping[str, str]:
+    """Verify completed history and require the current repository to be closed."""
+    target = paths(output_root, repository_root)
+    if target.execution.read_bytes() != target.closed.read_bytes():
+        raise V4PreflightError("v4 preflight lifecycle is not permanently closed")
+    return verify_completed_lifecycle_history(
+        evidence=evidence, output_root=output_root, repository_root=repository_root)
 
 
 def review_evidence(*, evidence_sha256: str, input_tokens: int, conservative_cost: str,

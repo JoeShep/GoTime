@@ -1004,3 +1004,42 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - The documented inventory validates all nine public commands and fixed
   sequence identity. The documented rehearsal runs the exact isolated public
   workflow through immediate evidence review, closure, cleanup, and non-reuse.
+
+## Frozen-v4 generation-candidate resolution
+
+- Verified the completed live frozen-v4 sequence-1 preflight lifecycle from
+  exact current source records: evidence `f1f99523...`, approved review
+  `12b71c10...`, 2,852 input tokens, and conservative maximum cost
+  `$0.0019408`.
+- Created separate unresolved and resolved inactive sequence-4 generation
+  candidate packages. The resolved package binds the frozen-v4 manifest,
+  prompt/schema/provider schema, request-identity artifact, exact request,
+  canonical attempt, provider fingerprint, and approved live evidence.
+- Preserved the proven generation-only scope: one credential lookup, one
+  client, zero token preflights, one generation, zero retries, 12-second
+  timeout, 500 output tokens, `$0.03` ceiling, and mandatory grounding review.
+- Rehearsed all 12 future public commands across compliant, prose-rejection,
+  structural-failure, semantic-failure, and prompt-policy-stress scenarios
+  with networking disabled. Bounded rejection diagnostics retain no rejected
+  response prose; successful evidence is reviewed and deleted.
+- Generation remains unauthorized. No live v4 generation, credential access,
+  client construction, provider request, or live timestamp preparation
+  occurred in this milestone.
+
+### Live-boundary corrections
+
+- Split completed-preflight historical validation from current execution-state
+  validation so an exact active generation manifest does not invalidate the
+  already-closed preflight history.
+- Added shared complete active-authorization, activation/transaction, and
+  derived active-manifest validation used by both the public verifier and live
+  entry point before credential lookup.
+- Added an actual-live-verifier synthetic active-state path and 36 negative
+  boundary mutations; the unchanged 12-command, five-scenario rehearsal still
+  closes permanently with zero generation-path preflights and one fake
+  generation per case.
+- Replaced the rehearsal's minimal preflight evidence with a realistic
+  render-through-evidence-review lifecycle created by the existing v4
+  preflight functions. The live entry now verifies that history while the
+  exact generation manifest is active and rejects wrong authorization and
+  manifest states with zero credential, client, or provider boundary calls.

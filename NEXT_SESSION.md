@@ -1,5 +1,30 @@
 # NEXT_SESSION
 
+## Resolved frozen-v4 generation candidate
+
+The live frozen-v4 sequence-1 preflight succeeded with 2,852 input tokens and
+conservative maximum generation cost `$0.0019408`; its evidence was reviewed
+and approved before the deadline. The consumed, non-reusable lifecycle remains
+permanently closed.
+
+An inactive sequence-4 generation candidate is now resolved offline against
+the exact v4 evidence/review, request identities, and lifecycle history. Its 12
+fixed commands pass five network-disabled scenarios, including bounded rejected-
+prose diagnostics, grounding review/deletion, closure, and non-reuse. The next
+milestone is human diff review. Do not prepare generation timestamps or
+activate authority before that review; no live v4 generation has occurred.
+
+The corrected live boundary independently validates historically closed v4
+preflight records and the exact current active-generation manifest. It also
+validates the complete active authorization against the resolved candidate
+before credential access. Human diff review remains required before commit;
+no live generation package or timestamps exist.
+
+The rehearsal fidelity correction now builds full synthetic preflight history
+through the actual lifecycle functions and exercises positive and negative
+states through the live entry boundary. The public command inventory remains
+12; another human diff review is required before commit.
+
 ## Frozen-v4 preflight-gate follow-up
 
 Frozen v4 passed post-commit integrity review. A new offline-only preflight
@@ -7,12 +32,12 @@ workflow now uses `moving-service-stage-b-v4-pilot-20260808`, sequence 1,
 fixture `storage_unknown`. Its inactive candidate is bound to the exact v4
 request identities; v2/v3 evidence cannot satisfy it.
 
-The 12-command public workflow passes a network-disabled rehearsal with one
+The 12-command public workflow passed a network-disabled rehearsal with one
 synthetic preflight, zero generations, same-shell credential isolation,
 immediate evidence review, non-authoritative generation-binding preview,
-closure, non-reuse, and expired-package cleanup. The next milestone is human
-diff review. No live v4 preflight has occurred, no timestamps are prepared,
-and generation remains unauthorized.
+closure, non-reuse, and expired-package cleanup. The later live sequence-1
+preflight succeeded and was timely reviewed; its authority is consumed and
+cannot be reused. Generation remains unauthorized.
 
 Lifecycle approval now validates the exact authorization, activation, final
 transaction, audit, consumption, closure, and permanent-closed chain. Evidence
