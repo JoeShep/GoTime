@@ -1,5 +1,52 @@
 # Session Notes
 
+## Frozen-v4 formal evaluation runner
+
+- Added offline runner identity
+  `suggest-moving-service-questions-v4-formal-evaluation-runner-v1` without
+  changing the frozen evaluation set, v4 artifacts, validator, or fallback.
+- Implemented exact 8+2 eligibility, case-specific identity verification,
+  synthetic preflight and generation adapters, same-request-object reuse,
+  one-attempt/no-replacement enforcement, cross-case preflight isolation, and
+  aggregate budget checks.
+- Added bounded case outcomes, separate transport/content failure semantics,
+  mandatory synthetic grounding review and evidence deletion, and deterministic
+  final reports implementing the approved hard, quality, and empty-case gates.
+- Rehearsed nominal graduation, hard-gate failure, quality-gate insufficiency,
+  and provider failure entirely offline. Added a fixed eleven-command,
+  network-disabled public surface with an explicit deletion command.
+- Corrected the human-review findings with a durable atomic `.local` ledger,
+  cross-process attempt consumption, complete contradictory-empty hard gates,
+  evidence-bound review, explicit idempotent deletion, and ledger-only report
+  finalization with deterministic provenance.
+- Replaced snapshot-only durability with a separate sequence-numbered,
+  SHA-256-chained transition journal and a replay-validated ledger projection.
+  Added exact bounded preflight and closure artifacts, field-for-field review
+  reconciliation, and persisted deletion transactions recoverable after every
+  meaningful interruption boundary without retaining response content.
+- Strengthened replay with operation-specific transition semantics, integrity-checked
+  state-changing recovery, full committed deletion-transaction validation, and
+  complete lifecycle closure bindings. Added fully rehashed semantic mutation,
+  preflight-forgery, and post-recovery deletion-idempotency coverage.
+- Added journal-bound recovery-basis artifacts with uniquely derived projection,
+  transaction, or combined repair classification; completed fully rehashed
+  counter, automated-rejection, and provider-failure lifecycle proof matrices.
+- Bound exact recovery pre-state before mutation with paired
+  `recovery_prepared`/`recovery_completed` transitions, including resumable
+  prepared recovery and before-state projection/transaction/artifact bindings.
+- Clarified that the offline hash chain detects corruption and inconsistent or
+  semantically invalid local mutations relative to its retained journal head;
+  total consistent rewrite without an external trust anchor is a non-goal.
+- Clarified canonical-content transaction validation (formatting-equivalent JSON
+  is accepted) and documented the full `prepared` → `removal_prepared` →
+  `evidence_removed` → `committed` deletion lifecycle.
+- Bound automated-rejection fallback identity into the bounded generation audit
+  so closure validation cannot accept a rehashed outcome that erases fallback.
+- Recommended one future reviewed package with eight exact single-use
+  sub-authorities, subject to a separate live design/review milestone.
+- No credential, OpenAI client, provider operation, live preflight/generation,
+  authorization, spending authority, or runtime integration was introduced.
+
 ## Frozen-v4 preflight-gate offline rebind
 
 - Chose fresh run series `moving-service-stage-b-v4-pilot-20260808`, sequence

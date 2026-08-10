@@ -1,5 +1,40 @@
 # NEXT_SESSION
 
+## Frozen-v4 formal evaluation runner
+
+An offline-only runner now targets the immutable ten-case frozen-v4 evaluation
+set with an 8-generation/2-deterministic-empty execution model. It enforces one
+attempt per eligible case, zero retries, exact per-case request identities,
+bounded synthetic preflight/generation counts, mandatory human review and
+evidence deletion, non-replacement, cross-case isolation, and deterministic
+graduation scoring.
+
+The corrected eleven-command surface is network-disabled and uses one locked,
+SHA-256-chained `.local` transition journal across processes, with `ledger.json`
+as a validated projection. Exact preflight and closure artifacts, semantic
+review reconciliation, and crash-recoverable deletion transactions now prevent
+canonical snapshot rollback and stranded evidence deletion. Human review,
+explicit idempotent evidence deletion, and final report generation are now
+case/evidence-bound
+rather than disconnected previews. It produces clearly marked
+synthetic reports for nominal `graduate`, hard-gate `fail`, quality-gate
+`remain_experimental`, and provider-failure `remain_experimental` rehearsals.
+Journal replay now derives operation-specific counters, terminal semantics, and
+artifact bindings; durable recovery is hash-chained and replay-validated, and committed deletion
+transactions plus complete closure lifecycles are semantically revalidated.
+Recovery classification is now derived from a pre-mutation recovery basis
+anchored by `recovery_prepared` and linked to `recovery_completed`; fully
+rehashed counter and terminal-lifecycle mutation matrices
+prove semantic rejection independently of hash freshness.
+These integrity claims are relative to the retained local journal head; total,
+consistent malicious rewriting of all local state is explicitly out of scope.
+Deletion transaction integrity is defined over canonical JSON content rather
+than insignificant formatting bytes, and the documented lifecycle includes the
+durable `removal_prepared` boundary.
+Another focused human diff review is the next milestone. No live evaluation
+authorization, spending, credential access, provider operation, or runtime
+integration exists.
+
 ## Resolved frozen-v4 generation candidate
 
 The live frozen-v4 sequence-1 preflight succeeded with 2,852 input tokens and
