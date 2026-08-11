@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Five-command offline CLI for aggregate coordination only."""
+"""Six-command offline CLI for aggregate coordination only."""
 
 from __future__ import annotations
 
@@ -7,10 +7,14 @@ import argparse
 import json
 from pathlib import Path
 
+from v4_formal_evaluation_live_deterministic import resolve_deterministic_cases
 from v4_formal_evaluation_live_models import immutable_package, package_identity
 from v4_formal_evaluation_live_state import AggregateStore, default_root
 
-PUBLIC_COMMANDS = ("verify-foundation", "initialize", "inspect", "verify", "close")
+PUBLIC_COMMANDS = (
+    "verify-foundation", "initialize", "inspect", "verify",
+    "resolve-deterministic-cases", "close",
+)
 
 
 def parser() -> argparse.ArgumentParser:
@@ -25,6 +29,7 @@ def parser() -> argparse.ArgumentParser:
     inspect.add_argument("--resume", action="store_true")
     inspect.add_argument("--reviewer")
     commands.add_parser("verify")
+    commands.add_parser("resolve-deterministic-cases")
     close = commands.add_parser("close")
     close.add_argument("--reviewer", required=True)
     close.add_argument("--abandon", action="store_true")
@@ -49,6 +54,8 @@ def main() -> int:
     elif arguments.command == "verify":
         state = store.load()
         output = {"aggregate_id": state["aggregate_id"], "history_head_sha256": state["history_head_sha256"], "status": state["status"], "valid": True, "provider_authority": False}
+    elif arguments.command == "resolve-deterministic-cases":
+        output = resolve_deterministic_cases(store)
     else:
         output = store.close(arguments.reviewer, abandon=arguments.abandon)
     print(json.dumps(output, indent=2, sort_keys=True))

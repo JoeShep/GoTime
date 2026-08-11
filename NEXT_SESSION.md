@@ -1,5 +1,27 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 2 deterministic closure
+
+The aggregate now has one narrowly scoped persisted operation,
+`deterministic_case_completed`, for the frozen deterministic-empty cases only.
+It reuses the canonical frozen eligibility boundary and records exact terminal
+outcomes: `eval-v4-07` is empty `known(false)` and `eval-v4-08` is empty
+`not_applicable`. Fixed order, exact identity/reason validation, idempotent
+rerun, partial fresh-process recovery, history-first crash recovery, and
+inclusive-expiry blocking are covered offline.
+
+Constructor-spy tests prove zero provider-request constructor calls for 07 and
+08; an AI-positive control reaches the constructor boundary once and stops
+before any provider operation. All provider counters and spend remain zero,
+spending authorization remains false, and all AI cases remain untouched with
+`eval-v4-01` derived next after both deterministic completions.
+
+The public inventory is now six commands with the addition of
+`resolve-deterministic-cases`. Milestones 4/7 provider grants, Milestone 5
+accounting, Milestone 11 acknowledgement, and Milestone 12 extension remain
+unimplemented. Human diff review is required before commit; do not begin
+Milestone 3.
+
 ## Architecture A Milestone 1 aggregate coordination
 
 The coordination-only aggregate package is implemented offline as

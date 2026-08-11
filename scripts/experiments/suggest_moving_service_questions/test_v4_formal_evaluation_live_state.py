@@ -469,23 +469,46 @@ def test_close_requires_explicit_abandonment(active):
 
 
 def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
-    assert PUBLIC_COMMANDS == ("verify-foundation", "initialize", "inspect", "verify", "close")
+    assert PUBLIC_COMMANDS == (
+        "verify-foundation", "initialize", "inspect", "verify",
+        "resolve-deterministic-cases", "close",
+    )
     base = [sys.executable, str(CLI), "--state-root", str(tmp_path)]
     commands = [
         base + ["verify-foundation"],
         base + ["initialize", "--operator", "CLI Operator", "--reviewer", "CLI Reviewer"],
         base + ["inspect", "--resume", "--reviewer", "CLI Reviewer"],
+        base + ["resolve-deterministic-cases"],
         base + ["inspect"],
         base + ["verify"],
         base + ["close", "--reviewer", "CLI Reviewer", "--abandon"],
     ]
+    outputs = []
     for command in commands:
-        result = subprocess.run(command, check=True, text=True, capture_output=True, env={})
-        assert json.loads(result.stdout)["provider_authority"] is False
+        result = subprocess.run(
+            command, check=True, text=True, capture_output=True,
+            env={"PYTHONPATH": str(HERE.parents[2] / "backend")},
+        )
+        outputs.append(json.loads(result.stdout))
+        assert outputs[-1]["provider_authority"] is False
+    resolved, inspected = outputs[3], outputs[4]
+    assert [item["outcome"]["reason_state"] for item in resolved["results"]] == [
+        "known(false)", "not_applicable",
+    ]
+    assert inspected["next_case_id"] == "eval-v4-01"
+    assert all(inspected["cases"][case_id]["coordination_status"] == "terminal" for case_id in EMPTY_CASE_IDS)
+    assert all(inspected["cases"][case_id]["coordination_status"] == "untouched" for case_id in AI_CASE_ORDER)
+    assert set(inspected["counters"].values()) == {0, "0.00"}
+    assert inspected["immutable_package"]["budget_policy"]["spending_authorized"] is False
 
 
 def test_live_modules_have_no_provider_network_credential_or_request_capability():
-    files = [HERE / "v4_formal_evaluation_live_models.py", HERE / "v4_formal_evaluation_live_state.py", CLI]
+    files = [
+        HERE / "v4_formal_evaluation_live_models.py",
+        HERE / "v4_formal_evaluation_live_state.py",
+        HERE / "v4_formal_evaluation_live_deterministic.py",
+        CLI,
+    ]
     prohibited_import_roots = {"openai", "socket", "httpx", "requests", "urllib"}
     prohibited_text = ("OPENAI_API_KEY", "MovingServiceProviderRequest", "provider_dispatch_started", "token_preflight_authorized", "ai_generation_authorized")
     for path in files:

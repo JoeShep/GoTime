@@ -1,5 +1,27 @@
 # Session Notes
 
+## Architecture A Milestone 2 deterministic closure
+
+- Added exact `deterministic_case_completed` history semantics for only
+  `eval-v4-07` and `eval-v4-08`, changing the intended pending deterministic
+  case to an immutable terminal outcome without changing aggregate lifecycle.
+- Reused the frozen `bind_case` eligibility boundary. Recorded 07 as empty
+  `known(false)` and 08 as empty `not_applicable`, in fixed 07-then-08 order.
+- Added `resolve-deterministic-cases` as the sole new public command; callers
+  cannot select arbitrary cases and exact reruns append no duplicate events.
+- Proved provider-constructor non-entry independently for 07 and 08 and added an
+  AI-positive control that stops at constructor entry without credentials,
+  clients, network, authorization, or provider execution.
+- Added fully rehashed semantic attacks for swapped outcomes, AI targeting,
+  case-input changes, counter/budget/lifetime mutation, another-case mutation,
+  duplicate completion, conflict, and terminal reopening.
+- Proved partial 07-only fresh-process recovery, rerun of only 08, recovery when
+  history commits before projection, and expiration between cases without
+  reset. After both complete, all AI cases remain untouched and next is 01.
+- Preserved all zero provider counters/spend, `spending_authorized=false`, the
+  aggregate package identity, frozen artifacts, and closed execution manifest.
+  Milestones 4/5/7/11/12 remain unimplemented. No commit was made.
+
 ## Architecture A Milestone 1 aggregate coordination
 
 - Added immutable aggregate identity

@@ -32,6 +32,7 @@ OPERATION_STATES = {
     "aggregate_ready_to_finalize": ("in_progress", "ready_to_finalize"),
     "aggregate_abandoned": ({"prepared", "approved", "in_progress", "expired_paused"}, "abandoned"),
     "aggregate_closed": ({"ready_to_finalize", "abandoned"}, "closed"),
+    "deterministic_case_completed": ("in_progress", "in_progress"),
 }
 TERMINAL_STATES = {"abandoned", "closed"}
 
@@ -215,6 +216,7 @@ class AggregateStore:
                         "deterministic_case_input_sha256": item["deterministic_case_input_sha256"],
                         "coordination_status": "untouched",
                         "deterministic_initialization_pending": item["case_id"] in EMPTY_CASE_IDS,
+                        "deterministic_outcome": None,
                     }
                     for item in package["case_bindings"]
                 },
@@ -376,7 +378,7 @@ class AggregateStore:
     def _validate_operation_semantics(self, event: Mapping[str, object], previous_time: datetime | None) -> None:
         operation = event["operation"]
         if operation not in OPERATION_STATES:
-            raise AggregateStateError("aggregate history operation is unavailable in Milestone 1")
+            raise AggregateStateError("aggregate history operation is unavailable through Milestone 2")
         before, after = event["before_state"], event["after_state"]
         expected_before, expected_after = OPERATION_STATES[operation]
         actual_before = None if before is None else before.get("status")
@@ -391,6 +393,9 @@ class AggregateStore:
             if previous_time is not None or metadata or occurred_at != parse_time(after["initialized_at"]):
                 raise AggregateStateError("aggregate initialization event semantics mismatch")
             self._validate_initial_state(after)
+            return
+        if operation == "deterministic_case_completed":
+            self._validate_deterministic_completion(event)
             return
         if before is None or before["status"] == "closed":
             raise AggregateStateError("terminal aggregate cannot transition")
@@ -439,6 +444,7 @@ class AggregateStore:
                 "deterministic_case_input_sha256": item["deterministic_case_input_sha256"],
                 "coordination_status": "untouched",
                 "deterministic_initialization_pending": item["case_id"] in EMPTY_CASE_IDS,
+                "deterministic_outcome": None,
             }
             for item in immutable_package()["case_bindings"]
         }
@@ -469,13 +475,23 @@ class AggregateStore:
         bindings = {item["case_id"]: item for item in state["immutable_package"]["case_bindings"]}
         for case_id, record in state["cases"].items():
             if (
-                set(record) != {"case_id", "deterministic_case_input_sha256", "coordination_status", "deterministic_initialization_pending"}
+                set(record) != {"case_id", "deterministic_case_input_sha256", "coordination_status", "deterministic_initialization_pending", "deterministic_outcome"}
                 or record["case_id"] != case_id
                 or record["deterministic_case_input_sha256"] != bindings[case_id]["deterministic_case_input_sha256"]
                 or record["coordination_status"] not in CASE_STATES
-                or record["deterministic_initialization_pending"] is not (case_id in EMPTY_CASE_IDS)
+                or record["deterministic_initialization_pending"] is not (
+                    case_id in EMPTY_CASE_IDS and record["coordination_status"] != "terminal"
+                )
             ):
                 raise AggregateStateError("case coordination binding mismatch")
+            if case_id not in EMPTY_CASE_IDS and record["deterministic_outcome"] is not None:
+                raise AggregateStateError("AI case cannot contain a deterministic outcome")
+            if case_id in EMPTY_CASE_IDS:
+                outcome = record["deterministic_outcome"]
+                if record["coordination_status"] == "terminal":
+                    self._validate_exact_deterministic_outcome(case_id, record, outcome)
+                elif outcome is not None:
+                    raise AggregateStateError("nonterminal deterministic case cannot contain an outcome")
         validate_zero_counters(state["counters"])
         _validate_acknowledgement(state["acknowledgement"])
         if state["extension_history"] != []:
@@ -529,6 +545,93 @@ class AggregateStore:
         canonical = states[-1]
         self._commit(journal, canonical)
         return canonical
+
+    def _validate_exact_deterministic_outcome(
+        self, case_id: str, record: Mapping[str, object], outcome: object,
+    ) -> None:
+        reasons = {"eval-v4-07": "known(false)", "eval-v4-08": "not_applicable"}
+        expected = {
+            "case_id": case_id,
+            "deterministic_case_input_sha256": record["deterministic_case_input_sha256"],
+            "provider_eligible": False,
+            "deterministic_result": "empty",
+            "reason_state": reasons[case_id],
+            "terminal": True,
+            "provider_request_constructed": False,
+            "provider_attempt": "none",
+            "provider_spend_usd": "0.00",
+        }
+        if outcome != expected or record["deterministic_initialization_pending"] is not False:
+            raise AggregateStateError("deterministic terminal outcome is not exact")
+
+    def _validate_deterministic_completion(self, event: Mapping[str, object]) -> None:
+        before, after = event["before_state"], event["after_state"]
+        metadata = event["metadata"]
+        if not isinstance(metadata, dict) or set(metadata) != {"case_id", "outcome"}:
+            raise AggregateStateError("deterministic completion metadata is not exact")
+        case_id = metadata["case_id"]
+        if case_id not in EMPTY_CASE_IDS:
+            raise AggregateStateError("deterministic completion cannot target an AI case")
+        old_record = before["cases"][case_id]
+        new_record = after["cases"][case_id]
+        if (
+            old_record["coordination_status"] != "untouched"
+            or old_record["deterministic_initialization_pending"] is not True
+            or old_record["deterministic_outcome"] is not None
+            or new_record["coordination_status"] != "terminal"
+            or metadata["outcome"] != new_record["deterministic_outcome"]
+        ):
+            raise AggregateStateError("deterministic case completion or duplicate is invalid")
+        self._validate_exact_deterministic_outcome(case_id, new_record, metadata["outcome"])
+        if case_id == "eval-v4-08" and before["cases"]["eval-v4-07"]["coordination_status"] != "terminal":
+            raise AggregateStateError("deterministic cases must complete in frozen order")
+        expected_cases = json.loads(canonical_json(before["cases"]))
+        expected_cases[case_id] = new_record
+        if after["cases"] != expected_cases:
+            raise AggregateStateError("deterministic completion mutated another case")
+        allowed = {"cases", "next_case_id", "history_count", "history_head_sha256"}
+        changed = {key for key in before if before[key] != after[key]}
+        if not changed <= allowed or "cases" not in changed:
+            raise AggregateStateError("deterministic completion mutated prohibited aggregate fields")
+        if after["history_count"] != before["history_count"] + 1:
+            raise AggregateStateError("deterministic completion history count mismatch")
+        if parse_time(event["occurred_at"]) >= parse_time(before["expires_at"]):
+            raise AggregateStateError("deterministic completion cannot occur at or after expiration")
+        validate_zero_counters(after["counters"])
+
+    def _complete_deterministic_case(
+        self, state: Mapping[str, object], case_id: str, outcome: Mapping[str, object],
+    ) -> dict[str, object]:
+        if state["status"] != "in_progress" or case_id not in EMPTY_CASE_IDS:
+            raise AggregateStateError("deterministic completion requires active fixed empty case")
+        record = state["cases"][case_id]
+        if record["coordination_status"] == "terminal":
+            if record["deterministic_outcome"] == outcome:
+                return dict(state)
+            raise AggregateStateError("conflicting deterministic completion")
+        after = json.loads(canonical_json(state))
+        after_record = after["cases"][case_id]
+        after_record["coordination_status"] = "terminal"
+        after_record["deterministic_initialization_pending"] = False
+        after_record["deterministic_outcome"] = dict(outcome)
+        after["next_case_id"] = derive_next_case(after)
+        event = self._make_event(
+            state, after, "deterministic_case_completed",
+            {"case_id": case_id, "outcome": dict(outcome)},
+        )
+        journal = self._read_journal()
+        journal["events"].append(event)
+        canonical = self._validate_journal(journal)[-1]
+        self._commit(journal, canonical)
+        return canonical
+
+    def _record_deterministic_outcome(
+        self, case_id: str, outcome: Mapping[str, object],
+    ) -> dict[str, object]:
+        """Internal fixed-case entry used only by the deterministic Milestone 2 service."""
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=True, recover_projection=True)
+            return self._complete_deterministic_case(state, case_id, outcome)
 
     def _commit(self, journal: Mapping[str, object], projection: Mapping[str, object]) -> None:
         _atomic_json(self.journal_path, journal, lambda: self._fault("before_history_replace"))
