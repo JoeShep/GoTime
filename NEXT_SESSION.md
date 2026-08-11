@@ -1,5 +1,25 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 4 offline preflight grant candidate
+
+The aggregate now durably prepares one exact derived-next-case preflight grant
+candidate under schema
+`suggest-moving-service-questions-v4-formal-evaluation-preflight-grant-v1`,
+version 1, using `preflight_grant_prepared`. It binds the 01 envelope/request
+metadata, single-use zero-retry policy, `$0.03` ceiling, and exact 15-minute
+inclusive-expiry window.
+
+The production budget port always denies until Milestone 5. Denial adds no
+event or authority; all counters remain zero. A test-only injected approval is
+ephemeral and still cannot dispatch. History recovery, idempotency, rehashed
+identity attacks, expiry, and provider-constructor/network non-entry are
+covered offline. The public inventory is eight commands. Human diff review is
+required before commit; do not begin Milestone 5.
+
+The grant layer now sources both ceiling bindings directly from the canonical
+frozen `PER_CASE_PROVIDER_CEILING_USD` without a duplicate literal. Persisted,
+fully rehashed deterministic-case targeting is also rejected explicitly.
+
 ## Architecture A Milestone 3 AI case envelopes
 
 Eight exact non-authoritative AI envelopes now bind the aggregate, frozen case

@@ -471,7 +471,7 @@ def test_close_requires_explicit_abandonment(active):
 def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
     assert PUBLIC_COMMANDS == (
         "verify-foundation", "initialize", "inspect", "verify",
-        "resolve-deterministic-cases", "bind-ai-case-envelopes", "close",
+        "resolve-deterministic-cases", "bind-ai-case-envelopes", "prepare-preflight-grant", "close",
     )
     base = [sys.executable, str(CLI), "--state-root", str(tmp_path)]
     commands = [
@@ -480,6 +480,7 @@ def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
         base + ["inspect", "--resume", "--reviewer", "CLI Reviewer"],
         base + ["resolve-deterministic-cases"],
         base + ["bind-ai-case-envelopes"],
+        base + ["prepare-preflight-grant"],
         base + ["inspect"],
         base + ["verify"],
         base + ["close", "--reviewer", "CLI Reviewer", "--abandon"],

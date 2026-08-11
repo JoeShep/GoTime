@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Seven-command offline CLI for aggregate coordination only."""
+"""Eight-command offline CLI for aggregate coordination only."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from v4_formal_evaluation_live_state import AggregateStore, default_root
 
 PUBLIC_COMMANDS = (
     "verify-foundation", "initialize", "inspect", "verify",
-    "resolve-deterministic-cases", "bind-ai-case-envelopes", "close",
+    "resolve-deterministic-cases", "bind-ai-case-envelopes", "prepare-preflight-grant", "close",
 )
 
 
@@ -31,6 +31,7 @@ def parser() -> argparse.ArgumentParser:
     commands.add_parser("verify")
     commands.add_parser("resolve-deterministic-cases")
     commands.add_parser("bind-ai-case-envelopes")
+    commands.add_parser("prepare-preflight-grant")
     close = commands.add_parser("close")
     close.add_argument("--reviewer", required=True)
     close.add_argument("--abandon", action="store_true")
@@ -59,6 +60,8 @@ def main() -> int:
         output = resolve_deterministic_cases(store)
     elif arguments.command == "bind-ai-case-envelopes":
         output = store.bind_ai_case_envelopes()
+    elif arguments.command == "prepare-preflight-grant":
+        output = store.prepare_preflight_grant()
     else:
         output = store.close(arguments.reviewer, abandon=arguments.abandon)
     print(json.dumps(output, indent=2, sort_keys=True))

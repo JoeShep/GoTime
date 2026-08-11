@@ -38,6 +38,7 @@ OPERATION_STATES = {
     "aggregate_closed": ({"ready_to_finalize", "abandoned"}, "closed"),
     "deterministic_case_completed": ("in_progress", "in_progress"),
     "ai_case_envelopes_bound": ("in_progress", "in_progress"),
+    "preflight_grant_prepared": ("in_progress", "in_progress"),
 }
 TERMINAL_STATES = {"abandoned", "closed"}
 
@@ -216,6 +217,7 @@ class AggregateStore:
                 "coordination_only": True,
                 "provider_authority": False,
                 "ai_case_envelopes": {},
+                "preflight_grants": {},
                 "cases": {
                     item["case_id"]: {
                         "case_id": item["case_id"],
@@ -384,7 +386,7 @@ class AggregateStore:
     def _validate_operation_semantics(self, event: Mapping[str, object], previous_time: datetime | None) -> None:
         operation = event["operation"]
         if operation not in OPERATION_STATES:
-            raise AggregateStateError("aggregate history operation is unavailable through Milestone 2")
+            raise AggregateStateError("aggregate history operation is unavailable through Milestone 4")
         before, after = event["before_state"], event["after_state"]
         expected_before, expected_after = OPERATION_STATES[operation]
         actual_before = None if before is None else before.get("status")
@@ -405,6 +407,9 @@ class AggregateStore:
             return
         if operation == "ai_case_envelopes_bound":
             self._validate_ai_envelope_binding(event)
+            return
+        if operation == "preflight_grant_prepared":
+            self._validate_preflight_grant_preparation(event)
             return
         if before is None or before["status"] == "closed":
             raise AggregateStateError("terminal aggregate cannot transition")
@@ -440,6 +445,7 @@ class AggregateStore:
             or state["history_count"] != 1
             or state["cases"] != self._expected_initial_cases()
             or state["ai_case_envelopes"] != {}
+            or state["preflight_grants"] != {}
             or state["acknowledgement"] != _neutral_acknowledgement()
             or state["extension_history"] != []
             or state["next_case_id"] is not None
@@ -463,7 +469,7 @@ class AggregateStore:
         required = {
             "state_version", "aggregate_id", "package_identity_sha256", "immutable_package",
             "operator", "reviewer", "status", "initialized_at", "expires_at",
-            "coordination_only", "provider_authority", "ai_case_envelopes", "cases", "counters",
+            "coordination_only", "provider_authority", "ai_case_envelopes", "preflight_grants", "cases", "counters",
             "acknowledgement", "extension_history", "next_case_id", "history_count",
             "history_head_sha256",
         }
@@ -507,6 +513,7 @@ class AggregateStore:
             validate_ai_case_envelopes(state["ai_case_envelopes"], allow_unbound=True)
         except AiCaseEnvelopeError as error:
             raise AggregateStateError(str(error)) from error
+        self._validate_preflight_grants(state)
         _validate_acknowledgement(state["acknowledgement"])
         if state["extension_history"] != []:
             raise AggregateStateError("extensions are not implemented until Milestone 12")
@@ -692,6 +699,88 @@ class AggregateStore:
                     "envelope_count": len(AI_CASE_ORDER),
                     "envelope_digests": envelope_digest_map(expected),
                 },
+            )
+            journal = self._read_journal()
+            journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def _validate_preflight_grants(self, state: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_grants import PreflightGrantError, validate_preflight_grant
+
+        grants = state["preflight_grants"]
+        if not isinstance(grants, dict) or len(grants) > 1:
+            raise AggregateStateError("at most one exact preflight grant may be prepared")
+        for case_id, grant in grants.items():
+            if case_id not in AI_CASE_ORDER or case_id not in state["ai_case_envelopes"]:
+                raise AggregateStateError("preflight grant target is not an enveloped AI case")
+            try:
+                validate_preflight_grant(grant, case_id, state["ai_case_envelopes"][case_id])
+            except PreflightGrantError as error:
+                raise AggregateStateError(str(error)) from error
+
+    def _validate_preflight_grant_preparation(self, event: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_grants import validate_preflight_grant
+
+        before, after = event["before_state"], event["after_state"]
+        metadata = event["metadata"]
+        if not isinstance(metadata, dict) or set(metadata) != {"case_id", "grant_sha256"}:
+            raise AggregateStateError("preflight grant preparation metadata is not exact")
+        case_id = metadata["case_id"]
+        if (
+            case_id not in AI_CASE_ORDER
+            or before["next_case_id"] != case_id
+            or before["preflight_grants"] != {}
+            or case_id not in before["ai_case_envelopes"]
+        ):
+            raise AggregateStateError("preflight grant must target the exact next enveloped AI case")
+        grant = after["preflight_grants"].get(case_id)
+        validate_preflight_grant(grant, case_id, before["ai_case_envelopes"][case_id])
+        if metadata["grant_sha256"] != grant["grant_sha256"]:
+            raise AggregateStateError("preflight grant event identity mismatch")
+        expected = json.loads(canonical_json(before))
+        expected["preflight_grants"] = {case_id: grant}
+        expected["history_count"] = after["history_count"]
+        expected["history_head_sha256"] = after["history_head_sha256"]
+        if after != expected:
+            raise AggregateStateError("preflight grant preparation mutated prohibited aggregate fields")
+        occurred = parse_time(event["occurred_at"])
+        if occurred != parse_time(grant["immutable_binding"]["activated_at"]):
+            raise AggregateStateError("preflight grant activation timestamp must match its event")
+        if occurred >= parse_time(before["expires_at"]):
+            raise AggregateStateError("preflight grant cannot prepare at or after aggregate expiration")
+        validate_zero_counters(after["counters"])
+
+    def prepare_preflight_grant(self) -> dict[str, object]:
+        from v4_formal_evaluation_live_grants import build_preflight_grant, grant_is_expired
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=True, recover_projection=True)
+            if state["status"] != "in_progress" or state["acknowledgement"]["acknowledgement_required"]:
+                raise AggregateStateError("preflight grant preparation requires active unblocked coordination")
+            if any(state["cases"][case_id]["coordination_status"] != "terminal" for case_id in EMPTY_CASE_IDS):
+                raise AggregateStateError("deterministic cases must be terminal before grant preparation")
+            case_id = state["next_case_id"]
+            if case_id not in AI_CASE_ORDER or case_id not in state["ai_case_envelopes"]:
+                raise AggregateStateError("no exact next enveloped AI case is available")
+            if state["cases"][case_id]["coordination_status"] != "untouched":
+                raise AggregateStateError("next AI case is not untouched")
+            if state["ai_case_envelopes"][case_id]["phase_lifecycle"]["preflight_status"] != "not_authorized":
+                raise AggregateStateError("preflight phase is not eligible")
+            if state["preflight_grants"]:
+                existing = state["preflight_grants"].get(case_id)
+                if existing is not None and not grant_is_expired(existing, self.clock()):
+                    return dict(state)
+                raise AggregateStateError("existing or expired preflight grant cannot be replaced in Milestone 4")
+            occurred_at = self.clock()
+            grant = build_preflight_grant(case_id, state["ai_case_envelopes"][case_id], occurred_at)
+            after = json.loads(canonical_json(state))
+            after["preflight_grants"] = {case_id: grant}
+            event = self._make_event(
+                state, after, "preflight_grant_prepared",
+                {"case_id": case_id, "grant_sha256": grant["grant_sha256"]},
+                occurred_at=occurred_at,
             )
             journal = self._read_journal()
             journal["events"].append(event)

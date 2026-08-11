@@ -1,5 +1,24 @@
 # Session Notes
 
+## Architecture A Milestone 4 offline preflight grants
+
+- Added version-1 offline preflight grant candidates and exact
+  `preflight_grant_prepared` history semantics.
+- Bound preparation to the derived next AI case, exact envelope/request triple,
+  frozen provider metadata, one attempt, zero retries, `$0.03` ceiling, and a
+  15-minute window expiring inclusively at `now >= expires_at`.
+- Added a production budget port that always denies until Milestone 5; no
+  active grant, reservation, authority, or counter mutation is persisted.
+- A test-injected approval is ephemeral and retains provider, spending, and
+  dispatch authority as false.
+- Added replay attacks, boundary/idempotency/recovery tests, constructor
+  non-entry, and the eighth offline command `prepare-preflight-grant`.
+- Preserved frozen identities/history and did not alter `docs/parking-lot.md`.
+- Corrected the grant ceiling source so both fields derive from the canonical
+  frozen `PER_CASE_PROVIDER_CEILING_USD`, with no duplicate Milestone 4 literal.
+- Added a fully rehashed persisted case-07 grant attack; replay rejects it as
+  outside the exact next enveloped AI case.
+
 ## Architecture A Milestone 3 AI case envelopes
 
 - Added envelope schema
