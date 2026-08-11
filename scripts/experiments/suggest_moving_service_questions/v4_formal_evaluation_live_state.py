@@ -11,6 +11,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Mapping
 
+from v4_formal_evaluation_live_cases import (
+    AiCaseEnvelopeError, build_all_ai_case_envelopes, envelope_digest_map,
+    validate_ai_case_envelopes,
+)
 from v4_formal_evaluation_live_models import (
     AGGREGATE_ID, AI_CASE_ORDER, CASE_ORDER, EMPTY_CASE_IDS,
     AggregateFoundationError, canonical_json, digest, immutable_package,
@@ -33,6 +37,7 @@ OPERATION_STATES = {
     "aggregate_abandoned": ({"prepared", "approved", "in_progress", "expired_paused"}, "abandoned"),
     "aggregate_closed": ({"ready_to_finalize", "abandoned"}, "closed"),
     "deterministic_case_completed": ("in_progress", "in_progress"),
+    "ai_case_envelopes_bound": ("in_progress", "in_progress"),
 }
 TERMINAL_STATES = {"abandoned", "closed"}
 
@@ -210,6 +215,7 @@ class AggregateStore:
                 "expires_at": format_time(now + timedelta(days=7)),
                 "coordination_only": True,
                 "provider_authority": False,
+                "ai_case_envelopes": {},
                 "cases": {
                     item["case_id"]: {
                         "case_id": item["case_id"],
@@ -397,6 +403,9 @@ class AggregateStore:
         if operation == "deterministic_case_completed":
             self._validate_deterministic_completion(event)
             return
+        if operation == "ai_case_envelopes_bound":
+            self._validate_ai_envelope_binding(event)
+            return
         if before is None or before["status"] == "closed":
             raise AggregateStateError("terminal aggregate cannot transition")
         allowed_metadata = {"reviewer"} if operation in {
@@ -430,6 +439,7 @@ class AggregateStore:
             state["status"] != "prepared"
             or state["history_count"] != 1
             or state["cases"] != self._expected_initial_cases()
+            or state["ai_case_envelopes"] != {}
             or state["acknowledgement"] != _neutral_acknowledgement()
             or state["extension_history"] != []
             or state["next_case_id"] is not None
@@ -453,7 +463,7 @@ class AggregateStore:
         required = {
             "state_version", "aggregate_id", "package_identity_sha256", "immutable_package",
             "operator", "reviewer", "status", "initialized_at", "expires_at",
-            "coordination_only", "provider_authority", "cases", "counters",
+            "coordination_only", "provider_authority", "ai_case_envelopes", "cases", "counters",
             "acknowledgement", "extension_history", "next_case_id", "history_count",
             "history_head_sha256",
         }
@@ -493,6 +503,10 @@ class AggregateStore:
                 elif outcome is not None:
                     raise AggregateStateError("nonterminal deterministic case cannot contain an outcome")
         validate_zero_counters(state["counters"])
+        try:
+            validate_ai_case_envelopes(state["ai_case_envelopes"], allow_unbound=True)
+        except AiCaseEnvelopeError as error:
+            raise AggregateStateError(str(error)) from error
         _validate_acknowledgement(state["acknowledgement"])
         if state["extension_history"] != []:
             raise AggregateStateError("extensions are not implemented until Milestone 12")
@@ -632,6 +646,58 @@ class AggregateStore:
         with _lock(self.root):
             state = self._load_unlocked(observe_expiry=True, recover_projection=True)
             return self._complete_deterministic_case(state, case_id, outcome)
+
+    def _validate_ai_envelope_binding(self, event: Mapping[str, object]) -> None:
+        before, after = event["before_state"], event["after_state"]
+        expected = build_all_ai_case_envelopes()
+        metadata = event["metadata"]
+        if metadata != {
+            "envelope_count": len(AI_CASE_ORDER),
+            "envelope_digests": envelope_digest_map(expected),
+        }:
+            raise AggregateStateError("AI envelope binding metadata is not exact")
+        if before["ai_case_envelopes"] != {} or after["ai_case_envelopes"] != expected:
+            raise AggregateStateError("AI envelopes must bind exactly once as a complete set")
+        if any(
+            before["cases"][case_id]["coordination_status"] != "terminal"
+            for case_id in EMPTY_CASE_IDS
+        ):
+            raise AggregateStateError("deterministic cases must be terminal before AI envelope binding")
+        allowed = {"ai_case_envelopes", "next_case_id", "history_count", "history_head_sha256"}
+        changed = {key for key in before if before[key] != after[key]}
+        if not changed <= allowed or "ai_case_envelopes" not in changed:
+            raise AggregateStateError("AI envelope binding mutated prohibited aggregate fields")
+        if after["cases"] != before["cases"] or after["history_count"] != before["history_count"] + 1:
+            raise AggregateStateError("AI envelope binding changed cases or history count")
+        if parse_time(event["occurred_at"]) >= parse_time(before["expires_at"]):
+            raise AggregateStateError("AI envelopes cannot bind at or after expiration")
+        validate_zero_counters(after["counters"])
+
+    def bind_ai_case_envelopes(self) -> dict[str, object]:
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=True, recover_projection=True)
+            if state["status"] != "in_progress":
+                raise AggregateStateError("AI envelope binding requires active coordination")
+            expected = build_all_ai_case_envelopes()
+            if state["ai_case_envelopes"]:
+                if state["ai_case_envelopes"] == expected:
+                    return dict(state)
+                raise AggregateStateError("conflicting AI envelope binding")
+            after = json.loads(canonical_json(state))
+            after["ai_case_envelopes"] = expected
+            after["next_case_id"] = derive_next_case(after)
+            event = self._make_event(
+                state, after, "ai_case_envelopes_bound",
+                {
+                    "envelope_count": len(AI_CASE_ORDER),
+                    "envelope_digests": envelope_digest_map(expected),
+                },
+            )
+            journal = self._read_journal()
+            journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
 
     def _commit(self, journal: Mapping[str, object], projection: Mapping[str, object]) -> None:
         _atomic_json(self.journal_path, journal, lambda: self._fault("before_history_replace"))

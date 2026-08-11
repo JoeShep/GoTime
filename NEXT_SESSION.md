@@ -1,5 +1,26 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 3 AI case envelopes
+
+Eight exact non-authoritative AI envelopes now bind the aggregate, frozen case
+input, request/canonical/fingerprint triple, v4 prompt/schema/provider metadata,
+pinned model/SDK and request configuration, `$0.03` case policy, and inactive
+phase placeholders. Their schema is
+`suggest-moving-service-questions-v4-formal-evaluation-ai-case-envelope-v1`,
+version 1, and all eight canonical digests are unique.
+
+The one-time `ai_case_envelopes_bound` event requires active coordination and
+terminal deterministic cases 07/08. It binds the complete fixed-order set,
+replays durably, recovers after history-first interruption, and is idempotent.
+Fully rehashed cross-case, identity, provider/model/manifest/budget,
+missing/extra, duplicate-digest, and deterministic-target attacks fail closed.
+
+The public inventory is seven commands with `bind-ai-case-envelopes`. Provider
+authority/counters/spend remain false/zero, all phase states remain
+`not_authorized`, and next AI case remains 01. Milestones 4/5/6/7/8/11/12 are
+unimplemented. Human diff review is required before commit; do not begin
+Milestone 4.
+
 ## Architecture A Milestone 2 deterministic closure
 
 The aggregate now has one narrowly scoped persisted operation,

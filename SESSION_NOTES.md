@@ -1,5 +1,26 @@
 # Session Notes
 
+## Architecture A Milestone 3 AI case envelopes
+
+- Added envelope schema
+  `suggest-moving-service-questions-v4-formal-evaluation-ai-case-envelope-v1`,
+  version 1, for exactly AI cases 01–06, 09, and 10.
+- Bound each case to the aggregate/package, frozen case input, exact
+  request/canonical/fingerprint triple, v4 manifest, prompt/schema,
+  provider/model/SDK, frozen request configuration, one/one/zero limits, and
+  `$0.03` ceiling; all eight unsalted envelope digests are unique.
+- Added only `ai_case_envelopes_bound`, an atomic fixed-set operation after
+  deterministic cases are terminal. Exact rerun is event-free; substitution,
+  replacement, partial, extra, and deterministic-case binding fail closed.
+- Added `bind-ai-case-envelopes` as the seventh coordination-only command with
+  no arbitrary case or metadata input.
+- Added fully rehashed semantic attacks, fresh-process replay, history-first
+  projection recovery, and expiration-before/after binding coverage.
+- Preserved deterministic 07/08 outcomes, next AI case 01, zero provider
+  counters/spend, false provider/spending authority, and inactive phase states.
+  No credential, client, network, request, grant, reservation, preflight, or
+  generation was introduced. No commit was made.
+
 ## Architecture A Milestone 2 deterministic closure
 
 - Added exact `deterministic_case_completed` history semantics for only

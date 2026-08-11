@@ -471,7 +471,7 @@ def test_close_requires_explicit_abandonment(active):
 def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
     assert PUBLIC_COMMANDS == (
         "verify-foundation", "initialize", "inspect", "verify",
-        "resolve-deterministic-cases", "close",
+        "resolve-deterministic-cases", "bind-ai-case-envelopes", "close",
     )
     base = [sys.executable, str(CLI), "--state-root", str(tmp_path)]
     commands = [
@@ -479,6 +479,7 @@ def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
         base + ["initialize", "--operator", "CLI Operator", "--reviewer", "CLI Reviewer"],
         base + ["inspect", "--resume", "--reviewer", "CLI Reviewer"],
         base + ["resolve-deterministic-cases"],
+        base + ["bind-ai-case-envelopes"],
         base + ["inspect"],
         base + ["verify"],
         base + ["close", "--reviewer", "CLI Reviewer", "--abandon"],
@@ -491,11 +492,12 @@ def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
         )
         outputs.append(json.loads(result.stdout))
         assert outputs[-1]["provider_authority"] is False
-    resolved, inspected = outputs[3], outputs[4]
+    resolved, bound, inspected = outputs[3], outputs[4], outputs[5]
     assert [item["outcome"]["reason_state"] for item in resolved["results"]] == [
         "known(false)", "not_applicable",
     ]
     assert inspected["next_case_id"] == "eval-v4-01"
+    assert len(bound["ai_case_envelopes"]) == len(AI_CASE_ORDER)
     assert all(inspected["cases"][case_id]["coordination_status"] == "terminal" for case_id in EMPTY_CASE_IDS)
     assert all(inspected["cases"][case_id]["coordination_status"] == "untouched" for case_id in AI_CASE_ORDER)
     assert set(inspected["counters"].values()) == {0, "0.00"}
@@ -507,6 +509,7 @@ def test_live_modules_have_no_provider_network_credential_or_request_capability(
         HERE / "v4_formal_evaluation_live_models.py",
         HERE / "v4_formal_evaluation_live_state.py",
         HERE / "v4_formal_evaluation_live_deterministic.py",
+        HERE / "v4_formal_evaluation_live_cases.py",
         CLI,
     ]
     prohibited_import_roots = {"openai", "socket", "httpx", "requests", "urllib"}
