@@ -1,5 +1,35 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 1 aggregate coordination
+
+The coordination-only aggregate package is implemented offline as
+`suggest-moving-service-questions-v4-formal-evaluation-live-v1`. It binds the
+exact frozen ten-case package, fixed AI order, runner, budget, request triples,
+seven-day lifetime, zero-retry rule, and closed historical execution manifest.
+Locked hash-chained history plus a replay-validated snapshot survives fresh
+processes and detects retained-head rollback, malformed state, identity/order
+drift, illegal transitions, and nonzero provider counters.
+
+The five commands only verify, initialize, inspect/resume, verify state, and
+close/abandon coordination. No credential, provider request/client, network,
+preflight/generation grant, spending authority, deterministic case execution,
+or runtime integration exists. Cases 07/08 remain explicitly pending Milestone
+2 initialization. Budget accounting, acknowledgement events, and reviewed
+extensions remain owned by Milestones 5, 11, and 12 respectively.
+
+Focused network-disabled tests and exact-command rehearsal pass. The milestone
+now also has operation-specific semantic replay, exact history count/head
+reconciliation, acknowledgement and finalization invariants, canonical UTC
+event ordering, and crash recovery for a missing or provably stale derived
+projection. History remains authoritative and unchanged during recovery.
+Correctly rehashed illegal mutations fail semantically. The corrected milestone
+also prevents `prepared` or `approved` coordination from starting at or after
+the inclusive expiration boundary; it materializes `expired_paused` first and
+exposes no actionable next case. The explicit adversarial matrix now covers all
+six budget fields, extra/substituted cases, generation identity, premature
+finalization, and unauthorized lifetime extension. It is ready for another
+human diff review; do not commit or begin Milestone 2 before that review.
+
 ## Frozen-v4 formal evaluation runner
 
 An offline-only runner now targets the immutable ten-case frozen-v4 evaluation

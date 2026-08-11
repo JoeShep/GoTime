@@ -1,5 +1,56 @@
 # Session Notes
 
+## Architecture A Milestone 1 aggregate coordination
+
+- Added immutable aggregate identity
+  `suggest-moving-service-questions-v4-formal-evaluation-live-v1` with exact
+  frozen set, v4, runner, budget, ten-case input, eight request-triple, two
+  deterministic-empty, lifetime, order, and zero-retry bindings.
+- Added locked atomic local state at `.local/evaluations/suggest-moving-service-questions/<aggregate-id>/`
+  using SHA-256-chained aggregate history and a replay-validated snapshot.
+- Added explicit legal aggregate transitions, seven-day synthetic-clock expiry,
+  fresh-process pause/resume, deterministic next-AI-case derivation, initial
+  acknowledgement blocking fields, bounded operator/reviewer labels, and
+  fail-closed Milestone 12 extension hook.
+- Bound frozen 8/8/0, `$0.03` case, and `$0.24` aggregate limits while keeping
+  `spending_authorized=false`; all consumed/reserved/spend/retry counters remain
+  exactly zero and have no mutation command.
+- Added five offline commands: foundation verification, initialization,
+  inspect/resume, state verification, and close/abandon. Exact duplicate
+  untouched initialization is idempotent; conflicts never reset state.
+- Added focused tests for identity reproducibility, membership/order,
+  transitions, idempotency, expiry, fresh-process recovery, next case,
+  acknowledgement block, zero counters, frozen budget, retained-head rollback,
+  malformed state, exact commands, and absence of provider/network/credential
+  capability.
+- Left deterministic cases 07/08 pending Milestone 2. Prospective budget,
+  acknowledgement events, and extension behavior remain deferred to Milestones
+  5, 11, and 12. No provider capability, runtime integration, frozen artifact
+  change, historical record change, or commit was introduced.
+- Corrected the human diff-review findings with a self-contained
+  `aggregate_initialized` history, one exact operation-semantic validator,
+  canonical UTC/monotonic event checks, ten-terminal-case finalization checks,
+  coherent acknowledgement validation, and exact journal count/head
+  reconciliation.
+- Made aggregate history authoritative and the snapshot recoverable only when
+  missing or exactly equal to an earlier replay state. History and projection
+  replacements now fsync both file and containing directory; fault injection
+  proves recovery after history commit and unchanged state before history
+  commit without duplicate events.
+- Added correctly rehashed semantic-mutation coverage for wrong operations,
+  case state, case order, case-input identity, budget, acknowledgement,
+  timestamps, count/head, and premature finalization, plus exact expiration
+  boundary and next-case blocking/terminal coverage.
+- Closed the remaining lifetime gap: locked load now materializes inclusive
+  expiry from `prepared`, `approved`, or `in_progress` before resume can start
+  coordination, and replay rejects `aggregate_started` at/after `expires_at`.
+  Synthetic clocks prove start succeeds one second before expiry and fails
+  closed with no next case exactly at or after expiry.
+- Expanded independent correctly rehashed attacks across all six frozen budget
+  fields, extra membership, deterministic-case substitution, AI provider
+  fingerprint mutation, premature finalization, and unauthorized expiration
+  extension. All fail semantically without adding later-milestone behavior.
+
 ## Frozen-v4 formal evaluation runner
 
 - Added offline runner identity
