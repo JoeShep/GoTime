@@ -1,5 +1,18 @@
 # NEXT_SESSION
 
+## Approved Architecture A build-vs-adopt decision
+
+The accepted disposition is `defer_adoption`. After this documentation is
+reviewed and committed, proceed with the custom Architecture A implementation
+through Milestones 5–9; the immediate next milestone is Milestone 5,
+prospective budgets. No framework PoC is required first.
+
+After Milestone 9 is committed and before Milestone 10 begins, perform a
+mandatory reassessment of Temporal, Inngest, and LangGraph for generic durable
+execution. This is a reassessment, not a predetermined migration. The OpenAI
+Agents SDK is not adopted for this control-plane problem. No framework,
+runtime change, live state, or provider authority was introduced here.
+
 ## Architecture A Milestone 4 offline preflight grant candidate
 
 The aggregate now durably prepares one exact derived-next-case preflight grant

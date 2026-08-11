@@ -1,5 +1,29 @@
 # Session Notes
 
+## Approved Architecture A build-vs-adopt decision
+
+- Completed a design-only comparison of the committed custom control plane,
+  LangGraph/LangSmith, Temporal, Inngest, and the OpenAI Agents SDK using
+  official documentation and current pricing accessed 2026-08-11.
+- Recorded the human-approved `defer_adoption` disposition. Architecture A
+  proceeds unchanged through Milestones 5–9 after this documentation is
+  reviewed and committed; Milestone 5 prospective budgets is next and no
+  infrastructure PoC is required first.
+- Added a mandatory reassessment after committed Milestone 9 and before
+  Milestone 10, focused on Temporal, Inngest, and LangGraph. It is not a
+  predetermined migration. The OpenAI Agents SDK is not adopted for this
+  control-plane problem.
+- Kept eligibility, frozen identities, envelopes/grants, budgets, dispatch
+  consumption, validators/fallback, evidence policy, scoring, and closure
+  explicitly GoTime-owned.
+- Identified history storage/replay, crash recovery, durable timers, human
+  waits, scheduling, and worker recovery as the strongest later delegation
+  candidates.
+- Milestone 5 remains paused only until this decision record is reviewed and
+  committed. No implementation, dependency, live state, credential, provider,
+  staging, or commit action occurred, and `docs/parking-lot.md` was not
+  modified.
+
 ## Architecture A Milestone 4 offline preflight grants
 
 - Added version-1 offline preflight grant candidates and exact
