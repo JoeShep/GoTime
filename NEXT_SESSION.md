@@ -1,5 +1,25 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 5 prospective budget accounting
+
+Milestone 5 now reserves exact prospective preflight exposure atomically under
+the aggregate lock. Schema
+`suggest-moving-service-questions-v4-formal-evaluation-provider-budget-reservation-v1`,
+version 1, uses `provider_budget_reserved` and proven-unused
+`provider_budget_released`. The fixed case-01 reservation digest is
+`cbc71820cc3d801a09d90dedb0b279882bccae85da8dd482651a64f6eb1a462a`.
+
+The first reservation consumes one reserved preflight slot and `$0.03` of
+prospective capacity, leaving `$0.00` for case 01 and `$0.21` aggregate
+capacity. Exact rerun is event-free. Expired unused capacity returns only with
+durable `not_started` dispatch proof. Scoped preflight budget/grant authority
+is true, while provider, execution, generation, dispatch, retry, and generic
+spending authority remain false. Milestone 6 dispatch consumption is not
+implemented. Grant and reservation collections now retain one exact record per
+AI case, so released case-01 history coexists with a later case-02 reservation
+and all eight case records can be represented without deletion. Human diff
+review is required before commit or Milestone 6.
+
 ## Approved Architecture A build-vs-adopt decision
 
 The accepted disposition is `defer_adoption`. After this documentation is

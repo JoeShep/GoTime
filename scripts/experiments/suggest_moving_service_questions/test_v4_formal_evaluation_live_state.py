@@ -471,7 +471,8 @@ def test_close_requires_explicit_abandonment(active):
 def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
     assert PUBLIC_COMMANDS == (
         "verify-foundation", "initialize", "inspect", "verify",
-        "resolve-deterministic-cases", "bind-ai-case-envelopes", "prepare-preflight-grant", "close",
+        "resolve-deterministic-cases", "bind-ai-case-envelopes", "prepare-preflight-grant",
+        "authorize-preflight-budget", "release-preflight-budget", "close",
     )
     base = [sys.executable, str(CLI), "--state-root", str(tmp_path)]
     commands = [
@@ -481,6 +482,7 @@ def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
         base + ["resolve-deterministic-cases"],
         base + ["bind-ai-case-envelopes"],
         base + ["prepare-preflight-grant"],
+        base + ["authorize-preflight-budget"],
         base + ["inspect"],
         base + ["verify"],
         base + ["close", "--reviewer", "CLI Reviewer", "--abandon"],
@@ -493,7 +495,7 @@ def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
         )
         outputs.append(json.loads(result.stdout))
         assert outputs[-1]["provider_authority"] is False
-    resolved, bound, inspected = outputs[3], outputs[4], outputs[5]
+    resolved, bound, authorized, inspected = outputs[3], outputs[4], outputs[6], outputs[7]
     assert [item["outcome"]["reason_state"] for item in resolved["results"]] == [
         "known(false)", "not_applicable",
     ]
@@ -501,7 +503,9 @@ def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
     assert len(bound["ai_case_envelopes"]) == len(AI_CASE_ORDER)
     assert all(inspected["cases"][case_id]["coordination_status"] == "terminal" for case_id in EMPTY_CASE_IDS)
     assert all(inspected["cases"][case_id]["coordination_status"] == "untouched" for case_id in AI_CASE_ORDER)
-    assert set(inspected["counters"].values()) == {0, "0.00"}
+    assert authorized["counters"]["token_preflights_reserved"] == 1
+    assert authorized["counters"]["provider_spend_reserved_usd"] == "0.03"
+    assert inspected["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.21"
     assert inspected["immutable_package"]["budget_policy"]["spending_authorized"] is False
 
 
@@ -511,6 +515,7 @@ def test_live_modules_have_no_provider_network_credential_or_request_capability(
         HERE / "v4_formal_evaluation_live_state.py",
         HERE / "v4_formal_evaluation_live_deterministic.py",
         HERE / "v4_formal_evaluation_live_cases.py",
+        HERE / "v4_formal_evaluation_live_budget.py",
         CLI,
     ]
     prohibited_import_roots = {"openai", "socket", "httpx", "requests", "urllib"}

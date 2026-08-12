@@ -8,6 +8,7 @@ import os
 import tempfile
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Callable, Mapping
 
@@ -16,9 +17,13 @@ from v4_formal_evaluation_live_cases import (
     validate_ai_case_envelopes,
 )
 from v4_formal_evaluation_live_models import (
-    AGGREGATE_ID, AI_CASE_ORDER, CASE_ORDER, EMPTY_CASE_IDS,
+    AGGREGATE_ID, AI_CASE_ORDER, CASE_ORDER, EMPTY_CASE_IDS, MAX_TOKEN_PREFLIGHTS,
     AggregateFoundationError, canonical_json, digest, immutable_package,
     package_identity, validate_human_label, validate_zero_counters,
+)
+from v4_formal_evaluation_live_budget import (
+    BudgetError, build_preflight_reservation, derive_budget_accounting,
+    enforce_prospective_capacity, validate_reservation,
 )
 
 STATE_VERSION = 1
@@ -39,6 +44,8 @@ OPERATION_STATES = {
     "deterministic_case_completed": ("in_progress", "in_progress"),
     "ai_case_envelopes_bound": ("in_progress", "in_progress"),
     "preflight_grant_prepared": ("in_progress", "in_progress"),
+    "provider_budget_reserved": ("in_progress", "in_progress"),
+    "provider_budget_released": ({"in_progress", "expired_paused"}, {"in_progress", "expired_paused"}),
 }
 TERMINAL_STATES = {"abandoned", "closed"}
 
@@ -218,6 +225,8 @@ class AggregateStore:
                 "provider_authority": False,
                 "ai_case_envelopes": {},
                 "preflight_grants": {},
+                "provider_budget_reservations": {},
+                "budget_accounting": derive_budget_accounting({}),
                 "cases": {
                     item["case_id"]: {
                         "case_id": item["case_id"],
@@ -391,7 +400,9 @@ class AggregateStore:
         expected_before, expected_after = OPERATION_STATES[operation]
         actual_before = None if before is None else before.get("status")
         before_matches = actual_before in expected_before if isinstance(expected_before, set) else actual_before == expected_before
-        if not before_matches or not isinstance(after, dict) or after.get("status") != expected_after:
+        actual_after = None if not isinstance(after, dict) else after.get("status")
+        after_matches = actual_after in expected_after if isinstance(expected_after, set) else actual_after == expected_after
+        if not before_matches or not after_matches:
             raise AggregateStateError("aggregate operation state transition mismatch")
         occurred_at = parse_time(event["occurred_at"])
         metadata = event["metadata"]
@@ -411,6 +422,12 @@ class AggregateStore:
         if operation == "preflight_grant_prepared":
             self._validate_preflight_grant_preparation(event)
             return
+        if operation == "provider_budget_reserved":
+            self._validate_budget_reservation_event(event)
+            return
+        if operation == "provider_budget_released":
+            self._validate_budget_release_event(event)
+            return
         if before is None or before["status"] == "closed":
             raise AggregateStateError("terminal aggregate cannot transition")
         allowed_metadata = {"reviewer"} if operation in {
@@ -428,7 +445,7 @@ class AggregateStore:
             raise AggregateStateError("aggregate operation history count mismatch")
         if after["cases"] != before["cases"] or after["acknowledgement"] != before["acknowledgement"]:
             raise AggregateStateError("aggregate lifecycle operation cannot mutate case or acknowledgement state")
-        validate_zero_counters(after["counters"])
+        self._validate_budget_state(after)
         if operation == "aggregate_expired" and occurred_at < parse_time(before["expires_at"]):
             raise AggregateStateError("aggregate cannot expire before its boundary")
         if operation == "aggregate_started" and occurred_at >= parse_time(before["expires_at"]):
@@ -446,6 +463,8 @@ class AggregateStore:
             or state["cases"] != self._expected_initial_cases()
             or state["ai_case_envelopes"] != {}
             or state["preflight_grants"] != {}
+            or state["provider_budget_reservations"] != {}
+            or state["budget_accounting"] != derive_budget_accounting({})
             or state["acknowledgement"] != _neutral_acknowledgement()
             or state["extension_history"] != []
             or state["next_case_id"] is not None
@@ -469,7 +488,8 @@ class AggregateStore:
         required = {
             "state_version", "aggregate_id", "package_identity_sha256", "immutable_package",
             "operator", "reviewer", "status", "initialized_at", "expires_at",
-            "coordination_only", "provider_authority", "ai_case_envelopes", "preflight_grants", "cases", "counters",
+            "coordination_only", "provider_authority", "ai_case_envelopes", "preflight_grants",
+            "provider_budget_reservations", "budget_accounting", "cases", "counters",
             "acknowledgement", "extension_history", "next_case_id", "history_count",
             "history_head_sha256",
         }
@@ -508,7 +528,7 @@ class AggregateStore:
                     self._validate_exact_deterministic_outcome(case_id, record, outcome)
                 elif outcome is not None:
                     raise AggregateStateError("nonterminal deterministic case cannot contain an outcome")
-        validate_zero_counters(state["counters"])
+        self._validate_budget_state(state)
         try:
             validate_ai_case_envelopes(state["ai_case_envelopes"], allow_unbound=True)
         except AiCaseEnvelopeError as error:
@@ -618,7 +638,7 @@ class AggregateStore:
             raise AggregateStateError("deterministic completion history count mismatch")
         if parse_time(event["occurred_at"]) >= parse_time(before["expires_at"]):
             raise AggregateStateError("deterministic completion cannot occur at or after expiration")
-        validate_zero_counters(after["counters"])
+        self._validate_budget_state(after)
 
     def _complete_deterministic_case(
         self, state: Mapping[str, object], case_id: str, outcome: Mapping[str, object],
@@ -707,11 +727,14 @@ class AggregateStore:
             return canonical
 
     def _validate_preflight_grants(self, state: Mapping[str, object]) -> None:
-        from v4_formal_evaluation_live_grants import PreflightGrantError, validate_preflight_grant
+        from v4_formal_evaluation_live_grants import (
+            PreflightGrantError, budget_authorized_lifecycle, released_lifecycle,
+            prepared_lifecycle, validate_preflight_grant,
+        )
 
         grants = state["preflight_grants"]
-        if not isinstance(grants, dict) or len(grants) > 1:
-            raise AggregateStateError("at most one exact preflight grant may be prepared")
+        if not isinstance(grants, dict) or len(grants) > len(AI_CASE_ORDER):
+            raise AggregateStateError("at most one exact preflight grant per AI case may be retained")
         for case_id, grant in grants.items():
             if case_id not in AI_CASE_ORDER or case_id not in state["ai_case_envelopes"]:
                 raise AggregateStateError("preflight grant target is not an enveloped AI case")
@@ -719,6 +742,58 @@ class AggregateStore:
                 validate_preflight_grant(grant, case_id, state["ai_case_envelopes"][case_id])
             except PreflightGrantError as error:
                 raise AggregateStateError(str(error)) from error
+            reservation = state["provider_budget_reservations"].get(case_id)
+            lifecycle = grant["lifecycle"]
+            if reservation is None and lifecycle != prepared_lifecycle():
+                raise AggregateStateError("grant authorization requires a matching durable reservation")
+            if reservation is not None:
+                expected_lifecycle = (
+                    budget_authorized_lifecycle()
+                    if reservation["lifecycle"]["status"] == "reserved"
+                    else released_lifecycle()
+                )
+                if lifecycle != expected_lifecycle:
+                    raise AggregateStateError("grant lifecycle does not match its durable reservation")
+
+    def _validate_budget_state(self, state: Mapping[str, object]) -> None:
+        reservations = state["provider_budget_reservations"]
+        if not isinstance(reservations, dict) or len(reservations) > 8:
+            raise AggregateStateError("provider budget reservations are malformed")
+        try:
+            derived = derive_budget_accounting(reservations)
+        except (BudgetError, KeyError, TypeError) as error:
+            raise AggregateStateError(str(error)) from error
+        aggregate = derived["aggregate"]
+        if (
+            aggregate["token_preflights_reserved"]
+            + aggregate["token_preflights_consumed"]
+            > MAX_TOKEN_PREFLIGHTS
+        ):
+            raise AggregateStateError("provider preflight operation count exceeds frozen maximum")
+        for case_id, reservation in reservations.items():
+            if case_id not in AI_CASE_ORDER or case_id not in state["preflight_grants"]:
+                raise AggregateStateError("budget reservation targets an unavailable AI grant")
+            try:
+                validate_reservation(
+                    reservation,
+                    state["preflight_grants"][case_id],
+                    state["ai_case_envelopes"][case_id],
+                )
+            except (BudgetError, KeyError) as error:
+                raise AggregateStateError(str(error)) from error
+        if state["budget_accounting"] != derived:
+            raise AggregateStateError("persisted budget totals do not match independently derived accounting")
+        expected_counters = {
+            "token_preflights_consumed": aggregate["token_preflights_consumed"],
+            "token_preflights_reserved": aggregate["token_preflights_reserved"],
+            "generations_consumed": aggregate["generations_consumed"],
+            "generations_reserved": aggregate["generations_reserved"],
+            "retries": aggregate["retries"],
+            "provider_spend_reserved_usd": aggregate["total_provider_exposure_reserved_usd"],
+            "provider_spend_consumed_usd": aggregate["total_provider_exposure_consumed_usd"],
+        }
+        if state["counters"] != expected_counters:
+            raise AggregateStateError("provider counters do not match derived budget accounting")
 
     def _validate_preflight_grant_preparation(self, event: Mapping[str, object]) -> None:
         from v4_formal_evaluation_live_grants import validate_preflight_grant
@@ -731,7 +806,7 @@ class AggregateStore:
         if (
             case_id not in AI_CASE_ORDER
             or before["next_case_id"] != case_id
-            or before["preflight_grants"] != {}
+            or case_id in before["preflight_grants"]
             or case_id not in before["ai_case_envelopes"]
         ):
             raise AggregateStateError("preflight grant must target the exact next enveloped AI case")
@@ -740,7 +815,7 @@ class AggregateStore:
         if metadata["grant_sha256"] != grant["grant_sha256"]:
             raise AggregateStateError("preflight grant event identity mismatch")
         expected = json.loads(canonical_json(before))
-        expected["preflight_grants"] = {case_id: grant}
+        expected["preflight_grants"][case_id] = grant
         expected["history_count"] = after["history_count"]
         expected["history_head_sha256"] = after["history_head_sha256"]
         if after != expected:
@@ -750,7 +825,7 @@ class AggregateStore:
             raise AggregateStateError("preflight grant activation timestamp must match its event")
         if occurred >= parse_time(before["expires_at"]):
             raise AggregateStateError("preflight grant cannot prepare at or after aggregate expiration")
-        validate_zero_counters(after["counters"])
+        self._validate_budget_state(after)
 
     def prepare_preflight_grant(self) -> dict[str, object]:
         from v4_formal_evaluation_live_grants import build_preflight_grant, grant_is_expired
@@ -768,18 +843,219 @@ class AggregateStore:
                 raise AggregateStateError("next AI case is not untouched")
             if state["ai_case_envelopes"][case_id]["phase_lifecycle"]["preflight_status"] != "not_authorized":
                 raise AggregateStateError("preflight phase is not eligible")
-            if state["preflight_grants"]:
-                existing = state["preflight_grants"].get(case_id)
-                if existing is not None and not grant_is_expired(existing, self.clock()):
+            existing = state["preflight_grants"].get(case_id)
+            if existing is not None:
+                if not grant_is_expired(existing, self.clock()):
                     return dict(state)
-                raise AggregateStateError("existing or expired preflight grant cannot be replaced in Milestone 4")
+                raise AggregateStateError("expired preflight grant cannot be replaced")
             occurred_at = self.clock()
             grant = build_preflight_grant(case_id, state["ai_case_envelopes"][case_id], occurred_at)
             after = json.loads(canonical_json(state))
-            after["preflight_grants"] = {case_id: grant}
+            after["preflight_grants"][case_id] = grant
             event = self._make_event(
                 state, after, "preflight_grant_prepared",
                 {"case_id": case_id, "grant_sha256": grant["grant_sha256"]},
+                occurred_at=occurred_at,
+            )
+            journal = self._read_journal()
+            journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def _set_derived_budget(self, state: dict[str, object]) -> None:
+        accounting = derive_budget_accounting(state["provider_budget_reservations"])
+        state["budget_accounting"] = accounting
+        aggregate = accounting["aggregate"]
+        state["counters"] = {
+            "token_preflights_consumed": aggregate["token_preflights_consumed"],
+            "token_preflights_reserved": aggregate["token_preflights_reserved"],
+            "generations_consumed": aggregate["generations_consumed"],
+            "generations_reserved": aggregate["generations_reserved"],
+            "retries": aggregate["retries"],
+            "provider_spend_reserved_usd": aggregate["total_provider_exposure_reserved_usd"],
+            "provider_spend_consumed_usd": aggregate["total_provider_exposure_consumed_usd"],
+        }
+
+    def _validate_budget_reservation_event(self, event: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_grants import budget_authorized_lifecycle, prepared_lifecycle
+
+        before, after, metadata = event["before_state"], event["after_state"], event["metadata"]
+        if not isinstance(metadata, dict) or set(metadata) != {
+            "case_id", "grant_sha256", "reservation_sha256",
+        }:
+            raise AggregateStateError("provider budget reservation metadata is not exact")
+        case_id = metadata["case_id"]
+        if (
+            case_id not in AI_CASE_ORDER
+            or before["next_case_id"] != case_id
+            or case_id not in before["preflight_grants"]
+            or before["preflight_grants"][case_id]["lifecycle"] != prepared_lifecycle()
+            or case_id in before["provider_budget_reservations"]
+        ):
+            raise AggregateStateError("provider budget reservation must target the exact prepared next-case grant")
+        reservation = after["provider_budget_reservations"].get(case_id)
+        if reservation is None:
+            raise AggregateStateError("budget-authorized grant is missing its reservation")
+        if (
+            metadata["grant_sha256"] != before["preflight_grants"][case_id]["grant_sha256"]
+            or metadata["reservation_sha256"] != reservation["reservation_sha256"]
+            or event["occurred_at"] != reservation["immutable_binding"]["reserved_at"]
+            or parse_time(event["occurred_at"]) >= parse_time(before["expires_at"])
+            or parse_time(event["occurred_at"]) >= parse_time(before["preflight_grants"][case_id]["immutable_binding"]["expires_at"])
+        ):
+            raise AggregateStateError("provider budget reservation identity or lifetime mismatch")
+        expected = json.loads(canonical_json(before))
+        expected["provider_budget_reservations"][case_id] = reservation
+        expected["preflight_grants"][case_id]["lifecycle"] = budget_authorized_lifecycle()
+        self._set_derived_budget(expected)
+        expected["history_count"] = after["history_count"]
+        expected["history_head_sha256"] = after["history_head_sha256"]
+        if after != expected:
+            raise AggregateStateError("provider budget reservation mutated prohibited aggregate fields")
+        self._validate_budget_state(after)
+
+    def authorize_preflight_budget(self) -> dict[str, object]:
+        from v4_formal_evaluation_live_grants import budget_authorized_lifecycle, grant_is_expired, prepared_lifecycle
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=True, recover_projection=True)
+            if state["status"] != "in_progress" or state["acknowledgement"]["acknowledgement_required"]:
+                raise AggregateStateError("budget authorization requires active unblocked coordination")
+            case_id = state["next_case_id"]
+            if case_id not in AI_CASE_ORDER or case_id not in state["preflight_grants"]:
+                raise AggregateStateError("budget authorization requires the exact prepared next-case grant")
+            grant = state["preflight_grants"][case_id]
+            reservation = state["provider_budget_reservations"].get(case_id)
+            if reservation is not None:
+                if reservation["lifecycle"]["status"] == "reserved" and grant["lifecycle"] == budget_authorized_lifecycle():
+                    return dict(state)
+                raise AggregateStateError("conflicting or released budget reservation cannot be replaced")
+            if grant["lifecycle"] != prepared_lifecycle() or grant_is_expired(grant, self.clock()):
+                raise AggregateStateError("prepared preflight grant is unavailable or expired")
+            accounting = derive_budget_accounting(state["provider_budget_reservations"])["aggregate"]
+            case_accounting = state["budget_accounting"]["cases"][case_id]
+            amount = Decimal(grant["immutable_binding"]["conservative_operation_ceiling_usd"])
+            enforce_prospective_capacity(
+                case_reserved=Decimal(case_accounting["total_reserved_provider_exposure_usd"]),
+                case_consumed=Decimal(case_accounting["total_consumed_provider_exposure_usd"]),
+                aggregate_reserved=Decimal(accounting["total_provider_exposure_reserved_usd"]),
+                aggregate_consumed=Decimal(accounting["total_provider_exposure_consumed_usd"]),
+                preflights_reserved=accounting["token_preflights_reserved"],
+                preflights_consumed=accounting["token_preflights_consumed"],
+                requested_amount=amount,
+            )
+            occurred_at = self.clock()
+            reservation = build_preflight_reservation(
+                grant, state["ai_case_envelopes"][case_id], format_time(occurred_at),
+            )
+            after = json.loads(canonical_json(state))
+            after["provider_budget_reservations"][case_id] = reservation
+            after["preflight_grants"][case_id]["lifecycle"] = budget_authorized_lifecycle()
+            self._set_derived_budget(after)
+            event = self._make_event(
+                state, after, "provider_budget_reserved",
+                {
+                    "case_id": case_id,
+                    "grant_sha256": grant["grant_sha256"],
+                    "reservation_sha256": reservation["reservation_sha256"],
+                },
+                occurred_at=occurred_at,
+            )
+            journal = self._read_journal()
+            journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def _validate_budget_release_event(self, event: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_grants import budget_authorized_lifecycle, released_lifecycle
+
+        before, after, metadata = event["before_state"], event["after_state"], event["metadata"]
+        if not isinstance(metadata, dict) or set(metadata) != {
+            "case_id", "reservation_sha256", "proof",
+        } or metadata["proof"] != "expired_unused_dispatch_not_started":
+            raise AggregateStateError("provider budget release metadata is not exact")
+        case_id = metadata["case_id"]
+        reservation = before["provider_budget_reservations"].get(case_id)
+        if (
+            reservation is None
+            or reservation["lifecycle"]["status"] != "reserved"
+            or reservation["lifecycle"]["provider_dispatch_status"] != "not_started"
+            or before["preflight_grants"][case_id]["lifecycle"] != budget_authorized_lifecycle()
+            or metadata["reservation_sha256"] != reservation["reservation_sha256"]
+            or parse_time(event["occurred_at"]) < parse_time(before["preflight_grants"][case_id]["immutable_binding"]["expires_at"])
+        ):
+            raise AggregateStateError("provider budget release lacks proof of expired non-dispatch")
+        expected = json.loads(canonical_json(before))
+        expected_reservation = expected["provider_budget_reservations"][case_id]
+        expected_reservation["lifecycle"].update(
+            status="released",
+            released_amount_usd=expected_reservation["immutable_binding"]["reservation_amount_usd"],
+            release_reason="expired_unused_dispatch_not_started",
+            released_at=event["occurred_at"],
+        )
+        expected["preflight_grants"][case_id]["lifecycle"] = released_lifecycle()
+        self._set_derived_budget(expected)
+        expected["history_count"] = after["history_count"]
+        expected["history_head_sha256"] = after["history_head_sha256"]
+        if after != expected:
+            raise AggregateStateError("provider budget release mutated prohibited aggregate fields")
+        self._validate_budget_state(after)
+
+    def release_expired_preflight_budget(self) -> dict[str, object]:
+        from v4_formal_evaluation_live_grants import budget_authorized_lifecycle, released_lifecycle
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=True, recover_projection=True)
+            releasable = [
+                (case_id, reservation)
+                for case_id, reservation in state["provider_budget_reservations"].items()
+                if reservation["lifecycle"]["status"] == "reserved"
+            ]
+            if not releasable:
+                if state["provider_budget_reservations"] and all(
+                    reservation["lifecycle"]["status"] == "released"
+                    and state["preflight_grants"][case_id]["lifecycle"] == released_lifecycle()
+                    for case_id, reservation in state["provider_budget_reservations"].items()
+                ):
+                    return dict(state)
+                raise AggregateStateError("no reserved preflight budget is available for release")
+            expired = [
+                (case_id, reservation)
+                for case_id, reservation in releasable
+                if self.clock() >= parse_time(
+                    state["preflight_grants"][case_id]["immutable_binding"]["expires_at"]
+                )
+            ]
+            if len(expired) != 1:
+                raise AggregateStateError("release requires exactly one expired grant with reserved preflight budget")
+            case_id, reservation = expired[0]
+            grant = state["preflight_grants"][case_id]
+            if (
+                grant["lifecycle"] != budget_authorized_lifecycle()
+                or self.clock() < parse_time(grant["immutable_binding"]["expires_at"])
+                or reservation["lifecycle"]["provider_dispatch_status"] != "not_started"
+            ):
+                raise AggregateStateError("reservation release requires expired grant and proven non-dispatch")
+            occurred_at = self.clock()
+            after = json.loads(canonical_json(state))
+            after_reservation = after["provider_budget_reservations"][case_id]
+            after_reservation["lifecycle"].update(
+                status="released",
+                released_amount_usd=after_reservation["immutable_binding"]["reservation_amount_usd"],
+                release_reason="expired_unused_dispatch_not_started",
+                released_at=format_time(occurred_at),
+            )
+            after["preflight_grants"][case_id]["lifecycle"] = released_lifecycle()
+            self._set_derived_budget(after)
+            event = self._make_event(
+                state, after, "provider_budget_released",
+                {
+                    "case_id": case_id,
+                    "reservation_sha256": reservation["reservation_sha256"],
+                    "proof": "expired_unused_dispatch_not_started",
+                },
                 occurred_at=occurred_at,
             )
             journal = self._read_journal()

@@ -1,4 +1,4 @@
-"""Offline-only preflight grant candidates with a fail-closed budget port."""
+"""Offline-only preflight grants gated by exact durable budget reservations."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import Callable, Mapping
 
 import v4_formal_evaluation_live_models as live_models
+from v4_formal_evaluation_live_budget import BudgetError, derive_budget_accounting, validate_reservation
 from v4_formal_evaluation_live_models import AGGREGATE_ID, digest, package_identity
 from v4_formal_evaluation_live_state import format_time, parse_time
 
@@ -21,6 +22,18 @@ class PreflightGrantError(ValueError):
 
 class BudgetAuthorizationUnavailable(PreflightGrantError):
     pass
+
+
+def prepared_lifecycle() -> dict[str, object]:
+    return {
+        "status": "prepared",
+        "attempt_status": "unused",
+        "budget_authorization": "unavailable_milestone_5",
+        "provider_authority": False,
+        "spending_authorized": False,
+        "generation_authorized": False,
+        "dispatch_authorized": False,
+    }
 
 
 def build_preflight_grant(
@@ -66,15 +79,7 @@ def build_preflight_grant(
         "grant_version": PREFLIGHT_GRANT_VERSION,
         "grant_sha256": identity,
         "immutable_binding": immutable,
-        "lifecycle": {
-            "status": "prepared",
-            "attempt_status": "unused",
-            "budget_authorization": "unavailable_milestone_5",
-            "provider_authority": False,
-            "spending_authorized": False,
-            "generation_authorized": False,
-            "dispatch_authorized": False,
-        },
+        "lifecycle": prepared_lifecycle(),
     }
 
 
@@ -90,8 +95,18 @@ def validate_preflight_grant(
         expected = build_preflight_grant(case_id, envelope, activated)
     except (KeyError, TypeError) as error:
         raise PreflightGrantError("preflight grant is malformed") from error
-    if grant != expected:
+    if {key: grant[key] for key in grant if key != "lifecycle"} != {
+        key: expected[key] for key in expected if key != "lifecycle"
+    }:
         raise PreflightGrantError("preflight grant does not match its exact frozen binding")
+    lifecycle = grant.get("lifecycle")
+    allowed = (
+        expected["lifecycle"],
+        budget_authorized_lifecycle(),
+        released_lifecycle(),
+    )
+    if lifecycle not in allowed:
+        raise PreflightGrantError("preflight grant lifecycle is not exact")
     if parse_time(grant["immutable_binding"]["expires_at"]) - activated != PREFLIGHT_GRANT_LIFETIME:
         raise PreflightGrantError("preflight grant lifetime is not exactly 15 minutes")
 
@@ -100,9 +115,38 @@ def grant_is_expired(grant: Mapping[str, object], now: datetime) -> bool:
     return now >= parse_time(grant["immutable_binding"]["expires_at"])
 
 
-def deny_unimplemented_budget_authorization(_: Mapping[str, object]) -> bool:
-    """Production/default Milestone 4 port: prospective accounting does not exist."""
-    return False
+def budget_authorized_lifecycle() -> dict[str, object]:
+    return {
+        "status": "active",
+        "attempt_status": "unused",
+        "budget_authorization": "reserved",
+        "preflight_budget_authorized": True,
+        "preflight_grant_active": True,
+        "preflight_spending_authorized": True,
+        "provider_authority": False,
+        "spending_authorized": False,
+        "generation_authorized": False,
+        "dispatch_authorized": False,
+        "retry_authorized": False,
+        "provider_execution_authorized": False,
+    }
+
+
+def released_lifecycle() -> dict[str, object]:
+    return {
+        "status": "expired",
+        "attempt_status": "unused",
+        "budget_authorization": "released",
+        "preflight_budget_authorized": False,
+        "preflight_grant_active": False,
+        "preflight_spending_authorized": False,
+        "provider_authority": False,
+        "spending_authorized": False,
+        "generation_authorized": False,
+        "dispatch_authorized": False,
+        "retry_authorized": False,
+        "provider_execution_authorized": False,
+    }
 
 
 def activate_preflight_grant(
@@ -110,10 +154,34 @@ def activate_preflight_grant(
     aggregate: Mapping[str, object],
     now: datetime,
 ) -> dict[str, object]:
-    """Public runtime activation seam: unconditionally fail at Milestone 5's port."""
-    return _activate_preflight_grant_synthetic(
-        grant, aggregate, now, budget_authorize=deny_unimplemented_budget_authorization,
-    )
+    """Validate the durable Milestone 5 reservation-backed offline activation."""
+    case_id = grant["immutable_binding"]["case_id"]
+    envelope = aggregate["ai_case_envelopes"].get(case_id)
+    validate_preflight_grant(grant, case_id, envelope)
+    if aggregate["status"] != "in_progress" or now >= parse_time(aggregate["expires_at"]):
+        raise PreflightGrantError("aggregate is not active for preflight activation")
+    if grant_is_expired(grant, now):
+        raise PreflightGrantError("preflight grant is expired")
+    if aggregate["next_case_id"] != case_id:
+        raise PreflightGrantError("preflight grant no longer targets the next AI case")
+    reservation = aggregate["provider_budget_reservations"].get(case_id)
+    if (
+        grant["lifecycle"] != budget_authorized_lifecycle()
+        or reservation is None
+        or reservation["immutable_binding"]["prepared_grant_sha256"] != grant["grant_sha256"]
+        or reservation["lifecycle"]["status"] != "reserved"
+    ):
+        raise BudgetAuthorizationUnavailable(
+            "durable Milestone 5 prospective budget reservation is required"
+        )
+    try:
+        validate_reservation(reservation, grant, envelope)
+        accounting = derive_budget_accounting(aggregate["provider_budget_reservations"])
+    except (BudgetError, KeyError, TypeError) as error:
+        raise BudgetAuthorizationUnavailable("durable budget reservation is invalid") from error
+    if accounting != aggregate.get("budget_accounting"):
+        raise BudgetAuthorizationUnavailable("durable budget accounting projection is invalid")
+    return dict(grant)
 
 
 def _activate_preflight_grant_synthetic(

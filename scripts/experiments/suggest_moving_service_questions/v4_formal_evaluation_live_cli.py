@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Eight-command offline CLI for aggregate coordination only."""
+"""Ten-command offline CLI for aggregate coordination and prospective budget only."""
 
 from __future__ import annotations
 
@@ -13,7 +13,8 @@ from v4_formal_evaluation_live_state import AggregateStore, default_root
 
 PUBLIC_COMMANDS = (
     "verify-foundation", "initialize", "inspect", "verify",
-    "resolve-deterministic-cases", "bind-ai-case-envelopes", "prepare-preflight-grant", "close",
+    "resolve-deterministic-cases", "bind-ai-case-envelopes", "prepare-preflight-grant",
+    "authorize-preflight-budget", "release-preflight-budget", "close",
 )
 
 
@@ -32,6 +33,8 @@ def parser() -> argparse.ArgumentParser:
     commands.add_parser("resolve-deterministic-cases")
     commands.add_parser("bind-ai-case-envelopes")
     commands.add_parser("prepare-preflight-grant")
+    commands.add_parser("authorize-preflight-budget")
+    commands.add_parser("release-preflight-budget")
     close = commands.add_parser("close")
     close.add_argument("--reviewer", required=True)
     close.add_argument("--abandon", action="store_true")
@@ -62,6 +65,10 @@ def main() -> int:
         output = store.bind_ai_case_envelopes()
     elif arguments.command == "prepare-preflight-grant":
         output = store.prepare_preflight_grant()
+    elif arguments.command == "authorize-preflight-budget":
+        output = store.authorize_preflight_budget()
+    elif arguments.command == "release-preflight-budget":
+        output = store.release_expired_preflight_budget()
     else:
         output = store.close(arguments.reviewer, abandon=arguments.abandon)
     print(json.dumps(output, indent=2, sort_keys=True))

@@ -1,5 +1,32 @@
 # Session Notes
 
+## Architecture A Milestone 5 prospective budget accounting
+
+- Added version-1 exact-cent `Decimal` provider-budget reservations bound to
+  the aggregate, derived next case, AI envelope, prepared grant, preflight
+  phase, one operation, zero retries, and frozen `$0.03`/`$0.24` ceilings.
+- Added exact `provider_budget_reserved` and proven-unused
+  `provider_budget_released` history operations, derived per-case/aggregate
+  totals, independently reconciled counters, idempotency, and history-first
+  crash recovery.
+- The fixed case-01 reservation digest is
+  `cbc71820cc3d801a09d90dedb0b279882bccae85da8dd482651a64f6eb1a462a`.
+  It reserves one preflight and `$0.03`, leaving `$0.00` case and `$0.21`
+  aggregate capacity.
+- Release requires an expired grant plus durable `dispatch_status=not_started`
+  proof. No dispatch event, consumption, generation grant, retry, credential,
+  provider client/request, or network capability was added.
+- Added argument-free `authorize-preflight-budget` and
+  `release-preflight-budget`; the public inventory is ten commands.
+- Corrected durable collection semantics so each AI case may retain one exact
+  grant and reservation. Test-only synthetic sequencing proves released case
+  01 coexists with reserved case 02, all eight case records coexist at the
+  aggregate boundary, and a fully rehashed ninth-count attack fails. No
+  production case-advance or consumption operation was added.
+- Preserved `defer_adoption` and the mandatory post-Milestone-9,
+  pre-Milestone-10 framework reassessment. `docs/parking-lot.md` remains
+  untouched.
+
 ## Approved Architecture A build-vs-adopt decision
 
 - Completed a design-only comparison of the committed custom control plane,
