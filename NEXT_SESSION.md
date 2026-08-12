@@ -1,23 +1,47 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 7 generation grants
+
+Milestone 7 is implemented offline and awaits human diff review. The version-1
+generation grant binds the exact case/envelope/request triple and reviewed
+preflight evidence for 15 minutes, with one generation slot and zero retries.
+Case 01 reserves `$0.0019408`, leaving `$0.0280592` case and `$0.2380592`
+aggregate monetary capacity. Its fixed-time grant digest is
+`b8eeaa9ed4fa16037cb2fa6e0ce2588cebe75ec3152e6676e9dc249b3f3c95f8`.
+
+Production preparation remains fail-closed because retained preflight
+result/review state does not exist yet. Tests use a production-inaccessible
+evidence harness. No command, dispatch, provider execution, credential, client,
+or network path was added. The generation cost now reads the maximum output
+bound from the frozen-v4 request configuration rather than defining a local
+policy literal. Replay-valid test-only histories cover all 8/0 through 0/8
+reserved/consumed boundaries and fully rehashed semantic attacks. Complete
+prior-record deletion/replacement and consumed-preflight identity rewrites are
+rejected by explicit history-retention invariants relative to the retained
+authoritative journal head; API-level conflicting grant/reservation reruns are
+side-effect free. Per ADR-0005, total internally consistent replacement of the
+journal, suffix, retained head, projection, and unkeyed hashes remains outside
+scope and would require a separately trusted anchor. This is an intentional
+threat-model boundary, not missing Milestone 7 work. Do not begin Milestone 8
+before final review and commit.
+
 ## Frozen-v4 budget-policy reconciliation
 
-The approved reconciliation is implemented as a focused Milestones 4–6
-correction and awaits human diff review. Preflight now reserves `$0.00`
+The approved reconciliation is committed as a focused Milestones 4–6
+correction. Preflight now reserves `$0.00`
 monetary exposure plus one operation slot; dispatch irreversibly consumes that
 slot while monetary exposure remains zero. The corrected case-01 grant digest
 is `757155c6427132e8ca3a5bdd37a0c3a93adfb0fb386684f403b1940fe0ca0913`
 and reservation digest is
 `8edf28f8378a97796b197bdcb0d0b5bc64b59fbcb2260d5627e313c87c4daec0`.
 The `$0.03` case ceiling, `$0.24` aggregate ceiling, frozen identities, and
-irreversible attempt semantics are unchanged. Milestone 7 remains blocked
-until this correction is reviewed and committed.
+irreversible attempt semantics are unchanged.
 
 ## Architecture A Milestone 6 dispatch-consumption boundary
 
-Milestone 6 now records offline `provider_dispatch_started` as the exact
-irreversible reserved-to-consumed boundary. The full `$0.03` exposure and one
-preflight slot convert to consumed without changing remaining capacity; release
+Milestone 6 records offline `provider_dispatch_started` as the exact
+irreversible reserved-to-consumed boundary. The `$0.00` preflight monetary
+exposure remains zero while one preflight slot converts to consumed; release
 and retry are permanently prohibited. Crash-before-history remains reserved,
 while crash-after-history recovers consumed exactly once.
 

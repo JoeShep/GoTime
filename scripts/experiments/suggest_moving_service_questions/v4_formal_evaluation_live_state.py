@@ -17,12 +17,14 @@ from v4_formal_evaluation_live_cases import (
     validate_ai_case_envelopes,
 )
 from v4_formal_evaluation_live_models import (
-    AGGREGATE_ID, AI_CASE_ORDER, CASE_ORDER, EMPTY_CASE_IDS, MAX_TOKEN_PREFLIGHTS,
+    AGGREGATE_ID, AI_CASE_ORDER, CASE_ORDER, EMPTY_CASE_IDS, MAX_GENERATIONS,
+    MAX_TOKEN_PREFLIGHTS,
     AggregateFoundationError, canonical_json, digest, immutable_package,
     package_identity, validate_human_label, validate_zero_counters,
 )
 from v4_formal_evaluation_live_budget import (
-    BudgetError, build_preflight_reservation, derive_budget_accounting,
+    BudgetError, build_generation_reservation, build_preflight_reservation,
+    derive_budget_accounting, enforce_generation_capacity,
     enforce_prospective_capacity, validate_reservation,
 )
 
@@ -47,6 +49,8 @@ OPERATION_STATES = {
     "provider_budget_reserved": ("in_progress", "in_progress"),
     "provider_budget_released": ({"in_progress", "expired_paused"}, {"in_progress", "expired_paused"}),
     "provider_dispatch_started": ("in_progress", "in_progress"),
+    "generation_grant_prepared": ("in_progress", "in_progress"),
+    "generation_budget_reserved": ("in_progress", "in_progress"),
 }
 TERMINAL_STATES = {"abandoned", "closed"}
 
@@ -226,6 +230,8 @@ class AggregateStore:
                 "provider_authority": False,
                 "ai_case_envelopes": {},
                 "preflight_grants": {},
+                "reviewed_preflight_evidence": {},
+                "generation_grants": {},
                 "provider_budget_reservations": {},
                 "budget_accounting": derive_budget_accounting({}),
                 "cases": {
@@ -398,6 +404,9 @@ class AggregateStore:
         if operation not in OPERATION_STATES:
             raise AggregateStateError("aggregate history operation is unavailable through Milestone 4")
         before, after = event["before_state"], event["after_state"]
+        if before is not None and isinstance(after, dict):
+            self._validate_retained_generation_history(before, after)
+            self._validate_consumed_preflight_identity_retention(before, after)
         expected_before, expected_after = OPERATION_STATES[operation]
         actual_before = None if before is None else before.get("status")
         before_matches = actual_before in expected_before if isinstance(expected_before, set) else actual_before == expected_before
@@ -432,6 +441,12 @@ class AggregateStore:
         if operation == "provider_dispatch_started":
             self._validate_provider_dispatch_started_event(event)
             return
+        if operation == "generation_grant_prepared":
+            self._validate_generation_grant_preparation(event)
+            return
+        if operation == "generation_budget_reserved":
+            self._validate_generation_budget_reservation_event(event)
+            return
         if before is None or before["status"] == "closed":
             raise AggregateStateError("terminal aggregate cannot transition")
         allowed_metadata = {"reviewer"} if operation in {
@@ -459,6 +474,60 @@ class AggregateStore:
         ):
             raise AggregateStateError("aggregate is not ready to finalize")
 
+    def _validate_retained_generation_history(
+        self, before: Mapping[str, object], after: Mapping[str, object],
+    ) -> None:
+        """Generation evidence and immutable identities are append-only across transitions."""
+        for case_id, grant in before["generation_grants"].items():
+            retained = after["generation_grants"].get(case_id)
+            if retained is None:
+                raise AggregateStateError("prior generation history cannot delete a retained grant")
+            if (
+                retained.get("grant_sha256") != grant["grant_sha256"]
+                or retained.get("immutable_binding") != grant["immutable_binding"]
+            ):
+                raise AggregateStateError("prior generation history cannot replace a retained grant")
+        for case_id, evidence in before["reviewed_preflight_evidence"].items():
+            if after["reviewed_preflight_evidence"].get(case_id) != evidence:
+                raise AggregateStateError("prior generation history cannot delete or replace retained evidence")
+        for key, reservation in before["provider_budget_reservations"].items():
+            if reservation["immutable_binding"]["phase"] != "generation":
+                continue
+            retained = after["provider_budget_reservations"].get(key)
+            if retained is None:
+                raise AggregateStateError("prior generation history cannot delete a retained reservation")
+            if (
+                retained.get("reservation_sha256") != reservation["reservation_sha256"]
+                or retained.get("immutable_binding") != reservation["immutable_binding"]
+            ):
+                raise AggregateStateError("prior generation history cannot replace a retained reservation")
+
+    def _validate_consumed_preflight_identity_retention(
+        self, before: Mapping[str, object], after: Mapping[str, object],
+    ) -> None:
+        """A dispatch-consumed preflight's grant and reservation identities never change."""
+        for case_id, reservation in before["provider_budget_reservations"].items():
+            if (
+                reservation["immutable_binding"]["phase"] != "preflight"
+                or reservation["lifecycle"]["status"] != "consumed"
+            ):
+                continue
+            before_grant = before["preflight_grants"][case_id]
+            after_grant = after["preflight_grants"].get(case_id)
+            if (
+                after_grant is None
+                or after_grant.get("grant_sha256") != before_grant["grant_sha256"]
+                or after_grant.get("immutable_binding") != before_grant["immutable_binding"]
+            ):
+                raise AggregateStateError("consumed preflight history cannot replace its grant identity")
+            after_reservation = after["provider_budget_reservations"].get(case_id)
+            if (
+                after_reservation is None
+                or after_reservation.get("reservation_sha256") != reservation["reservation_sha256"]
+                or after_reservation.get("immutable_binding") != reservation["immutable_binding"]
+            ):
+                raise AggregateStateError("consumed preflight history cannot replace its reservation identity")
+
     def _validate_initial_state(self, state: Mapping[str, object]) -> None:
         self._validate_state(state)
         if (
@@ -467,6 +536,8 @@ class AggregateStore:
             or state["cases"] != self._expected_initial_cases()
             or state["ai_case_envelopes"] != {}
             or state["preflight_grants"] != {}
+            or state["reviewed_preflight_evidence"] != {}
+            or state["generation_grants"] != {}
             or state["provider_budget_reservations"] != {}
             or state["budget_accounting"] != derive_budget_accounting({})
             or state["acknowledgement"] != _neutral_acknowledgement()
@@ -493,6 +564,7 @@ class AggregateStore:
             "state_version", "aggregate_id", "package_identity_sha256", "immutable_package",
             "operator", "reviewer", "status", "initialized_at", "expires_at",
             "coordination_only", "provider_authority", "ai_case_envelopes", "preflight_grants",
+            "reviewed_preflight_evidence", "generation_grants",
             "provider_budget_reservations", "budget_accounting", "cases", "counters",
             "acknowledgement", "extension_history", "next_case_id", "history_count",
             "history_head_sha256",
@@ -538,6 +610,7 @@ class AggregateStore:
         except AiCaseEnvelopeError as error:
             raise AggregateStateError(str(error)) from error
         self._validate_preflight_grants(state)
+        self._validate_generation_state(state)
         _validate_acknowledgement(state["acknowledgement"])
         if state["extension_history"] != []:
             raise AggregateStateError("extensions are not implemented until Milestone 12")
@@ -762,9 +835,228 @@ class AggregateStore:
                 if lifecycle != expected_lifecycle:
                     raise AggregateStateError("grant lifecycle does not match its durable reservation")
 
+    def _validate_generation_state(self, state: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_generation import (
+            GenerationGrantError, active_generation_lifecycle,
+            consumed_generation_lifecycle,
+            prepared_generation_lifecycle, validate_generation_grant,
+            validate_reviewed_preflight_evidence,
+        )
+
+        evidence_records = state["reviewed_preflight_evidence"]
+        grants = state["generation_grants"]
+        if not isinstance(evidence_records, dict) or not isinstance(grants, dict):
+            raise AggregateStateError("generation evidence or grant collection is malformed")
+        if len(evidence_records) > len(AI_CASE_ORDER) or len(grants) > len(AI_CASE_ORDER):
+            raise AggregateStateError("at most one generation evidence/grant record per AI case may be retained")
+        for case_id, evidence in evidence_records.items():
+            if case_id not in AI_CASE_ORDER or case_id not in state["ai_case_envelopes"]:
+                raise AggregateStateError("generation evidence targets a deterministic or unavailable case")
+            try:
+                validate_reviewed_preflight_evidence(
+                    evidence, case_id, state["ai_case_envelopes"][case_id])
+            except GenerationGrantError as error:
+                raise AggregateStateError(str(error)) from error
+            preflight = state["provider_budget_reservations"].get(case_id)
+            if (preflight is None or preflight["lifecycle"]["status"] != "consumed"
+                    or preflight["lifecycle"]["attempt_consumed"] is not True):
+                raise AggregateStateError("generation evidence requires exact consumed preflight history")
+        for case_id, grant in grants.items():
+            evidence = evidence_records.get(case_id)
+            if evidence is None:
+                raise AggregateStateError("generation grant requires reviewed preflight evidence")
+            try:
+                validate_generation_grant(
+                    grant, case_id, state["ai_case_envelopes"][case_id], evidence)
+            except GenerationGrantError as error:
+                raise AggregateStateError(str(error)) from error
+            reservation = state["provider_budget_reservations"].get(f"{case_id}:generation")
+            expected = (
+                prepared_generation_lifecycle()
+                if reservation is None
+                else consumed_generation_lifecycle()
+                if reservation["lifecycle"]["status"] == "consumed"
+                else active_generation_lifecycle()
+            )
+            if grant["lifecycle"] != expected:
+                raise AggregateStateError("generation grant lifecycle does not match its durable reservation")
+
+    def _validate_generation_grant_preparation(self, event: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_generation import validate_generation_grant
+
+        before, after, metadata = event["before_state"], event["after_state"], event["metadata"]
+        if not isinstance(metadata, dict) or set(metadata) != {"case_id", "grant_sha256", "evidence_binding_sha256"}:
+            raise AggregateStateError("generation grant preparation metadata is not exact")
+        case_id = metadata["case_id"]
+        evidence = before["reviewed_preflight_evidence"].get(case_id)
+        if case_id in EMPTY_CASE_IDS:
+            raise AggregateStateError("deterministic case cannot receive generation authority")
+        if case_id not in AI_CASE_ORDER:
+            raise AggregateStateError("generation grant target is not a frozen AI case")
+        if before["next_case_id"] != case_id:
+            raise AggregateStateError("generation grant must target the exact current AI case")
+        if (evidence is None or case_id in before["generation_grants"]
+                or before["cases"][case_id]["coordination_status"] != "untouched"):
+            raise AggregateStateError("generation grant requires exact next-case reviewed preflight evidence")
+        grant = after["generation_grants"].get(case_id)
+        validate_generation_grant(grant, case_id, before["ai_case_envelopes"][case_id], evidence)
+        if (metadata["grant_sha256"] != grant["grant_sha256"]
+                or metadata["evidence_binding_sha256"] != evidence["evidence_binding_sha256"]
+                or event["occurred_at"] != grant["immutable_binding"]["activated_at"]):
+            raise AggregateStateError("generation grant event identity mismatch")
+        expected = json.loads(canonical_json(before))
+        expected["generation_grants"][case_id] = grant
+        expected["history_count"] = after["history_count"]
+        expected["history_head_sha256"] = after["history_head_sha256"]
+        if after != expected:
+            raise AggregateStateError("generation grant preparation mutated prohibited state")
+
+    def _validate_generation_budget_reservation_event(self, event: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_generation import (
+            active_generation_lifecycle, prepared_generation_lifecycle,
+        )
+
+        before, after, metadata = event["before_state"], event["after_state"], event["metadata"]
+        if not isinstance(metadata, dict) or set(metadata) != {"case_id", "grant_sha256", "reservation_sha256", "phase"}:
+            raise AggregateStateError("generation budget reservation metadata is not exact")
+        case_id = metadata["case_id"]
+        key = f"{case_id}:generation"
+        grant = before["generation_grants"].get(case_id)
+        reservation = after["provider_budget_reservations"].get(key)
+        if (metadata["phase"] != "generation" or before["next_case_id"] != case_id
+                or grant is None or grant["lifecycle"] != prepared_generation_lifecycle()
+                or key in before["provider_budget_reservations"] or reservation is None):
+            raise AggregateStateError("generation budget reservation preconditions are not satisfied")
+        validate_reservation(reservation, grant, before["ai_case_envelopes"][case_id])
+        if (metadata["grant_sha256"] != grant["grant_sha256"]
+                or metadata["reservation_sha256"] != reservation["reservation_sha256"]
+                or event["occurred_at"] != reservation["immutable_binding"]["reserved_at"]):
+            raise AggregateStateError("generation budget reservation identity mismatch")
+        expected = json.loads(canonical_json(before))
+        expected["provider_budget_reservations"][key] = reservation
+        expected["generation_grants"][case_id]["lifecycle"] = active_generation_lifecycle()
+        self._set_derived_budget(expected)
+        expected["history_count"] = after["history_count"]
+        expected["history_head_sha256"] = after["history_head_sha256"]
+        if after != expected:
+            raise AggregateStateError("generation budget reservation mutated prohibited state")
+        self._validate_budget_state(after)
+
+    def _prepare_generation_grant_from_reviewed_evidence(self) -> dict[str, object]:
+        """Internal seam; production has no operation that can create its prerequisite evidence."""
+        from v4_formal_evaluation_live_generation import (
+            generation_grant_is_expired,
+        )
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=True, recover_projection=True)
+            case_id = state["next_case_id"]
+            evidence = state["reviewed_preflight_evidence"].get(case_id)
+            if evidence is None:
+                raise AggregateStateError("generation preparation is fail-closed without reviewed preflight evidence")
+            existing = state["generation_grants"].get(case_id)
+            if existing is not None:
+                candidate = self._build_generation_grant_candidate(
+                    case_id, state["ai_case_envelopes"][case_id], evidence,
+                    parse_time(existing["immutable_binding"]["activated_at"]),
+                )
+                if (
+                    candidate["grant_sha256"] != existing["grant_sha256"]
+                    or candidate["immutable_binding"] != existing["immutable_binding"]
+                ):
+                    raise AggregateStateError("conflicting generation grant preparation is prohibited")
+                if not generation_grant_is_expired(existing, self.clock()):
+                    return dict(state)
+                raise AggregateStateError("expired generation grant cannot be replaced; zero retries")
+            occurred_at = self.clock()
+            grant = self._build_generation_grant_candidate(
+                case_id, state["ai_case_envelopes"][case_id], evidence, occurred_at)
+            after = json.loads(canonical_json(state))
+            after["generation_grants"][case_id] = grant
+            event = self._make_event(state, after, "generation_grant_prepared", {
+                "case_id": case_id, "grant_sha256": grant["grant_sha256"],
+                "evidence_binding_sha256": evidence["evidence_binding_sha256"],
+            }, occurred_at=occurred_at)
+            journal = self._read_journal(); journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def _build_generation_grant_candidate(
+        self, case_id: str, envelope: Mapping[str, object],
+        evidence: Mapping[str, object], activated_at: datetime,
+    ) -> dict[str, object]:
+        """Narrow override seam for conflict tests; production uses the exact builder."""
+        from v4_formal_evaluation_live_generation import build_generation_grant
+
+        return build_generation_grant(case_id, envelope, evidence, activated_at)
+
+    def _authorize_generation_budget(self) -> dict[str, object]:
+        """Internal offline seam; no dispatch or execution authority is created."""
+        from v4_formal_evaluation_live_generation import (
+            active_generation_lifecycle, generation_grant_is_expired,
+            prepared_generation_lifecycle,
+        )
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=True, recover_projection=True)
+            case_id = state["next_case_id"]
+            grant = state["generation_grants"].get(case_id)
+            key = f"{case_id}:generation"
+            existing = state["provider_budget_reservations"].get(key)
+            if existing is not None:
+                candidate = self._build_generation_reservation_candidate(
+                    grant, state["ai_case_envelopes"][case_id],
+                    existing["immutable_binding"]["reserved_at"],
+                )
+                if (
+                    candidate["reservation_sha256"] != existing["reservation_sha256"]
+                    or candidate["immutable_binding"] != existing["immutable_binding"]
+                ):
+                    raise AggregateStateError("conflicting generation reservation is prohibited")
+                if existing["lifecycle"]["status"] == "reserved" and grant["lifecycle"] == active_generation_lifecycle():
+                    return dict(state)
+                raise AggregateStateError("generation reservation cannot be replaced")
+            if grant is None or grant["lifecycle"] != prepared_generation_lifecycle() or generation_grant_is_expired(grant, self.clock()):
+                raise AggregateStateError("prepared generation grant is unavailable or expired")
+            accounting = state["budget_accounting"]; aggregate = accounting["aggregate"]
+            case = accounting["cases"][case_id]
+            amount = Decimal(grant["immutable_binding"]["conservative_operation_ceiling_usd"])
+            enforce_generation_capacity(
+                case_reserved=Decimal(case["total_reserved_provider_exposure_usd"]),
+                case_consumed=Decimal(case["total_consumed_provider_exposure_usd"]),
+                aggregate_reserved=Decimal(aggregate["total_provider_exposure_reserved_usd"]),
+                aggregate_consumed=Decimal(aggregate["total_provider_exposure_consumed_usd"]),
+                generations_reserved=aggregate["generations_reserved"],
+                generations_consumed=aggregate["generations_consumed"],
+                requested_amount=amount,
+            )
+            occurred_at = self.clock()
+            reservation = build_generation_reservation(
+                grant, state["ai_case_envelopes"][case_id], format_time(occurred_at))
+            after = json.loads(canonical_json(state))
+            after["provider_budget_reservations"][key] = reservation
+            after["generation_grants"][case_id]["lifecycle"] = active_generation_lifecycle()
+            self._set_derived_budget(after)
+            event = self._make_event(state, after, "generation_budget_reserved", {
+                "case_id": case_id, "grant_sha256": grant["grant_sha256"],
+                "reservation_sha256": reservation["reservation_sha256"], "phase": "generation",
+            }, occurred_at=occurred_at)
+            journal = self._read_journal(); journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def _build_generation_reservation_candidate(
+        self, grant: Mapping[str, object], envelope: Mapping[str, object],
+        reserved_at: str,
+    ) -> dict[str, object]:
+        """Narrow override seam for conflict tests; production uses the exact builder."""
+        return build_generation_reservation(grant, envelope, reserved_at)
+
     def _validate_budget_state(self, state: Mapping[str, object]) -> None:
         reservations = state["provider_budget_reservations"]
-        if not isinstance(reservations, dict) or len(reservations) > 8:
+        if not isinstance(reservations, dict) or len(reservations) > 16:
             raise AggregateStateError("provider budget reservations are malformed")
         try:
             derived = derive_budget_accounting(reservations)
@@ -777,13 +1069,19 @@ class AggregateStore:
             > MAX_TOKEN_PREFLIGHTS
         ):
             raise AggregateStateError("provider preflight operation count exceeds frozen maximum")
-        for case_id, reservation in reservations.items():
-            if case_id not in AI_CASE_ORDER or case_id not in state["preflight_grants"]:
+        if aggregate["generations_reserved"] + aggregate["generations_consumed"] > MAX_GENERATIONS:
+            raise AggregateStateError("provider generation operation count exceeds frozen maximum")
+        for reservation_key, reservation in reservations.items():
+            case_id = reservation["immutable_binding"]["case_id"]
+            phase = reservation["immutable_binding"]["phase"]
+            expected_key = case_id if phase == "preflight" else f"{case_id}:generation"
+            grants = state["preflight_grants"] if phase == "preflight" else state["generation_grants"]
+            if reservation_key != expected_key or case_id not in AI_CASE_ORDER or case_id not in grants:
                 raise AggregateStateError("budget reservation targets an unavailable AI grant")
             try:
                 validate_reservation(
                     reservation,
-                    state["preflight_grants"][case_id],
+                    grants[case_id],
                     state["ai_case_envelopes"][case_id],
                 )
             except (BudgetError, KeyError) as error:

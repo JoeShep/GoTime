@@ -31,15 +31,25 @@ def decimal_money(value: object, field: str) -> Decimal:
         amount = Decimal(value)
     except InvalidOperation as error:
         raise BudgetError(f"{field} is not decimal money") from error
-    if amount.is_nan() or amount.is_infinite() or amount < 0 or value != f"{amount:.2f}":
-        raise BudgetError(f"{field} must be nonnegative canonical cents")
+    canonical = format(amount, "f")
+    if "." not in canonical:
+        canonical += ".00"
+    elif len(canonical.rsplit(".", 1)[1]) < 2:
+        canonical += "0"
+    if amount.is_nan() or amount.is_infinite() or amount < 0 or value != canonical:
+        raise BudgetError(f"{field} must be nonnegative canonical decimal USD")
     return amount
 
 
 def money(value: Decimal) -> str:
-    if value < 0 or value != value.quantize(Decimal("0.01")):
-        raise BudgetError("money value must be nonnegative exact cents")
-    return f"{value:.2f}"
+    if value.is_nan() or value.is_infinite() or value < 0:
+        raise BudgetError("money value must be nonnegative exact decimal USD")
+    rendered = format(value, "f")
+    if "." not in rendered:
+        return rendered + ".00"
+    whole, fraction = rendered.split(".")
+    fraction = fraction.rstrip("0")
+    return f"{whole}.{fraction.ljust(2, '0')}"
 
 
 def reservation_identity(reservation: Mapping[str, object]) -> str:
@@ -100,6 +110,51 @@ def build_preflight_reservation(
     return reservation
 
 
+def build_generation_reservation(
+    grant: Mapping[str, object],
+    envelope: Mapping[str, object],
+    reserved_at: str,
+) -> dict[str, object]:
+    binding = grant["immutable_binding"]
+    case_id = binding["case_id"]
+    amount = binding["conservative_operation_ceiling_usd"]
+    if case_id not in AI_CASE_ORDER or envelope["envelope_sha256"] != binding["case_envelope_sha256"]:
+        raise BudgetError("generation reservation target is not the exact AI grant envelope")
+    if binding["phase"] != "generation" or binding["per_case_provider_ceiling_usd"] != PER_CASE_PROVIDER_CEILING_USD:
+        raise BudgetError("generation reservation policy binding mismatch")
+    decimal_money(amount, "generation reservation amount")
+    immutable = {
+        "aggregate_id": AGGREGATE_ID,
+        "aggregate_package_sha256": package_identity(),
+        "case_id": case_id,
+        "case_envelope_sha256": envelope["envelope_sha256"],
+        "prepared_grant_sha256": grant["grant_sha256"],
+        "phase": "generation",
+        "reservation_amount_usd": amount,
+        "operation_count": 1,
+        "reserved_at": reserved_at,
+        "maximum_retries": MAX_RETRIES,
+        "single_use": True,
+        "per_case_provider_ceiling_usd": PER_CASE_PROVIDER_CEILING_USD,
+        "aggregate_provider_ceiling_usd": AGGREGATE_PROVIDER_CEILING_USD,
+    }
+    reservation = {
+        "reservation_schema": BUDGET_RESERVATION_SCHEMA,
+        "reservation_version": BUDGET_RESERVATION_VERSION,
+        "reservation_sha256": "",
+        "immutable_binding": immutable,
+        "lifecycle": {
+            "status": "reserved", "provider_dispatch_status": "not_started",
+            "attempt_consumed": False, "consumed_amount_usd": ZERO_MONEY,
+            "consumed_operation_count": 0, "dispatch_started_at": None,
+            "released_amount_usd": ZERO_MONEY, "release_reason": None,
+            "released_at": None,
+        },
+    }
+    reservation["reservation_sha256"] = reservation_identity(reservation)
+    return reservation
+
+
 def validate_reservation(
     reservation: object,
     grant: Mapping[str, object],
@@ -108,9 +163,10 @@ def validate_reservation(
     if not isinstance(reservation, dict):
         raise BudgetError("budget reservation is malformed")
     try:
-        expected = build_preflight_reservation(
-            grant, envelope, reservation["immutable_binding"]["reserved_at"],
-        )
+        builder = (build_preflight_reservation
+                   if grant["immutable_binding"]["phase"] == "preflight"
+                   else build_generation_reservation)
+        expected = builder(grant, envelope, reservation["immutable_binding"]["reserved_at"])
         lifecycle = reservation["lifecycle"]
     except (KeyError, TypeError) as error:
         raise BudgetError("budget reservation is malformed") from error
@@ -180,8 +236,8 @@ def derive_budget_accounting(
     }
     reserved_total = Decimal("0.00")
     consumed_total = Decimal("0.00")
-    reserved_preflights = 0
-    consumed_preflights = 0
+    reserved_preflights = consumed_preflights = 0
+    reserved_generations = consumed_generations = 0
     for reservation in reservations.values():
         binding, lifecycle = reservation["immutable_binding"], reservation["lifecycle"]
         case_id = binding["case_id"]
@@ -191,14 +247,25 @@ def derive_budget_accounting(
         reserved = amount - consumed if active else Decimal("0.00")
         reserved_total += reserved
         consumed_total += consumed
-        reserved_preflights += binding["operation_count"] if active else 0
-        consumed_preflights += lifecycle["consumed_operation_count"]
-        cases[case_id]["reserved_preflight_exposure_usd"] = money(reserved)
-        cases[case_id]["consumed_preflight_exposure_usd"] = money(consumed)
-        cases[case_id]["total_reserved_provider_exposure_usd"] = money(reserved)
-        cases[case_id]["total_consumed_provider_exposure_usd"] = money(consumed)
+        phase = binding["phase"]
+        if phase == "preflight":
+            reserved_preflights += binding["operation_count"] if active else 0
+            consumed_preflights += lifecycle["consumed_operation_count"]
+        elif phase == "generation":
+            reserved_generations += binding["operation_count"] if active else 0
+            consumed_generations += lifecycle["consumed_operation_count"]
+        else:
+            raise BudgetError("budget reservation phase is unavailable")
+        cases[case_id][f"reserved_{phase}_exposure_usd"] = money(
+            Decimal(cases[case_id][f"reserved_{phase}_exposure_usd"]) + reserved)
+        cases[case_id][f"consumed_{phase}_exposure_usd"] = money(
+            Decimal(cases[case_id][f"consumed_{phase}_exposure_usd"]) + consumed)
+        case_reserved = sum(Decimal(cases[case_id][f"reserved_{item}_exposure_usd"]) for item in ("preflight", "generation"))
+        case_consumed = sum(Decimal(cases[case_id][f"consumed_{item}_exposure_usd"]) for item in ("preflight", "generation"))
+        cases[case_id]["total_reserved_provider_exposure_usd"] = money(case_reserved)
+        cases[case_id]["total_consumed_provider_exposure_usd"] = money(case_consumed)
         cases[case_id]["remaining_provider_capacity_usd"] = money(
-            Decimal(PER_CASE_PROVIDER_CEILING_USD) - reserved - consumed
+            Decimal(PER_CASE_PROVIDER_CEILING_USD) - case_reserved - case_consumed
         )
     return {
         "cases": cases,
@@ -210,8 +277,8 @@ def derive_budget_accounting(
             ),
             "token_preflights_reserved": reserved_preflights,
             "token_preflights_consumed": consumed_preflights,
-            "generations_reserved": 0,
-            "generations_consumed": 0,
+            "generations_reserved": reserved_generations,
+            "generations_consumed": consumed_generations,
             "retries": 0,
         },
     }
@@ -239,3 +306,23 @@ def enforce_prospective_capacity(
         raise BudgetError("prospective reservation exceeds the preflight operation maximum")
     if MAX_GENERATIONS != 8 or MAX_RETRIES != 0:
         raise BudgetError("frozen generation or retry policy mismatch")
+
+
+def enforce_generation_capacity(
+    *, case_reserved: Decimal, case_consumed: Decimal,
+    aggregate_reserved: Decimal, aggregate_consumed: Decimal,
+    generations_reserved: int, generations_consumed: int,
+    requested_amount: Decimal, requested_count: int = 1,
+) -> None:
+    values = (case_reserved, case_consumed, aggregate_reserved, aggregate_consumed, requested_amount)
+    if any(value < 0 for value in values) or requested_count != 1:
+        raise BudgetError("prospective generation accounting inputs are invalid")
+    if case_reserved + case_consumed + requested_amount > Decimal(PER_CASE_PROVIDER_CEILING_USD):
+        raise BudgetError("prospective generation reservation exceeds the per-case provider ceiling")
+    if aggregate_reserved + aggregate_consumed + requested_amount > Decimal(AGGREGATE_PROVIDER_CEILING_USD):
+        raise BudgetError("prospective generation reservation exceeds the aggregate provider ceiling")
+    if (generations_reserved < 0 or generations_consumed < 0
+            or generations_reserved + generations_consumed + requested_count > MAX_GENERATIONS):
+        raise BudgetError("prospective generation reservation exceeds the generation operation maximum")
+    if MAX_RETRIES != 0:
+        raise BudgetError("frozen retry policy mismatch")

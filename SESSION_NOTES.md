@@ -1,5 +1,45 @@
 # Session Notes
 
+## Architecture A Milestone 7
+
+- Began fresh from committed reconciliation `5117e442ad735b4c8409b6da3883a64bcc9aa01b`.
+- Added the version-1 generation grant and phase-generic reservation accounting
+  with exact Decimal exposure and an independent generation-slot invariant.
+- Fixed-time case-01 grant is
+  `b8eeaa9ed4fa16037cb2fa6e0ce2588cebe75ec3152e6676e9dc249b3f3c95f8`;
+  reservation is `80cea3386b18852029fa814d2022e7642b9cd4e978abf8695d04d148fadfae49`.
+- Verified `$0.0019408` exposure, `$0.0280592` case remainder, and `$0.2380592`
+  aggregate remainder after corrected zero-dollar preflight consumption.
+- Production generation preparation is fail-closed until retained preflight
+  evidence/review exists. Synthetic evidence is confined to a test subclass
+  whose operations production replay rejects.
+- Corrected cost provenance so the 500-token output bound comes from the exact
+  frozen-v4 request configuration embedded in the envelope, with no independent
+  Milestone 7 policy literal. Fixed grant and reservation digests are unchanged.
+- Added replay-valid retained consumed-generation fixtures for 8/0, 7/1, 4/4,
+  and 0/8 combinations plus fully rehashed targeting, evidence, authority,
+  prior-record, and preflight-history attacks. Production has no generation
+  consumption operation and failed preparation is durably side-effect free.
+- Added explicit immutable-history retention for complete prior generation
+  evidence/grant/reservation records and dispatch-consumed preflight grant and
+  reservation identities. Fully reconciled deletion/replacement attacks fail
+  on those invariants, and narrow test-only candidate overrides prove exact
+  reruns are event-free while conflicting reruns leave state/history unchanged.
+- Recorded the human decision `retain_ADR_0005_threat_model`: these retention
+  guarantees are relative to the retained authoritative journal head. Total
+  internally consistent replacement of earlier history, its suffix, the
+  retained head/projection, and all unkeyed hashes is outside scope. Detecting
+  that stronger hostile-filesystem attack would require a separately trusted
+  anchor and is intentionally deferred, not missing Milestone 7 behavior.
+- No public command, provider/SDK/client/network/credential path, generation
+  dispatch, Milestone 8, or Milestone 9 behavior was added.
+- Corrected validation passed: 17 Milestone 7 tests, 202 focused Milestones
+  1–7 tests, 1,218 full offline tests with 18 skipped, 148 backend tests, 17
+  frontend tests, TypeScript, temporary-directory frontend build, read-only
+  Python/JSON/TOML validation, and frozen foundation verification.
+- Build-vs-adopt remains `defer_adoption`; reassessment remains after committed
+  Milestone 9 and before Milestone 10.
+
 ## Frozen-v4 budget-policy reconciliation
 
 - Completed a design-only lineage review after Milestone 7 stopped on
