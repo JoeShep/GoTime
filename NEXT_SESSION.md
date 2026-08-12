@@ -1,5 +1,18 @@
 # NEXT_SESSION
 
+## Frozen-v4 budget-policy reconciliation
+
+The approved reconciliation is implemented as a focused Milestones 4–6
+correction and awaits human diff review. Preflight now reserves `$0.00`
+monetary exposure plus one operation slot; dispatch irreversibly consumes that
+slot while monetary exposure remains zero. The corrected case-01 grant digest
+is `757155c6427132e8ca3a5bdd37a0c3a93adfb0fb386684f403b1940fe0ca0913`
+and reservation digest is
+`8edf28f8378a97796b197bdcb0d0b5bc64b59fbcb2260d5627e313c87c4daec0`.
+The `$0.03` case ceiling, `$0.24` aggregate ceiling, frozen identities, and
+irreversible attempt semantics are unchanged. Milestone 7 remains blocked
+until this correction is reviewed and committed.
+
 ## Architecture A Milestone 6 dispatch-consumption boundary
 
 Milestone 6 now records offline `provider_dispatch_started` as the exact
@@ -22,8 +35,10 @@ version 1, uses `provider_budget_reserved` and proven-unused
 `provider_budget_released`. The fixed case-01 reservation digest is
 `cbc71820cc3d801a09d90dedb0b279882bccae85da8dd482651a64f6eb1a462a`.
 
-The first reservation consumes one reserved preflight slot and `$0.03` of
-prospective capacity, leaving `$0.00` for case 01 and `$0.21` aggregate
+The historical interpretation reserved one preflight slot and `$0.03` of
+prospective capacity. The approved reconciliation supersedes it: the current
+reservation uses one
+slot and `$0.00`, leaving `$0.03` for case 01 and `$0.24` aggregate monetary
 capacity. Exact rerun is event-free. Expired unused capacity returns only with
 durable `not_started` dispatch proof. Scoped preflight budget/grant authority
 is true, while provider, execution, generation, dispatch, retry, and generic

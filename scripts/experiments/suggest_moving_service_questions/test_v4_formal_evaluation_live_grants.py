@@ -75,11 +75,14 @@ def test_exact_next_case_candidate_is_reproducible_bound_and_non_authoritative(g
     assert grant == build_preflight_grant("eval-v4-01", envelope, clock.now)
     assert grant["grant_schema"] == PREFLIGHT_GRANT_SCHEMA
     assert grant["grant_version"] == PREFLIGHT_GRANT_VERSION
+    assert grant["grant_sha256"] == "757155c6427132e8ca3a5bdd37a0c3a93adfb0fb386684f403b1940fe0ca0913"
     assert PREFLIGHT_GRANT_STATES == ("prepared", "active", "consumed", "expired", "closed")
     assert grant["immutable_binding"]["case_envelope_sha256"] == envelope["envelope_sha256"]
     assert grant["immutable_binding"]["phase"] == "preflight"
-    assert grant["immutable_binding"]["conservative_operation_ceiling_usd"] == live_models.PER_CASE_PROVIDER_CEILING_USD
+    assert grant["immutable_binding"]["conservative_operation_ceiling_usd"] == live_models.PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD
     assert grant["immutable_binding"]["per_case_provider_ceiling_usd"] == live_models.PER_CASE_PROVIDER_CEILING_USD
+    assert live_models.PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD == "0.00"
+    assert live_models.PER_CASE_PROVIDER_CEILING_USD == "0.03"
     assert grant["lifecycle"] == {
         "status": "prepared", "attempt_status": "unused",
         "budget_authorization": "unavailable_milestone_5",
@@ -90,7 +93,7 @@ def test_exact_next_case_candidate_is_reproducible_bound_and_non_authoritative(g
     assert set(first["counters"].values()) == {0, "0.00"}
 
 
-def test_grant_runtime_has_one_canonical_frozen_ceiling_source():
+def test_grant_runtime_separates_canonical_preflight_exposure_from_case_ceiling():
     source = (Path(__file__).parent / "v4_formal_evaluation_live_grants.py").read_text()
     tree = ast.parse(source)
     string_literals = {
@@ -98,7 +101,9 @@ def test_grant_runtime_has_one_canonical_frozen_ceiling_source():
         if isinstance(node, ast.Constant) and isinstance(node.value, str)
     }
     assert "0.03" not in string_literals
-    assert source.count("live_models.PER_CASE_PROVIDER_CEILING_USD") == 2
+    assert "0.00" not in string_literals
+    assert source.count("live_models.PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD") == 1
+    assert source.count("live_models.PER_CASE_PROVIDER_CEILING_USD") == 1
 
 
 def test_deterministic_and_arbitrary_case_targets_are_rejected():

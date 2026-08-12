@@ -1,5 +1,31 @@
 # Session Notes
 
+## Frozen-v4 budget-policy reconciliation
+
+- Completed a design-only lineage review after Milestone 7 stopped on
+  `budget_policy_conflict`.
+- Found that `$0.03` originated as a hard per-call guardrail, was later refined
+  into an inclusive Architecture A per-case ceiling, and was then used under
+  the approved interpretation as the token-preflight operation amount.
+- Implemented the approved recommendation while retaining `$0.03` per case and
+  `$0.24` aggregate: the frozen no-separate-fee preflight now has `$0.00`
+  monetary exposure plus one irreversible operation slot.
+- Corrected the case-01 synthetic grant digest from historical `4fd481a5...`
+  to `757155c6...` and reservation digest from historical `cbc71820...` to
+  `8edf28f8...`; aggregate/envelope/frozen identities remain unchanged.
+- Updated reservation, release, dispatch, multi-case, crash/replay, and
+  irreversible-history proofs so operation-slot safety is independent of
+  positive dollar exposure. Case-01 generation headroom `$0.0019408 <= $0.03`
+  is verified without implementing generation grants.
+- No frozen artifact, provider action, credential/client/network path, or
+  public command changed. Milestone 7 remains blocked pending review and
+  commit of this focused correction.
+- Validation passed: 143 focused grant/budget/dispatch/state tests, 185 focused
+  Milestones 1–6 tests, 1,201 full offline tests with 18 skipped, 148 backend
+  tests, 17 frontend tests, TypeScript, temporary-directory frontend build,
+  Python compilation, JSON/TOML parsing, frozen-v4 verification, and the exact
+  ten-command rehearsal.
+
 ## Architecture A Milestone 6 dispatch-consumption boundary
 
 - Added exact persisted `provider_dispatch_started` semantics bound to the
@@ -29,8 +55,10 @@
   crash recovery.
 - The fixed case-01 reservation digest is
   `cbc71820cc3d801a09d90dedb0b279882bccae85da8dd482651a64f6eb1a462a`.
-  It reserves one preflight and `$0.03`, leaving `$0.00` case and `$0.21`
-  aggregate capacity.
+  That is the historical pre-reconciliation digest. The corrected current
+  digest is `8edf28f8378a97796b197bdcb0d0b5bc64b59fbcb2260d5627e313c87c4daec0`;
+  it reserves one preflight slot and `$0.00`, leaving `$0.03` case and `$0.24`
+  aggregate monetary capacity.
 - Release requires an expired grant plus durable `dispatch_status=not_started`
   proof. No dispatch event, consumption, generation grant, retry, credential,
   provider client/request, or network capability was added.

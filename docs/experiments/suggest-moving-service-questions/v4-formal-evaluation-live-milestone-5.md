@@ -10,11 +10,17 @@ version 1. The exact history operations are `provider_budget_reserved` and
 
 For the fixed synthetic time `2026-08-10T12:00:00Z`, the first case-01
 reservation digest is
-`cbc71820cc3d801a09d90dedb0b279882bccae85da8dd482651a64f6eb1a462a`.
+`8edf28f8378a97796b197bdcb0d0b5bc64b59fbcb2260d5627e313c87c4daec0`.
 Its immutable identity binds the aggregate/package, exact case and envelope,
 prepared grant digest, preflight phase, one operation, zero retries, exact
-reservation time, `$0.03` reservation amount, `$0.03` case ceiling, and `$0.24`
+reservation time, `$0.00` preflight monetary amount, `$0.03` case ceiling, and `$0.24`
 aggregate ceiling. Credentials and mutable lifecycle state are excluded.
+
+The historical digest
+`cbc71820cc3d801a09d90dedb0b279882bccae85da8dd482651a64f6eb1a462a`
+bound a `$0.03` preflight reservation under the then-approved interpretation.
+The corrected reservation remains mandatory because it reserves one operation
+slot and exact grant authorization even though its monetary amount is zero.
 
 ## Exact arithmetic and prospective rules
 
@@ -38,8 +44,10 @@ provider, or model override.
 
 The first reservation targets the derived next case `eval-v4-01` and reuses
 its exact prepared grant and immutable envelope. It prospectively reserves one
-preflight slot and `$0.03`, leaving `$0.00` case capacity and `$0.21` aggregate
-capacity. Deterministic cases and non-next AI cases are ineligible.
+preflight operation slot and `$0.00` monetary exposure, leaving `$0.03` case
+capacity and `$0.24` aggregate capacity. Deterministic cases and non-next AI
+cases are ineligible. Dollar checks and operation-count checks remain separate;
+a zero-dollar reservation cannot bypass the eight-preflight maximum.
 
 Grant and reservation collections retain at most one exact record for each of
 the eight AI cases. A later next-case event adds its grant and reservation
@@ -86,8 +94,9 @@ Release requires all of the following durable facts:
 - the reservation still has zero consumed exposure; and
 - the proof/reason is `expired_unused_dispatch_not_started`.
 
-The full reserved amount and one reserved operation slot then return to
-available capacity; consumed exposure remains zero. Release before expiry,
+The `$0.00` monetary amount and one reserved operation slot then return to
+available capacity; consumed monetary exposure remains zero. Release remains
+meaningful because it restores the operation slot. Release before expiry,
 release with ambiguous dispatch state, over-release, negative accounting, or
 replacement after release fails closed.
 
@@ -107,8 +116,8 @@ Because runtime AI case closure belongs to later milestones, multi-case
 progression tests use a test-only `AggregateStore` subclass with an explicitly
 synthetic case-advance history operation. Production replay does not recognize
 that operation. The fixture proves that case 01's released record survives a
-case 02 reservation, that all eight distinct case reservations coexist at the
-exact `$0.24`/eight-slot boundary, and that a fully rehashed ninth-count attack
+case 02 reservation, that all eight distinct case reservations coexist with
+eight operation slots and `$0.00` preflight monetary exposure, and that a fully rehashed ninth-count attack
 fails. It does not implement dispatch, consumption, or a public advancement
 path.
 

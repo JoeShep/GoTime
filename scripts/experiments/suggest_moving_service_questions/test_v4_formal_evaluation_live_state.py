@@ -504,8 +504,8 @@ def test_public_command_inventory_and_exact_offline_rehearsal(tmp_path):
     assert all(inspected["cases"][case_id]["coordination_status"] == "terminal" for case_id in EMPTY_CASE_IDS)
     assert all(inspected["cases"][case_id]["coordination_status"] == "untouched" for case_id in AI_CASE_ORDER)
     assert authorized["counters"]["token_preflights_reserved"] == 1
-    assert authorized["counters"]["provider_spend_reserved_usd"] == "0.03"
-    assert inspected["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.21"
+    assert authorized["counters"]["provider_spend_reserved_usd"] == "0.00"
+    assert inspected["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.24"
     assert inspected["immutable_package"]["budget_policy"]["spending_authorized"] is False
 
 

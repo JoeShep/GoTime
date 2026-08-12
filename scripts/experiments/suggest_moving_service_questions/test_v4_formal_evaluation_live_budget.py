@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import json
 import socket
+import tomllib
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -24,6 +25,7 @@ from v4_formal_evaluation_live_grants import (
 from v4_formal_evaluation_live_models import (
     AGGREGATE_PROVIDER_CEILING_USD, MAX_GENERATIONS, MAX_RETRIES,
     MAX_TOKEN_PREFLIGHTS, PER_CASE_PROVIDER_CEILING_USD,
+    PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD,
 )
 from v4_formal_evaluation_live_cli import parser
 from v4_formal_evaluation_live_state import AggregateStateError, AggregateStore, _event_digest
@@ -135,6 +137,7 @@ def test_canonical_budget_policy_and_decimal_arithmetic():
     assert MAX_RETRIES == 0
     assert PER_CASE_PROVIDER_CEILING_USD == "0.03"
     assert AGGREGATE_PROVIDER_CEILING_USD == "0.24"
+    assert PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD == "0.00"
     assert Decimal(PER_CASE_PROVIDER_CEILING_USD) * 8 == Decimal(AGGREGATE_PROVIDER_CEILING_USD)
     source = (Path(__file__).parent / "v4_formal_evaluation_live_budget.py").read_text()
     assert "float(" not in source
@@ -159,8 +162,8 @@ def test_first_exact_reservation_is_reproducible_scoped_and_idempotent(budget_re
     assert reservation["reservation_schema"] == BUDGET_RESERVATION_SCHEMA
     assert reservation["reservation_version"] == BUDGET_RESERVATION_VERSION
     assert reservation["reservation_sha256"] == reservation_identity(reservation)
-    assert reservation["reservation_sha256"] == "cbc71820cc3d801a09d90dedb0b279882bccae85da8dd482651a64f6eb1a462a"
-    assert reservation["immutable_binding"]["reservation_amount_usd"] == "0.03"
+    assert reservation["reservation_sha256"] == "8edf28f8378a97796b197bdcb0d0b5bc64b59fbcb2260d5627e313c87c4daec0"
+    assert reservation["immutable_binding"]["reservation_amount_usd"] == "0.00"
     assert reservation["immutable_binding"]["operation_count"] == 1
     assert grant["lifecycle"] == budget_authorized_lifecycle()
     assert first["provider_authority"] is False
@@ -168,10 +171,10 @@ def test_first_exact_reservation_is_reproducible_scoped_and_idempotent(budget_re
     assert first["counters"] == {
         "token_preflights_consumed": 0, "token_preflights_reserved": 1,
         "generations_consumed": 0, "generations_reserved": 0, "retries": 0,
-        "provider_spend_reserved_usd": "0.03", "provider_spend_consumed_usd": "0.00",
+        "provider_spend_reserved_usd": "0.00", "provider_spend_consumed_usd": "0.00",
     }
-    assert first["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.21"
-    assert first["budget_accounting"]["cases"]["eval-v4-01"]["remaining_provider_capacity_usd"] == "0.00"
+    assert first["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.24"
+    assert first["budget_accounting"]["cases"]["eval-v4-01"]["remaining_provider_capacity_usd"] == "0.03"
 
 
 def test_released_case_01_and_reserved_case_02_coexist_in_authoritative_history(tmp_path):
@@ -190,10 +193,31 @@ def test_released_case_01_and_reserved_case_02_coexist_in_authoritative_history(
     assert case_02_reserved["provider_budget_reservations"]["eval-v4-01"]["lifecycle"]["status"] == "released"
     assert case_02_reserved["provider_budget_reservations"]["eval-v4-02"]["lifecycle"]["status"] == "reserved"
     assert case_02_reserved["counters"]["token_preflights_reserved"] == 1
-    assert case_02_reserved["counters"]["provider_spend_reserved_usd"] == "0.03"
+    assert case_02_reserved["counters"]["provider_spend_reserved_usd"] == "0.00"
     assert case_02_reserved["budget_accounting"]["cases"]["eval-v4-01"]["remaining_provider_capacity_usd"] == "0.03"
-    assert case_02_reserved["budget_accounting"]["cases"]["eval-v4-02"]["remaining_provider_capacity_usd"] == "0.00"
+    assert case_02_reserved["budget_accounting"]["cases"]["eval-v4-02"]["remaining_provider_capacity_usd"] == "0.03"
     assert SequentialBudgetStore(store.root, clock).load() == case_02_reserved
+
+
+def test_frozen_preflight_fee_source_and_generation_headroom_are_consistent(tmp_path):
+    root = Path(__file__).resolve().parents[3]
+    pricing = tomllib.loads(
+        (root / "docs/experiments/suggest-moving-service-questions/v1/openai-run-configuration.toml").read_text()
+    )["pricing"]
+    assert pricing["token_counting_fee"] == "no_separate_fee_documented_as_of_2026-07-30"
+    assert pricing["request_or_platform_fee"] == "no_separate_fee_documented_as_of_2026-07-30"
+    assert PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD == "0.00"
+
+    store, _ = _make_budget_ready(tmp_path)
+    store.authorize_preflight_budget()
+    dispatched = store.record_provider_dispatch_started()
+    case = dispatched["budget_accounting"]["cases"]["eval-v4-01"]
+    assert case["consumed_preflight_exposure_usd"] == "0.00"
+    assert Decimal(case["remaining_provider_capacity_usd"]) == Decimal("0.03")
+    generation_ceiling = Decimal("0.0019408")
+    assert Decimal(case["consumed_preflight_exposure_usd"]) + generation_ceiling <= Decimal(
+        PER_CASE_PROVIDER_CEILING_USD
+    )
 
 
 def test_all_eight_authoritative_reservations_coexist_and_rehashed_ninth_slot_fails(tmp_path):
@@ -208,8 +232,8 @@ def test_all_eight_authoritative_reservations_coexist_and_rehashed_ninth_slot_fa
 
     assert len(state["preflight_grants"]) == len(state["provider_budget_reservations"]) == 8
     assert state["counters"]["token_preflights_reserved"] == 8
-    assert state["counters"]["provider_spend_reserved_usd"] == "0.24"
-    assert state["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.00"
+    assert state["counters"]["provider_spend_reserved_usd"] == "0.00"
+    assert state["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.24"
 
     def ninth_counted_slot(event, after):
         reservation = after["provider_budget_reservations"]["eval-v4-10"]
@@ -289,7 +313,7 @@ def test_case_02_reservation_history_crash_recovers_both_case_records(tmp_path):
     assert recovered["provider_budget_reservations"]["eval-v4-01"]["lifecycle"]["status"] == "released"
     assert recovered["provider_budget_reservations"]["eval-v4-02"]["lifecycle"]["status"] == "reserved"
     assert recovered["counters"]["token_preflights_reserved"] == 1
-    assert recovered["counters"]["provider_spend_reserved_usd"] == "0.03"
+    assert recovered["counters"]["provider_spend_reserved_usd"] == "0.00"
 
 
 @pytest.mark.parametrize(
@@ -381,7 +405,7 @@ def test_release_requires_expired_grant_and_restores_only_reserved_capacity(budg
     lifecycle = released["provider_budget_reservations"]["eval-v4-01"]["lifecycle"]
     assert lifecycle["status"] == "released"
     assert lifecycle["provider_dispatch_status"] == "not_started"
-    assert lifecycle["released_amount_usd"] == "0.03"
+    assert lifecycle["released_amount_usd"] == "0.00"
     assert lifecycle["consumed_amount_usd"] == "0.00"
     assert released["counters"]["token_preflights_reserved"] == 0
     assert released["counters"]["provider_spend_reserved_usd"] == "0.00"
@@ -420,7 +444,7 @@ def test_fully_rehashed_budget_reservation_attacks_fail(budget_ready, mutation):
     def mutate(event, after):
         reservation = after["provider_budget_reservations"].pop("eval-v4-01")
         binding, lifecycle = reservation["immutable_binding"], reservation["lifecycle"]
-        if mutation == "amount": binding["reservation_amount_usd"] = "0.02"
+        if mutation == "amount": binding["reservation_amount_usd"] = "0.01"
         elif mutation == "case": binding["case_id"] = "eval-v4-02"
         elif mutation == "grant": binding["prepared_grant_sha256"] = "0" * 64
         elif mutation == "phase": binding["phase"] = "generation"
@@ -430,7 +454,7 @@ def test_fully_rehashed_budget_reservation_attacks_fail(budget_ready, mutation):
         elif mutation == "envelope": binding["case_envelope_sha256"] = "0" * 64
         elif mutation == "negative": binding["reservation_amount_usd"] = "-0.01"
         elif mutation == "released_over":
-            lifecycle.update(status="released", released_amount_usd="0.04", release_reason="expired_unused_dispatch_not_started", released_at=event["occurred_at"])
+            lifecycle.update(status="released", released_amount_usd="0.01", release_reason="expired_unused_dispatch_not_started", released_at=event["occurred_at"])
         elif mutation == "deterministic": binding["case_id"] = "eval-v4-07"
         elif mutation == "future_case": binding["case_id"] = "eval-v4-02"
         reservation["reservation_sha256"] = reservation_identity(reservation)
@@ -504,7 +528,7 @@ def test_crash_after_reservation_history_recovers_without_double_count(budget_re
     recovered = AggregateStore(store.root, clock).load()
     assert store.journal_path.read_bytes() == history
     assert recovered["counters"]["token_preflights_reserved"] == 1
-    assert recovered["counters"]["provider_spend_reserved_usd"] == "0.03"
+    assert recovered["counters"]["provider_spend_reserved_usd"] == "0.00"
     assert AggregateStore(store.root, clock).authorize_preflight_budget()["history_count"] == recovered["history_count"]
 
 
@@ -554,7 +578,7 @@ def test_activation_has_no_path_around_exact_reservation_and_derived_accounting(
     store, clock = budget_ready
     state = store.authorize_preflight_budget()
     forged = json.loads(json.dumps(state))
-    forged["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] = "0.24"
+    forged["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] = "0.23"
     with pytest.raises(BudgetAuthorizationUnavailable, match="projection"):
         activate_preflight_grant(
             forged["preflight_grants"]["eval-v4-01"], forged, clock.now,

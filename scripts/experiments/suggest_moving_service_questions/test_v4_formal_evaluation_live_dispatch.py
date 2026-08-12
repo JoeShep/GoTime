@@ -40,7 +40,7 @@ def _rewrite_consumed_as(state, status, occurred_at):
             status="released", provider_dispatch_status="not_started",
             attempt_consumed=False, consumed_amount_usd="0.00",
             consumed_operation_count=0, dispatch_started_at=None,
-            released_amount_usd="0.03",
+            released_amount_usd="0.00",
             release_reason="expired_unused_dispatch_not_started",
             released_at=occurred_at,
         )
@@ -66,7 +66,7 @@ def test_provider_dispatch_started_converts_full_reservation_once(tmp_path):
     reservation = after["provider_budget_reservations"]["eval-v4-01"]
     assert reservation["lifecycle"] == {
         "status": "consumed", "provider_dispatch_status": "started",
-        "attempt_consumed": True, "consumed_amount_usd": "0.03",
+        "attempt_consumed": True, "consumed_amount_usd": "0.00",
         "consumed_operation_count": 1, "dispatch_started_at": "2026-08-10T12:00:00Z",
         "released_amount_usd": "0.00", "release_reason": None, "released_at": None,
     }
@@ -74,9 +74,9 @@ def test_provider_dispatch_started_converts_full_reservation_once(tmp_path):
     assert after["counters"]["token_preflights_reserved"] == 0
     assert after["counters"]["token_preflights_consumed"] == 1
     assert after["counters"]["provider_spend_reserved_usd"] == "0.00"
-    assert after["counters"]["provider_spend_consumed_usd"] == "0.03"
-    assert before["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == after["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.21"
-    assert after["budget_accounting"]["cases"]["eval-v4-01"]["remaining_provider_capacity_usd"] == "0.00"
+    assert after["counters"]["provider_spend_consumed_usd"] == "0.00"
+    assert before["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == after["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.24"
+    assert after["budget_accounting"]["cases"]["eval-v4-01"]["remaining_provider_capacity_usd"] == "0.03"
     assert after["provider_authority"] is False
     assert all(after["preflight_grants"]["eval-v4-01"]["lifecycle"][key] is False for key in (
         "generation_authorized", "dispatch_authorized", "retry_authorized",
@@ -128,7 +128,7 @@ def test_crash_after_history_commit_recovers_consumed_once(tmp_path):
 
 @pytest.mark.parametrize("mutation", (
     "case", "grant", "reservation", "envelope", "phase", "amount", "count",
-    "request", "attempt", "consumed_not_increased", "retry", "generation",
+    "request", "attempt", "false_monetary_exposure", "retry", "generation",
 ))
 def test_fully_rehashed_dispatch_semantic_attacks_fail(tmp_path, mutation):
     store, _ = _dispatch_ready(tmp_path)
@@ -143,9 +143,9 @@ def test_fully_rehashed_dispatch_semantic_attacks_fail(tmp_path, mutation):
         elif mutation == "phase": metadata["phase"] = "generation"
         elif mutation == "request": metadata["deterministic_request_sha256"] = "0" * 64
         elif mutation == "attempt": metadata["canonical_attempt_sha256"] = "0" * 64
-        elif mutation == "amount": lifecycle["consumed_amount_usd"] = "0.02"
+        elif mutation == "amount": lifecycle["consumed_amount_usd"] = "0.01"
         elif mutation == "count": lifecycle["consumed_operation_count"] = 2
-        elif mutation == "consumed_not_increased": lifecycle["consumed_amount_usd"] = "0.00"
+        elif mutation == "false_monetary_exposure": lifecycle["consumed_amount_usd"] = "0.01"
         elif mutation == "retry": after["preflight_grants"]["eval-v4-01"]["lifecycle"]["retry_authorized"] = True
         elif mutation == "generation": after["preflight_grants"]["eval-v4-01"]["lifecycle"]["generation_authorized"] = True
         try:
@@ -286,11 +286,11 @@ def test_consumed_case_01_and_reserved_case_02_account_together(tmp_path):
     assert state["counters"] == {
         "token_preflights_consumed": 1, "token_preflights_reserved": 1,
         "generations_consumed": 0, "generations_reserved": 0, "retries": 0,
-        "provider_spend_reserved_usd": "0.03", "provider_spend_consumed_usd": "0.03",
+        "provider_spend_reserved_usd": "0.00", "provider_spend_consumed_usd": "0.00",
     }
-    assert state["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.18"
-    assert state["budget_accounting"]["cases"]["eval-v4-01"]["consumed_preflight_exposure_usd"] == "0.03"
-    assert state["budget_accounting"]["cases"]["eval-v4-02"]["reserved_preflight_exposure_usd"] == "0.03"
+    assert state["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.24"
+    assert state["budget_accounting"]["cases"]["eval-v4-01"]["consumed_preflight_exposure_usd"] == "0.00"
+    assert state["budget_accounting"]["cases"]["eval-v4-02"]["reserved_preflight_exposure_usd"] == "0.00"
 
 
 @pytest.mark.parametrize("consumed", (0, 1, 4, 8))
@@ -308,7 +308,7 @@ def test_eight_slot_reserved_consumed_combinations_are_valid(tmp_path, consumed)
     assert state["counters"]["token_preflights_consumed"] == consumed
     assert state["counters"]["token_preflights_reserved"] == 8 - consumed
     assert state["counters"]["token_preflights_consumed"] + state["counters"]["token_preflights_reserved"] == 8
-    assert state["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.00"
+    assert state["budget_accounting"]["aggregate"]["remaining_provider_capacity_usd"] == "0.24"
 
 
 def test_dispatch_seam_is_state_only_and_not_public_cli():

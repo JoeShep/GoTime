@@ -11,13 +11,25 @@ envelope, provider, model, request identity, ceiling, or expiry.
 The immutable grant identity binds the aggregate/package, exact case and AI
 envelope, case input, deterministic request, canonical attempt, provider
 fingerprint, frozen-v4 manifest, provider/model/SDK and request configuration,
-phase `preflight`, one attempt, zero retries, the `$0.03` conservative operation
-and case ceilings, single-use policy, and exact activation/expiration window.
-Credentials and mutable lifecycle fields are excluded.
+phase `preflight`, one attempt, zero retries, the `$0.00` preflight monetary
+exposure, the distinct `$0.03` total case ceiling, single-use policy, and exact
+activation/expiration window. Credentials and mutable lifecycle fields are
+excluded.
 
-Both grant ceiling fields derive directly from the canonical frozen
-`PER_CASE_PROVIDER_CEILING_USD`; the grant layer maintains no independent
-duplicate price or ceiling constant.
+`conservative_operation_ceiling_usd` derives from the canonical
+`PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD`. That source records the frozen
+pricing model's lack of a separate token-counting or request/platform fee.
+`per_case_provider_ceiling_usd` separately derives from
+`PER_CASE_PROVIDER_CEILING_USD`. The fields intentionally differ: the former
+is operation-specific monetary exposure; the latter is total case capacity.
+
+The corrected fixed-time case-01 grant digest is
+`757155c6427132e8ca3a5bdd37a0c3a93adfb0fb386684f403b1940fe0ca0913`.
+The historical Milestone 4 digest
+`4fd481a5a477a70982bd2ae7df0b5fa6450ad1c62248e4e48cf50e7c7bd6aba9`
+bound `$0.03` as both values under the then-approved interpretation. Milestone
+7's consistency gate exposed that interpretation conflict; history is not
+rewritten.
 
 ## Lifecycle and lifetime
 

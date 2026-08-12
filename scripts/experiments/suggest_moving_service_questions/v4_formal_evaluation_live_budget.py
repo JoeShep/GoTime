@@ -8,7 +8,8 @@ from typing import Mapping
 from v4_formal_evaluation_live_models import (
     AGGREGATE_ID, AGGREGATE_PROVIDER_CEILING_USD, AI_CASE_ORDER,
     MAX_GENERATIONS, MAX_RETRIES, MAX_TOKEN_PREFLIGHTS,
-    PER_CASE_PROVIDER_CEILING_USD, digest, package_identity,
+    PER_CASE_PROVIDER_CEILING_USD, PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD,
+    digest, package_identity,
 )
 
 BUDGET_RESERVATION_SCHEMA = (
@@ -59,8 +60,10 @@ def build_preflight_reservation(
     amount = binding["conservative_operation_ceiling_usd"]
     if case_id not in AI_CASE_ORDER or envelope["envelope_sha256"] != binding["case_envelope_sha256"]:
         raise BudgetError("reservation target is not the exact AI grant envelope")
-    if amount != PER_CASE_PROVIDER_CEILING_USD or binding["per_case_provider_ceiling_usd"] != PER_CASE_PROVIDER_CEILING_USD:
-        raise BudgetError("grant conservative ceiling does not match frozen policy")
+    if amount != PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD:
+        raise BudgetError("grant preflight monetary exposure does not match frozen pricing policy")
+    if binding["per_case_provider_ceiling_usd"] != PER_CASE_PROVIDER_CEILING_USD:
+        raise BudgetError("grant per-case ceiling does not match frozen policy")
     immutable = {
         "aggregate_id": AGGREGATE_ID,
         "aggregate_package_sha256": package_identity(),

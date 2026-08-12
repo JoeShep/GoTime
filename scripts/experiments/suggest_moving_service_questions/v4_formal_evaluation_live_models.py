@@ -29,6 +29,10 @@ MAX_GENERATIONS = 8
 MAX_RETRIES = 0
 PER_CASE_PROVIDER_CEILING_USD = "0.03"
 AGGREGATE_PROVIDER_CEILING_USD = "0.24"
+# The frozen pricing record documents no separate token-counting or
+# request/platform fee. This is the preflight operation's monetary exposure,
+# distinct from the total per-case provider ceiling above.
+PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD = "0.00"
 
 ROOT = Path(__file__).resolve().parents[3]
 PACKAGE = ROOT / "docs/experiments/suggest-moving-service-questions/v4-formal-evaluation"

@@ -61,7 +61,7 @@ def build_preflight_grant(
         "sdk": immutable_envelope["sdk"],
         "request_configuration": immutable_envelope["request_configuration"],
         "phase": "preflight",
-        "conservative_operation_ceiling_usd": live_models.PER_CASE_PROVIDER_CEILING_USD,
+        "conservative_operation_ceiling_usd": live_models.PREFLIGHT_CONSERVATIVE_PROVIDER_EXPOSURE_USD,
         "per_case_provider_ceiling_usd": live_models.PER_CASE_PROVIDER_CEILING_USD,
         "maximum_attempts": 1,
         "maximum_retries": 0,

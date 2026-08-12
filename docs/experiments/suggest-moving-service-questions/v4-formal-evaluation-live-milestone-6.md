@@ -15,16 +15,17 @@ enter the SDK only after this full transaction returns successfully.
 
 ## Irreversible conversion
 
-Before the event, case 01 has one reserved preflight and `$0.03` reserved
-exposure. After the event it has zero reserved preflights, one consumed
-preflight, `$0.00` reserved exposure, and `$0.03` consumed exposure. Remaining
+Before the event, case 01 has one reserved preflight operation slot and `$0.00`
+reserved monetary exposure. After the event it has zero reserved preflight
+slots, one consumed preflight slot, `$0.00` reserved monetary exposure, and
+`$0.00` consumed monetary exposure. Remaining
 case and aggregate capacity do not change. The reservation lifecycle records:
 
 - `status=consumed`;
 - `provider_dispatch_status=started`;
 - `attempt_consumed=true`;
 - `consumed_operation_count=1`; and
-- the full conservative reservation as consumed exposure.
+- the full `$0.00` conservative monetary reservation as consumed exposure.
 
 Release is permanently unavailable after this transition. Response, timeout,
 provider error, transport error, interrupted handling, or indeterminate future
@@ -52,9 +53,16 @@ therefore remains ten commands.
 
 Reserved plus consumed preflight operations remains bounded by the canonical
 maximum of eight. Authoritative test states validate 8/0, 7/1, 4/4, and 0/8
-reserved/consumed combinations, while a ninth slot remains rejected. Case 01
-consumed plus case 02 reserved derives `$0.03` consumed, `$0.03` reserved, and
-`$0.18` aggregate capacity.
+reserved/consumed combinations, while a ninth slot remains rejected. All eight
+preflights may consume their operation slots while contributing `$0.00`
+preflight monetary exposure. Case 01 consumed plus case 02 reserved therefore
+derives `$0.00` consumed, `$0.00` reserved, and `$0.24` aggregate monetary
+capacity.
+
+The irreversible value is the attempt and operation slot, not positive dollar
+spend. Consumed-to-reserved, consumed-to-released, deletion, release-after-
+dispatch, and retry-restoration attacks remain rejected with zero monetary
+exposure.
 
 Provider execution, generation authority, dispatch authority, generic spending
 authority, and retry authority remain false. The build-vs-adopt disposition is
@@ -63,6 +71,15 @@ with mandatory reassessment after committed Milestone 9 and before Milestone
 10.
 
 ## Offline validation
+
+After the approved budget-policy reconciliation, the current combined results
+are 185 focused Milestones 1–6 tests and 1,201 full offline tests with 18
+skipped. The focused grant/budget/dispatch/state subset passes 143 tests. The
+backend (148), frontend (17), TypeScript, temporary-directory production build,
+Python compilation, JSON/TOML parsing, frozen-v4 verification, and exact
+ten-command rehearsal also pass. No provider operation occurred.
+
+The counts below are retained as the historical Milestone 6 commit result:
 
 - focused Milestone 6: 29 passed;
 - focused Milestones 1–6: 184 passed;
