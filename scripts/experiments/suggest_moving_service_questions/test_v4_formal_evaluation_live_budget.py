@@ -573,7 +573,7 @@ def test_public_runtime_budget_modules_have_no_provider_capability():
         imports |= {node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
         assert not any(item.startswith(("openai", "httpx", "requests", "socket")) for item in imports)
         assert "OPENAI_API_KEY" not in source
-        assert "provider_dispatch_started" not in source
+    assert "provider_dispatch_started" not in (root / "v4_formal_evaluation_live_cli.py").read_text()
 
 
 def test_public_budget_commands_accept_no_case_amount_or_policy_overrides():

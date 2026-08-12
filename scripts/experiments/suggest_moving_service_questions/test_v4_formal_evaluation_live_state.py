@@ -519,10 +519,11 @@ def test_live_modules_have_no_provider_network_credential_or_request_capability(
         CLI,
     ]
     prohibited_import_roots = {"openai", "socket", "httpx", "requests", "urllib"}
-    prohibited_text = ("OPENAI_API_KEY", "MovingServiceProviderRequest", "provider_dispatch_started", "token_preflight_authorized", "ai_generation_authorized")
+    prohibited_text = ("OPENAI_API_KEY", "MovingServiceProviderRequest", "token_preflight_authorized", "ai_generation_authorized")
     for path in files:
         source = path.read_text()
         tree = ast.parse(source)
         imports = {node.names[0].name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import)} | {str(node.module).split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
         assert not imports & prohibited_import_roots
         assert not any(term in source for term in prohibited_text)
+    assert "provider_dispatch_started" not in CLI.read_text()

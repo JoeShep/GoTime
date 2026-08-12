@@ -104,6 +104,7 @@ def validate_preflight_grant(
         expected["lifecycle"],
         budget_authorized_lifecycle(),
         released_lifecycle(),
+        dispatch_started_lifecycle(),
     )
     if lifecycle not in allowed:
         raise PreflightGrantError("preflight grant lifecycle is not exact")
@@ -137,6 +138,23 @@ def released_lifecycle() -> dict[str, object]:
         "status": "expired",
         "attempt_status": "unused",
         "budget_authorization": "released",
+        "preflight_budget_authorized": False,
+        "preflight_grant_active": False,
+        "preflight_spending_authorized": False,
+        "provider_authority": False,
+        "spending_authorized": False,
+        "generation_authorized": False,
+        "dispatch_authorized": False,
+        "retry_authorized": False,
+        "provider_execution_authorized": False,
+    }
+
+
+def dispatch_started_lifecycle() -> dict[str, object]:
+    return {
+        "status": "consumed",
+        "attempt_status": "consumed",
+        "budget_authorization": "consumed_by_provider_dispatch_started",
         "preflight_budget_authorized": False,
         "preflight_grant_active": False,
         "preflight_spending_authorized": False,

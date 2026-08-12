@@ -1,5 +1,23 @@
 # Session Notes
 
+## Architecture A Milestone 6 dispatch-consumption boundary
+
+- Added exact persisted `provider_dispatch_started` semantics bound to the
+  current case, envelope, grant, reservation, and frozen request identities.
+- Dispatch start irreversibly converts the full reserved preflight slot and
+  `$0.03` exposure to consumed while preserving total committed exposure and
+  remaining capacity.
+- Added idempotency, release prohibition, semantic attacks, pre/post-history
+  crash tests, mixed multi-case accounting, and 8/0, 7/1, 4/4, 0/8 coverage.
+- Deliberately added no public command. Milestone 8 owns the same-process
+  transition-to-SDK integration; Milestone 6 remains offline and provider-free.
+- Passed 29 focused Milestone 6 tests, 184 focused Milestones 1–6 tests, and
+  1,200 full offline experiment tests with 18 skipped. Backend (148), frontend
+  (17), TypeScript, temporary-directory production build, syntax/data parsing,
+  frozen-v4 verification, and the offline public-command rehearsal also pass.
+- Preserved `defer_adoption` and the mandatory post-Milestone-9,
+  pre-Milestone-10 framework reassessment.
+
 ## Architecture A Milestone 5 prospective budget accounting
 
 - Added version-1 exact-cent `Decimal` provider-budget reservations bound to

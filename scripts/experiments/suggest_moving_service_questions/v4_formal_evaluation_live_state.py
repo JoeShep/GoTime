@@ -46,6 +46,7 @@ OPERATION_STATES = {
     "preflight_grant_prepared": ("in_progress", "in_progress"),
     "provider_budget_reserved": ("in_progress", "in_progress"),
     "provider_budget_released": ({"in_progress", "expired_paused"}, {"in_progress", "expired_paused"}),
+    "provider_dispatch_started": ("in_progress", "in_progress"),
 }
 TERMINAL_STATES = {"abandoned", "closed"}
 
@@ -428,6 +429,9 @@ class AggregateStore:
         if operation == "provider_budget_released":
             self._validate_budget_release_event(event)
             return
+        if operation == "provider_dispatch_started":
+            self._validate_provider_dispatch_started_event(event)
+            return
         if before is None or before["status"] == "closed":
             raise AggregateStateError("terminal aggregate cannot transition")
         allowed_metadata = {"reviewer"} if operation in {
@@ -728,7 +732,8 @@ class AggregateStore:
 
     def _validate_preflight_grants(self, state: Mapping[str, object]) -> None:
         from v4_formal_evaluation_live_grants import (
-            PreflightGrantError, budget_authorized_lifecycle, released_lifecycle,
+            PreflightGrantError, budget_authorized_lifecycle, dispatch_started_lifecycle,
+            released_lifecycle,
             prepared_lifecycle, validate_preflight_grant,
         )
 
@@ -750,6 +755,8 @@ class AggregateStore:
                 expected_lifecycle = (
                     budget_authorized_lifecycle()
                     if reservation["lifecycle"]["status"] == "reserved"
+                    else dispatch_started_lifecycle()
+                    if reservation["lifecycle"]["status"] == "consumed"
                     else released_lifecycle()
                 )
                 if lifecycle != expected_lifecycle:
@@ -978,6 +985,12 @@ class AggregateStore:
             raise AggregateStateError("provider budget release metadata is not exact")
         case_id = metadata["case_id"]
         reservation = before["provider_budget_reservations"].get(case_id)
+        if reservation is not None and (
+            reservation["lifecycle"]["status"] == "consumed"
+            or reservation["lifecycle"]["provider_dispatch_status"] == "started"
+            or reservation["lifecycle"]["attempt_consumed"] is True
+        ):
+            raise AggregateStateError("provider budget release prohibited after dispatch started")
         if (
             reservation is None
             or reservation["lifecycle"]["status"] != "reserved"
@@ -1055,6 +1068,140 @@ class AggregateStore:
                     "case_id": case_id,
                     "reservation_sha256": reservation["reservation_sha256"],
                     "proof": "expired_unused_dispatch_not_started",
+                },
+                occurred_at=occurred_at,
+            )
+            journal = self._read_journal()
+            journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def _validate_provider_dispatch_started_event(self, event: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_grants import (
+            budget_authorized_lifecycle, dispatch_started_lifecycle,
+        )
+
+        before, after, metadata = event["before_state"], event["after_state"], event["metadata"]
+        required_metadata = {
+            "case_id", "case_envelope_sha256", "grant_sha256", "reservation_sha256",
+            "phase", "deterministic_request_sha256", "canonical_attempt_sha256",
+            "provider_fingerprint",
+        }
+        if not isinstance(metadata, dict) or set(metadata) != required_metadata:
+            raise AggregateStateError("provider dispatch-started metadata is not exact")
+        case_id = metadata["case_id"]
+        if case_id in EMPTY_CASE_IDS:
+            raise AggregateStateError("deterministic case cannot start provider dispatch")
+        grant = before["preflight_grants"].get(case_id)
+        reservation = before["provider_budget_reservations"].get(case_id)
+        envelope = before["ai_case_envelopes"].get(case_id)
+        if (
+            before["status"] != "in_progress"
+            or before["next_case_id"] != case_id
+            or before["acknowledgement"]["acknowledgement_required"]
+            or grant is None
+            or reservation is None
+            or envelope is None
+            or grant["lifecycle"] != budget_authorized_lifecycle()
+            or reservation["lifecycle"]["status"] != "reserved"
+            or reservation["lifecycle"]["provider_dispatch_status"] != "not_started"
+            or parse_time(event["occurred_at"]) >= parse_time(before["expires_at"])
+            or parse_time(event["occurred_at"]) >= parse_time(grant["immutable_binding"]["expires_at"])
+        ):
+            raise AggregateStateError("provider dispatch-started preconditions are not satisfied")
+        binding = grant["immutable_binding"]
+        expected_metadata = {
+            "case_id": case_id,
+            "case_envelope_sha256": envelope["envelope_sha256"],
+            "grant_sha256": grant["grant_sha256"],
+            "reservation_sha256": reservation["reservation_sha256"],
+            "phase": "preflight",
+            "deterministic_request_sha256": binding["deterministic_request_sha256"],
+            "canonical_attempt_sha256": binding["canonical_attempt_sha256"],
+            "provider_fingerprint": binding["provider_fingerprint"],
+        }
+        if metadata != expected_metadata:
+            raise AggregateStateError("provider dispatch-started identity binding mismatch")
+        after_reservation = after["provider_budget_reservations"].get(case_id)
+        if after_reservation is None:
+            raise AggregateStateError("consumed dispatch history cannot delete its reservation")
+        if after_reservation["lifecycle"].get("status") in {"reserved", "released"}:
+            raise AggregateStateError(
+                "consumed reservation cannot be released or restored after dispatch started"
+            )
+        expected = json.loads(canonical_json(before))
+        lifecycle = expected["provider_budget_reservations"][case_id]["lifecycle"]
+        lifecycle.update(
+            status="consumed",
+            provider_dispatch_status="started",
+            attempt_consumed=True,
+            consumed_amount_usd=reservation["immutable_binding"]["reservation_amount_usd"],
+            consumed_operation_count=1,
+            dispatch_started_at=event["occurred_at"],
+        )
+        expected["preflight_grants"][case_id]["lifecycle"] = dispatch_started_lifecycle()
+        self._set_derived_budget(expected)
+        expected["history_count"] = after["history_count"]
+        expected["history_head_sha256"] = after["history_head_sha256"]
+        if after != expected:
+            raise AggregateStateError("provider dispatch-started mutated prohibited aggregate fields")
+        self._validate_budget_state(after)
+
+    def record_provider_dispatch_started(self) -> dict[str, object]:
+        """Commit the irreversible offline boundary; Milestone 8 owns subsequent SDK entry."""
+        from v4_formal_evaluation_live_grants import (
+            budget_authorized_lifecycle, dispatch_started_lifecycle,
+        )
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=True, recover_projection=True)
+            case_id = state["next_case_id"]
+            if case_id not in AI_CASE_ORDER:
+                raise AggregateStateError("provider dispatch-started requires the exact next AI case")
+            grant = state["preflight_grants"].get(case_id)
+            reservation = state["provider_budget_reservations"].get(case_id)
+            if reservation is not None and reservation["lifecycle"]["status"] == "consumed":
+                if grant is not None and grant["lifecycle"] == dispatch_started_lifecycle():
+                    return dict(state)
+                raise AggregateStateError("consumed dispatch state conflicts with its grant")
+            if (
+                state["status"] != "in_progress"
+                or state["acknowledgement"]["acknowledgement_required"]
+                or grant is None
+                or reservation is None
+                or grant["lifecycle"] != budget_authorized_lifecycle()
+                or reservation["lifecycle"]["status"] != "reserved"
+                or reservation["lifecycle"]["provider_dispatch_status"] != "not_started"
+                or self.clock() >= parse_time(state["expires_at"])
+                or self.clock() >= parse_time(grant["immutable_binding"]["expires_at"])
+            ):
+                raise AggregateStateError("provider dispatch-started preconditions are not satisfied")
+            occurred_at = self.clock()
+            after = json.loads(canonical_json(state))
+            after_lifecycle = after["provider_budget_reservations"][case_id]["lifecycle"]
+            after_lifecycle.update(
+                status="consumed",
+                provider_dispatch_status="started",
+                attempt_consumed=True,
+                consumed_amount_usd=reservation["immutable_binding"]["reservation_amount_usd"],
+                consumed_operation_count=1,
+                dispatch_started_at=format_time(occurred_at),
+            )
+            after["preflight_grants"][case_id]["lifecycle"] = dispatch_started_lifecycle()
+            self._set_derived_budget(after)
+            binding = grant["immutable_binding"]
+            event = self._make_event(
+                state, after, "provider_dispatch_started",
+                {
+                    "case_id": case_id,
+                    "case_envelope_sha256": state["ai_case_envelopes"][case_id]["envelope_sha256"],
+                    "grant_sha256": grant["grant_sha256"],
+                    "reservation_sha256": reservation["reservation_sha256"],
+                    "phase": "preflight",
+                    "deterministic_request_sha256": binding["deterministic_request_sha256"],
+                    "canonical_attempt_sha256": binding["canonical_attempt_sha256"],
+                    "provider_fingerprint": binding["provider_fingerprint"],
                 },
                 occurred_at=occurred_at,
             )

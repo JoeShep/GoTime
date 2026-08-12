@@ -1,5 +1,18 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 6 dispatch-consumption boundary
+
+Milestone 6 now records offline `provider_dispatch_started` as the exact
+irreversible reserved-to-consumed boundary. The full `$0.03` exposure and one
+preflight slot convert to consumed without changing remaining capacity; release
+and retry are permanently prohibited. Crash-before-history remains reserved,
+while crash-after-history recovers consumed exactly once.
+
+No public command was added: Milestone 8 must call the state transaction and
+enter the pinned SDK immediately afterward in one controlled process. No SDK,
+credential, client, request, or network capability exists yet. Human diff
+review is required before commit or Milestone 7.
+
 ## Architecture A Milestone 5 prospective budget accounting
 
 Milestone 5 now reserves exact prospective preflight exposure atomically under

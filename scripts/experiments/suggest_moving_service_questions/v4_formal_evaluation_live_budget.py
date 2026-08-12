@@ -15,7 +15,7 @@ BUDGET_RESERVATION_SCHEMA = (
     "suggest-moving-service-questions-v4-formal-evaluation-provider-budget-reservation-v1"
 )
 BUDGET_RESERVATION_VERSION = 1
-RESERVATION_STATES = ("reserved", "released")
+RESERVATION_STATES = ("reserved", "released", "consumed")
 ZERO_MONEY = "0.00"
 
 
@@ -84,7 +84,10 @@ def build_preflight_reservation(
         "lifecycle": {
             "status": "reserved",
             "provider_dispatch_status": "not_started",
+            "attempt_consumed": False,
             "consumed_amount_usd": ZERO_MONEY,
+            "consumed_operation_count": 0,
+            "dispatch_started_at": None,
             "released_amount_usd": ZERO_MONEY,
             "release_reason": None,
             "released_at": None,
@@ -115,22 +118,46 @@ def validate_reservation(
     if not isinstance(lifecycle, dict) or set(lifecycle) != set(expected["lifecycle"]):
         raise BudgetError("budget reservation lifecycle is malformed")
     status = lifecycle["status"]
-    if status not in RESERVATION_STATES or lifecycle["provider_dispatch_status"] != "not_started":
-        raise BudgetError("budget reservation lifecycle is unavailable before Milestone 6")
+    if status not in RESERVATION_STATES:
+        raise BudgetError("budget reservation lifecycle is unavailable")
     amount = decimal_money(reservation["immutable_binding"]["reservation_amount_usd"], "reservation amount")
     consumed = decimal_money(lifecycle["consumed_amount_usd"], "consumed amount")
     released = decimal_money(lifecycle["released_amount_usd"], "released amount")
-    if consumed != 0:
-        raise BudgetError("dispatch consumption is unavailable before Milestone 6")
     if status == "reserved":
-        if released != 0 or lifecycle["release_reason"] is not None or lifecycle["released_at"] is not None:
+        if (
+            lifecycle["provider_dispatch_status"] != "not_started"
+            or lifecycle["attempt_consumed"] is not False
+            or consumed != 0
+            or lifecycle["consumed_operation_count"] != 0
+            or lifecycle["dispatch_started_at"] is not None
+            or released != 0
+            or lifecycle["release_reason"] is not None
+            or lifecycle["released_at"] is not None
+        ):
             raise BudgetError("active reservation cannot contain release state")
+    elif status == "released":
+        if (
+            lifecycle["provider_dispatch_status"] != "not_started"
+            or lifecycle["attempt_consumed"] is not False
+            or consumed != 0
+            or lifecycle["consumed_operation_count"] != 0
+            or lifecycle["dispatch_started_at"] is not None
+            or released != amount
+            or lifecycle["release_reason"] != "expired_unused_dispatch_not_started"
+            or not isinstance(lifecycle["released_at"], str)
+        ):
+            raise BudgetError("released reservation lacks exact proven-unused semantics")
     elif (
-        released != amount
-        or lifecycle["release_reason"] != "expired_unused_dispatch_not_started"
-        or not isinstance(lifecycle["released_at"], str)
+        lifecycle["provider_dispatch_status"] != "started"
+        or lifecycle["attempt_consumed"] is not True
+        or consumed != amount
+        or lifecycle["consumed_operation_count"] != 1
+        or not isinstance(lifecycle["dispatch_started_at"], str)
+        or released != 0
+        or lifecycle["release_reason"] is not None
+        or lifecycle["released_at"] is not None
     ):
-        raise BudgetError("released reservation lacks exact proven-unused semantics")
+        raise BudgetError("consumed reservation lacks exact dispatch-started semantics")
 
 
 def derive_budget_accounting(
@@ -162,7 +189,7 @@ def derive_budget_accounting(
         reserved_total += reserved
         consumed_total += consumed
         reserved_preflights += binding["operation_count"] if active else 0
-        consumed_preflights += binding["operation_count"] if consumed else 0
+        consumed_preflights += lifecycle["consumed_operation_count"]
         cases[case_id]["reserved_preflight_exposure_usd"] = money(reserved)
         cases[case_id]["consumed_preflight_exposure_usd"] = money(consumed)
         cases[case_id]["total_reserved_provider_exposure_usd"] = money(reserved)
