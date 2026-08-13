@@ -1,5 +1,31 @@
 # Session Notes
 
+## 2026-08-13 — Post-Milestone-9 framework reassessment
+
+- Completed the required design-only checkpoint after top-level Milestone 9.
+- Recommended `freeze_ai_infrastructure_and_return_to_product`: adopt no
+  framework and pause additional custom evaluation infrastructure.
+- Confirmed Milestones 1–9 already provide the bounded experiment's durable
+  replay, budget/grant controls, atomic dispatch, same-shell credentials,
+  zero-retry enforcement, preflight review gate, generation validation/evidence,
+  closure, and fail-closed recovery.
+- Assessed Temporal as the strongest future heavy-duty durability candidate,
+  Inngest as a plausible event-driven hosted option, and LangGraph as a poor
+  current fit for GoTime's deterministic, non-agentic core. None removes enough
+  current work to justify migration or operations now.
+- Classified Milestone 10 and Milestones 16–18 as necessary only on a future
+  path toward live evaluation, with Milestones 11–15 deferrable or potentially
+  reducible after a human-reviewed scope refresh. The historical plan and
+  numbering were not changed or bypassed.
+- Recorded that no additional implementation is needed to park the experiment:
+  preserve `closed_no_execution_authorized`, create no live state, and retain
+  the committed artifacts/tests.
+- Set the next framework checkpoint to a demonstrated product need or a future
+  proposal to unfreeze live-evaluation work, rather than a calendar date.
+- No runtime, test, framework, dependency, provider, credential, frozen
+  artifact, implementation-plan, architecture-memo, or Milestone 10 change was
+  made.
+
 ## 2026-08-13 — Architecture A Milestone 9B
 
 - Added versioned bounded generation result, evidence, and provider-phase

@@ -1,5 +1,23 @@
 # NEXT_SESSION
 
+## Post-Milestone-9 framework reassessment
+
+The design-only reassessment recommends
+`freeze_ai_infrastructure_and_return_to_product`. Milestones 1–9 already prove
+the bounded evaluation's difficult identity, budget, dispatch, credential,
+zero-retry, result-validation, evidence, and recovery semantics. Temporal,
+Inngest, and LangGraph could improve generic timers/waits/worker recovery, but
+GoTime has no demonstrated near-term workflow need that repays migration or new
+operations.
+
+Do not begin Milestone 10 while this recommendation awaits human review. If
+approved, preserve the experiment in `closed_no_execution_authorized` state and
+return to MVP planning. No additional AI implementation is required merely to
+park it safely. Revisit frameworks only when the product demonstrates multiple
+long-running workflows, unattended waits/timers, concurrent worker needs, or
+when an explicitly approved live evaluation is being unfrozen. The historical
+implementation plan and build-vs-adopt record remain unchanged.
+
 ## Architecture A Milestone 9B generation result boundary
 
 Milestone 9B is implemented offline and awaits human diff review. The existing
