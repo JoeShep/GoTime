@@ -312,6 +312,9 @@ def _write_fake_docker_and_hook(tmp_path, synthetic=True):
             assert owned.client.arguments["max_retries"] == 0
             assert owned._http_client.arguments == {"trust_env": False}
             Path(os.environ["M8_PROVIDER_MARKER"]).write_text("synthetic-entry=1\\n")
+            if prepared.phase == "generation":
+                from v4_formal_evaluation_runner import valid_synthetic_response
+                return valid_synthetic_response(prepared.case_id)
             return {"input_tokens": 2852}
         execution.ProviderExecutionBoundary._enter_provider = enter
     """)

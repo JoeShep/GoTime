@@ -1,5 +1,43 @@
 # Session Notes
 
+## 2026-08-13 — Architecture A Milestone 9B
+
+- Added versioned bounded generation result, evidence, and provider-phase
+  closure models with explicit validated, structural, semantic, prose, timeout,
+  transport, provider-error, and unknown-outcome classifications.
+- Wired generation provider return directly into canonical frozen-v4
+  validation and one history-first result transition. Exact reruns are
+  event-free; conflicts and retained-history replacement fail closed.
+- Bound replay to the actual retained generation `provider_dispatch_started`
+  event and added fully rehashed semantic attacks for dispatch, immutable
+  identities, evidence drift, missing dispatch, and retained-result deletion.
+- Preserved frozen fallback behavior and content-free prose diagnostics. Raw
+  rejected output, arbitrary provider payload, credentials, headers, request
+  content, environment, and exception representations are not retained.
+- Valid machine evidence leaves the case awaiting Milestone 10 generation
+  evidence review and blocks next-case progression. No human generation review,
+  deletion, deadline, scoring, acknowledgement, or extension behavior exists.
+- Preserved every committed Milestone 9A digest by introducing 9B projection
+  collections only at the first 9B event rather than changing historical state.
+- Rehearsed the literal fixed generation launcher and Docker wrapper through the
+  production execution entry and real 9B handler using only the lower-level
+  synthetic provider seam in the network-disabled environment.
+- Permanent authorization remains closed, retries remain zero, and real
+  provider operations and real credentials remain zero. Framework reassessment
+  remains after reviewed/committed 9B and before Milestone 10.
+- Validation passed 21 dedicated 9B tests, 61 focused Milestones 8–9B tests, 91
+  authoritative state/generation/dispatch regressions, and the apples-to-apples
+  full offline suite at 1,295 passed with the same two historical
+  Docker-daemon-dependent skips. Frozen foundation/permanent status and
+  read-only Python compilation also passed.
+- Corrected the final-review prose-diagnostic replay gap without changing any
+  schema or fixed digest. Replay now enforces the frozen code order, rule ID,
+  code-specific field/trigger domain, exact types and fields, bounded
+  offsets/counts, valid spans, and exact code/diagnostic correspondence.
+  Fully rehashed representative attacks fail while canonical diagnostics replay
+  exactly. Corrected validation is 32 dedicated 9B tests, 51 focused 9A–9B,
+  71 focused 8–9B, and 1,305 full-offline passes with the same two skips.
+
 ## 2026-08-12 — Architecture A Milestone 9A
 
 - Corrected final-review replay findings without changing canonical identities:

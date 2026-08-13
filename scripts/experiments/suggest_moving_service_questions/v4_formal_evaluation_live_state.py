@@ -34,7 +34,10 @@ AGGREGATE_STATES = (
     "prepared", "approved", "in_progress", "ready_to_finalize",
     "expired_paused", "abandoned", "closed",
 )
-CASE_STATES = ("untouched", "in_progress", "awaiting_acknowledgement", "terminal")
+CASE_STATES = (
+    "untouched", "in_progress", "awaiting_generation_evidence_review",
+    "awaiting_acknowledgement", "terminal",
+)
 OPERATION_STATES = {
     "aggregate_initialized": (None, "prepared"),
     "aggregate_approved": ("prepared", "approved"),
@@ -52,6 +55,9 @@ OPERATION_STATES = {
     "preflight_result_validated": ("in_progress", "in_progress"),
     "preflight_provider_failed": ("in_progress", "in_progress"),
     "preflight_evidence_reviewed": ("in_progress", "in_progress"),
+    "generation_result_validated": ("in_progress", "in_progress"),
+    "generation_validation_failed": ("in_progress", "in_progress"),
+    "generation_provider_failed": ("in_progress", "in_progress"),
     "generation_grant_prepared": ("in_progress", "in_progress"),
     "generation_budget_reserved": ("in_progress", "in_progress"),
 }
@@ -132,7 +138,9 @@ def derive_next_case(state: Mapping[str, object]) -> str | None:
         return None
     cases = state["cases"]
     if any(
-        cases[case_id]["coordination_status"] in {"in_progress", "awaiting_acknowledgement"}
+        cases[case_id]["coordination_status"] in {
+            "in_progress", "awaiting_generation_evidence_review", "awaiting_acknowledgement",
+        }
         for case_id in CASE_ORDER
     ):
         return None
@@ -454,6 +462,12 @@ class AggregateStore:
         if operation == "preflight_evidence_reviewed":
             self._validate_preflight_review_event(event)
             return
+        if operation in {
+            "generation_result_validated", "generation_validation_failed",
+            "generation_provider_failed",
+        }:
+            self._validate_generation_result_event(event)
+            return
         if operation == "generation_grant_prepared":
             self._validate_generation_grant_preparation(event)
             return
@@ -513,6 +527,10 @@ class AggregateStore:
                 closure["immutable_binding"]["status"] != "review_pending" and retained != closure
             ):
                 raise AggregateStateError("retained preflight phase closure cannot be deleted or replaced")
+        for collection in ("generation_results", "generation_evidence", "generation_phase_closures"):
+            for case_id, record in before.get(collection, {}).items():
+                if after.get(collection, {}).get(case_id) != record:
+                    raise AggregateStateError(f"retained {collection} history cannot be deleted or replaced")
         for key, reservation in before["provider_budget_reservations"].items():
             if reservation["immutable_binding"]["phase"] != "generation":
                 continue
@@ -565,6 +583,9 @@ class AggregateStore:
             or state["preflight_phase_closures"] != {}
             or state["reviewed_preflight_evidence"] != {}
             or state["generation_grants"] != {}
+            or state.get("generation_results", {}) != {}
+            or state.get("generation_evidence", {}) != {}
+            or state.get("generation_phase_closures", {}) != {}
             or state["provider_budget_reservations"] != {}
             or state["budget_accounting"] != derive_budget_accounting({})
             or state["acknowledgement"] != _neutral_acknowledgement()
@@ -587,6 +608,9 @@ class AggregateStore:
         }
 
     def _validate_state(self, state: Mapping[str, object]) -> None:
+        generation_result_fields = {
+            "generation_results", "generation_evidence", "generation_phase_closures",
+        }
         required = {
             "state_version", "aggregate_id", "package_identity_sha256", "immutable_package",
             "operator", "reviewer", "status", "initialized_at", "expires_at",
@@ -600,7 +624,8 @@ class AggregateStore:
         }
         if (
             not isinstance(state, dict)
-            or set(state) != required
+            or not required <= set(state)
+            or set(state) - required not in (set(), generation_result_fields)
             or state["state_version"] != STATE_VERSION
             or state["aggregate_id"] != AGGREGATE_ID
             or state["immutable_package"] != immutable_package()
@@ -641,6 +666,7 @@ class AggregateStore:
         self._validate_preflight_grants(state)
         self._validate_preflight_result_state(state)
         self._validate_generation_state(state)
+        self._validate_generation_result_state(state)
         _validate_acknowledgement(state["acknowledgement"])
         if state["extension_history"] != []:
             raise AggregateStateError("extensions are not implemented until Milestone 12")
@@ -1023,6 +1049,82 @@ class AggregateStore:
             )
             if grant["lifecycle"] != expected:
                 raise AggregateStateError("generation grant lifecycle does not match its durable reservation")
+
+    def _validate_generation_result_state(self, state: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_generation_result import GenerationResultError, validate_bundle
+
+        results = state.get("generation_results", {})
+        evidence_records = state.get("generation_evidence", {})
+        closures = state.get("generation_phase_closures", {})
+        if (not all(isinstance(value, dict) for value in (results, evidence_records, closures))
+                or set(closures) != set(results) or not set(evidence_records) <= set(results)):
+            raise AggregateStateError("generation result/evidence lifecycle is incomplete")
+        for case_id, result in results.items():
+            key = f"{case_id}:generation"
+            grant = state["generation_grants"].get(case_id)
+            reservation = state["provider_budget_reservations"].get(key)
+            if (case_id not in AI_CASE_ORDER or grant is None or reservation is None
+                    or reservation["lifecycle"]["status"] != "consumed"
+                    or reservation["lifecycle"]["attempt_consumed"] is not True):
+                raise AggregateStateError("generation result requires exact consumed dispatch history")
+            try:
+                validate_bundle(result, evidence_records.get(case_id), closures[case_id],
+                                state["ai_case_envelopes"][case_id], grant, reservation)
+            except GenerationResultError as error:
+                raise AggregateStateError(str(error)) from error
+            classification = result["immutable_binding"]["classification"]
+            expected_status = (
+                "awaiting_generation_evidence_review"
+                if classification == "validated" else "terminal"
+            )
+            if state["cases"][case_id]["coordination_status"] != expected_status:
+                raise AggregateStateError("generation result does not match case closure status")
+
+    def _validate_generation_result_event(self, event: Mapping[str, object]) -> None:
+        before, after, metadata = event["before_state"], event["after_state"], event["metadata"]
+        if not isinstance(metadata, dict) or set(metadata) != {
+            "case_id", "classification", "result_sha256", "evidence_sha256",
+        }:
+            raise AggregateStateError("generation result event metadata is not exact")
+        case_id = metadata["case_id"]
+        result = after.get("generation_results", {}).get(case_id)
+        evidence = after.get("generation_evidence", {}).get(case_id)
+        if before["next_case_id"] != case_id or case_id in before.get("generation_results", {}) or result is None:
+            raise AggregateStateError("generation result must bind the exact current unrecorded attempt")
+        classification = result["immutable_binding"]["classification"]
+        expected_operation = (
+            "generation_result_validated" if classification == "validated"
+            else "generation_provider_failed" if classification in {
+                "timeout", "transport_error", "provider_error", "outcome_unknown",
+            } else "generation_validation_failed"
+        )
+        if result["immutable_binding"].get("provider_dispatch_started_sha256") != before["history_head_sha256"]:
+            raise AggregateStateError("generation result must bind actual retained provider dispatch event")
+        if (classification == "validated") != (evidence is not None):
+            raise AggregateStateError("validated generation result and evidence must be recorded atomically")
+        if event["operation"] != expected_operation or metadata != {
+            "case_id": case_id, "classification": classification,
+            "result_sha256": result["result_sha256"],
+            "evidence_sha256": evidence["evidence_sha256"] if evidence else None,
+        }:
+            raise AggregateStateError("generation result event identity mismatch")
+        expected = json.loads(canonical_json(before))
+        expected.setdefault("generation_results", {})
+        expected.setdefault("generation_evidence", {})
+        expected.setdefault("generation_phase_closures", {})
+        expected["generation_results"][case_id] = result
+        if evidence is not None:
+            expected["generation_evidence"][case_id] = evidence
+        expected["generation_phase_closures"][case_id] = after["generation_phase_closures"][case_id]
+        expected["cases"][case_id]["coordination_status"] = (
+            "awaiting_generation_evidence_review" if classification == "validated" else "terminal"
+        )
+        expected["next_case_id"] = after["next_case_id"]
+        expected["history_count"] = after["history_count"]
+        expected["history_head_sha256"] = after["history_head_sha256"]
+        if after != expected:
+            raise AggregateStateError("generation result event mutated prohibited state")
+        self._validate_generation_result_state(after)
 
     def _validate_generation_grant_preparation(self, event: Mapping[str, object]) -> None:
         from v4_formal_evaluation_live_generation import validate_generation_grant
@@ -1522,6 +1624,9 @@ class AggregateStore:
         from v4_formal_evaluation_live_grants import (
             budget_authorized_lifecycle, dispatch_started_lifecycle,
         )
+        from v4_formal_evaluation_live_generation import (
+            active_generation_lifecycle, consumed_generation_lifecycle,
+        )
 
         before, after, metadata = event["before_state"], event["after_state"], event["metadata"]
         required_metadata = {
@@ -1532,19 +1637,26 @@ class AggregateStore:
         if not isinstance(metadata, dict) or set(metadata) != required_metadata:
             raise AggregateStateError("provider dispatch-started metadata is not exact")
         case_id = metadata["case_id"]
+        phase = metadata["phase"]
+        key = case_id if phase == "preflight" else f"{case_id}:generation"
         if case_id in EMPTY_CASE_IDS:
             raise AggregateStateError("deterministic case cannot start provider dispatch")
-        grant = before["preflight_grants"].get(case_id)
-        reservation = before["provider_budget_reservations"].get(case_id)
+        grant = (before["preflight_grants"].get(case_id) if phase == "preflight"
+                 else before["generation_grants"].get(case_id))
+        reservation = before["provider_budget_reservations"].get(key)
         envelope = before["ai_case_envelopes"].get(case_id)
+        expected_grant_lifecycle = (
+            budget_authorized_lifecycle() if phase == "preflight" else active_generation_lifecycle()
+        )
         if (
-            before["status"] != "in_progress"
+            phase not in {"preflight", "generation"}
+            or before["status"] != "in_progress"
             or before["next_case_id"] != case_id
             or before["acknowledgement"]["acknowledgement_required"]
             or grant is None
             or reservation is None
             or envelope is None
-            or grant["lifecycle"] != budget_authorized_lifecycle()
+            or grant["lifecycle"] != expected_grant_lifecycle
             or reservation["lifecycle"]["status"] != "reserved"
             or reservation["lifecycle"]["provider_dispatch_status"] != "not_started"
             or parse_time(event["occurred_at"]) >= parse_time(before["expires_at"])
@@ -1557,14 +1669,14 @@ class AggregateStore:
             "case_envelope_sha256": envelope["envelope_sha256"],
             "grant_sha256": grant["grant_sha256"],
             "reservation_sha256": reservation["reservation_sha256"],
-            "phase": "preflight",
+            "phase": phase,
             "deterministic_request_sha256": binding["deterministic_request_sha256"],
             "canonical_attempt_sha256": binding["canonical_attempt_sha256"],
             "provider_fingerprint": binding["provider_fingerprint"],
         }
         if metadata != expected_metadata:
             raise AggregateStateError("provider dispatch-started identity binding mismatch")
-        after_reservation = after["provider_budget_reservations"].get(case_id)
+        after_reservation = after["provider_budget_reservations"].get(key)
         if after_reservation is None:
             raise AggregateStateError("consumed dispatch history cannot delete its reservation")
         if after_reservation["lifecycle"].get("status") in {"reserved", "released"}:
@@ -1572,7 +1684,7 @@ class AggregateStore:
                 "consumed reservation cannot be released or restored after dispatch started"
             )
         expected = json.loads(canonical_json(before))
-        lifecycle = expected["provider_budget_reservations"][case_id]["lifecycle"]
+        lifecycle = expected["provider_budget_reservations"][key]["lifecycle"]
         lifecycle.update(
             status="consumed",
             provider_dispatch_status="started",
@@ -1581,7 +1693,10 @@ class AggregateStore:
             consumed_operation_count=1,
             dispatch_started_at=event["occurred_at"],
         )
-        expected["preflight_grants"][case_id]["lifecycle"] = dispatch_started_lifecycle()
+        if phase == "preflight":
+            expected["preflight_grants"][case_id]["lifecycle"] = dispatch_started_lifecycle()
+        else:
+            expected["generation_grants"][case_id]["lifecycle"] = consumed_generation_lifecycle()
         self._set_derived_budget(expected)
         expected["history_count"] = after["history_count"]
         expected["history_head_sha256"] = after["history_head_sha256"]
@@ -1589,21 +1704,34 @@ class AggregateStore:
             raise AggregateStateError("provider dispatch-started mutated prohibited aggregate fields")
         self._validate_budget_state(after)
 
-    def record_provider_dispatch_started(self) -> dict[str, object]:
+    def record_provider_dispatch_started(self, phase: str = "preflight") -> dict[str, object]:
         """Commit the irreversible offline boundary; Milestone 8 owns subsequent SDK entry."""
         from v4_formal_evaluation_live_grants import (
             budget_authorized_lifecycle, dispatch_started_lifecycle,
+        )
+        from v4_formal_evaluation_live_generation import (
+            active_generation_lifecycle, consumed_generation_lifecycle,
         )
 
         with _lock(self.root):
             state = self._load_unlocked(observe_expiry=True, recover_projection=True)
             case_id = state["next_case_id"]
+            if phase not in {"preflight", "generation"}:
+                raise AggregateStateError("provider dispatch phase is unavailable")
+            key = case_id if phase == "preflight" else f"{case_id}:generation"
             if case_id not in AI_CASE_ORDER:
                 raise AggregateStateError("provider dispatch-started requires the exact next AI case")
-            grant = state["preflight_grants"].get(case_id)
-            reservation = state["provider_budget_reservations"].get(case_id)
+            grant = (state["preflight_grants"].get(case_id) if phase == "preflight"
+                     else state["generation_grants"].get(case_id))
+            reservation = state["provider_budget_reservations"].get(key)
+            active_lifecycle = (
+                budget_authorized_lifecycle() if phase == "preflight" else active_generation_lifecycle()
+            )
+            consumed_lifecycle = (
+                dispatch_started_lifecycle() if phase == "preflight" else consumed_generation_lifecycle()
+            )
             if reservation is not None and reservation["lifecycle"]["status"] == "consumed":
-                if grant is not None and grant["lifecycle"] == dispatch_started_lifecycle():
+                if grant is not None and grant["lifecycle"] == consumed_lifecycle:
                     return dict(state)
                 raise AggregateStateError("consumed dispatch state conflicts with its grant")
             if (
@@ -1611,7 +1739,7 @@ class AggregateStore:
                 or state["acknowledgement"]["acknowledgement_required"]
                 or grant is None
                 or reservation is None
-                or grant["lifecycle"] != budget_authorized_lifecycle()
+                or grant["lifecycle"] != active_lifecycle
                 or reservation["lifecycle"]["status"] != "reserved"
                 or reservation["lifecycle"]["provider_dispatch_status"] != "not_started"
                 or self.clock() >= parse_time(state["expires_at"])
@@ -1620,7 +1748,7 @@ class AggregateStore:
                 raise AggregateStateError("provider dispatch-started preconditions are not satisfied")
             occurred_at = self.clock()
             after = json.loads(canonical_json(state))
-            after_lifecycle = after["provider_budget_reservations"][case_id]["lifecycle"]
+            after_lifecycle = after["provider_budget_reservations"][key]["lifecycle"]
             after_lifecycle.update(
                 status="consumed",
                 provider_dispatch_status="started",
@@ -1629,7 +1757,10 @@ class AggregateStore:
                 consumed_operation_count=1,
                 dispatch_started_at=format_time(occurred_at),
             )
-            after["preflight_grants"][case_id]["lifecycle"] = dispatch_started_lifecycle()
+            if phase == "preflight":
+                after["preflight_grants"][case_id]["lifecycle"] = dispatch_started_lifecycle()
+            else:
+                after["generation_grants"][case_id]["lifecycle"] = consumed_generation_lifecycle()
             self._set_derived_budget(after)
             binding = grant["immutable_binding"]
             event = self._make_event(
@@ -1639,7 +1770,7 @@ class AggregateStore:
                     "case_envelope_sha256": state["ai_case_envelopes"][case_id]["envelope_sha256"],
                     "grant_sha256": grant["grant_sha256"],
                     "reservation_sha256": reservation["reservation_sha256"],
-                    "phase": "preflight",
+                    "phase": phase,
                     "deterministic_request_sha256": binding["deterministic_request_sha256"],
                     "canonical_attempt_sha256": binding["canonical_attempt_sha256"],
                     "provider_fingerprint": binding["provider_fingerprint"],
@@ -1789,6 +1920,72 @@ class AggregateStore:
                 "case_id": case_id, "evidence_sha256": evidence["evidence_sha256"],
                 "review_sha256": review["review_sha256"], "decision": decision,
             }, occurred_at=reviewed_at)
+            journal = self._read_journal(); journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def record_generation_outcome(
+        self, outcome: Mapping[str, object], *, case_id: str | None = None,
+    ) -> dict[str, object]:
+        """Persist one bounded post-dispatch generation result and phase closure."""
+        from v4_formal_evaluation_live_generation_result import (
+            PROVIDER_FAILURES, build_closure, build_evidence, build_result,
+        )
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=False, recover_projection=True)
+            case_id = case_id or state["next_case_id"]
+            if case_id not in AI_CASE_ORDER:
+                raise AggregateStateError("generation result requires exact current AI case")
+            existing = state.get("generation_results", {}).get(case_id)
+            if existing is not None:
+                candidate = build_result(
+                    case_id, state["ai_case_envelopes"][case_id],
+                    state["generation_grants"][case_id],
+                    state["provider_budget_reservations"][f"{case_id}:generation"],
+                    existing["immutable_binding"]["provider_dispatch_started_sha256"],
+                    outcome, parse_time(existing["immutable_binding"]["recorded_at"]),
+                )
+                if candidate == existing:
+                    return dict(state)
+                raise AggregateStateError("conflicting generation result is prohibited")
+            if state["next_case_id"] != case_id:
+                raise AggregateStateError("generation result must target exact current AI case")
+            key = f"{case_id}:generation"
+            reservation = state["provider_budget_reservations"].get(key)
+            if reservation is None or reservation["lifecycle"]["status"] != "consumed":
+                raise AggregateStateError("generation result requires consumed provider dispatch")
+            occurred_at = self.clock()
+            result = build_result(
+                case_id, state["ai_case_envelopes"][case_id], state["generation_grants"][case_id],
+                reservation, state["history_head_sha256"], outcome, occurred_at,
+            )
+            evidence = build_evidence(result, occurred_at) if outcome["classification"] == "validated" else None
+            closure = build_closure(result, evidence, occurred_at)
+            after = json.loads(canonical_json(state))
+            after.setdefault("generation_results", {})
+            after.setdefault("generation_evidence", {})
+            after.setdefault("generation_phase_closures", {})
+            after["generation_results"][case_id] = result
+            if evidence is not None:
+                after["generation_evidence"][case_id] = evidence
+            after["generation_phase_closures"][case_id] = closure
+            after["cases"][case_id]["coordination_status"] = (
+                "awaiting_generation_evidence_review" if evidence is not None else "terminal"
+            )
+            after["next_case_id"] = derive_next_case(after)
+            classification = outcome["classification"]
+            operation = (
+                "generation_result_validated" if classification == "validated"
+                else "generation_provider_failed" if classification in PROVIDER_FAILURES
+                else "generation_validation_failed"
+            )
+            event = self._make_event(state, after, operation, {
+                "case_id": case_id, "classification": classification,
+                "result_sha256": result["result_sha256"],
+                "evidence_sha256": evidence["evidence_sha256"] if evidence else None,
+            }, occurred_at=occurred_at)
             journal = self._read_journal(); journal["events"].append(event)
             canonical = self._validate_journal(journal)[-1]
             self._commit(journal, canonical)

@@ -13,6 +13,9 @@ from openai_client_factory import (
     _read_evaluation_credential,
 )
 from v4_formal_evaluation_live_generation import generation_grant_is_expired
+from v4_formal_evaluation_live_generation_result import (
+    classify_generation, provider_failure,
+)
 from v4_formal_evaluation_live_models import MAX_RETRIES
 from v4_formal_evaluation_live_preflight_result import PreflightResultError
 from v4_formal_evaluation_live_state import AggregateStateError, AggregateStore, parse_time
@@ -149,3 +152,30 @@ class ProviderExecutionBoundary:
                 self.store.record_preflight_failure("invalid_result")
                 raise ExecutionBoundaryError("preflight provider token-count result is invalid") from error
             return outcome
+
+    def execute_generation(self) -> object:
+        prepared = self.precheck("generation")
+        if not self.environment.get(CREDENTIAL):
+            raise ExecutionBoundaryError("evaluation credential is unavailable")
+        client = self._prepare_client(prepared)
+        with client:
+            if self.precheck("generation") != prepared:
+                raise ExecutionBoundaryError("provider entry state changed during credential acquisition")
+            consumed = self.store.record_provider_dispatch_started("generation")
+            reservation = consumed["provider_budget_reservations"][f"{prepared.case_id}:generation"]
+            if reservation["lifecycle"]["status"] != "consumed":
+                raise AggregateStateError("durable generation dispatch did not consume the attempt")
+            try:
+                raw = self._enter_provider(prepared, client)
+            except TimeoutError:
+                self.store.record_generation_outcome(provider_failure("timeout"), case_id=prepared.case_id)
+                raise
+            except (ConnectionError, OSError):
+                self.store.record_generation_outcome(provider_failure("transport_error"), case_id=prepared.case_id)
+                raise
+            except Exception:
+                self.store.record_generation_outcome(provider_failure("provider_error"), case_id=prepared.case_id)
+                raise
+            outcome = classify_generation(prepared.case_id, raw)
+            self.store.record_generation_outcome(outcome, case_id=prepared.case_id)
+            return raw

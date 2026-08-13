@@ -1,5 +1,27 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 9B generation result boundary
+
+Milestone 9B is implemented offline and awaits human diff review. The existing
+Milestone 9A approval is the sole production generation prerequisite. After the
+unchanged Milestone 8 generation dispatch boundary, provider output is handled
+automatically by the canonical frozen schema/semantic/prose pipeline. One
+bounded result and closure are durable; valid output creates bounded evidence
+and leaves the case `awaiting_generation_evidence_review`, while content and
+provider failures remain distinct, consumed, terminal, and non-retryable.
+
+Rejected prose and arbitrary raw provider output are not retained. Replay binds
+every result to the actual retained generation dispatch, preserves exact
+idempotency, and recovers history-first after projection interruption. The
+coordination CLI remains ten commands, live authorization remains closed, and
+no real provider or Milestone 10 operation occurred. After 9B review and commit,
+top-level Milestone 9 is complete; perform the mandatory framework reassessment
+next, before beginning Milestone 10.
+
+Final-review correction now also rejects fully rehashed noncanonical prose
+diagnostics by enforcing the frozen code/rule/field/trigger/order and bounded
+offset/count contract. Fixed result/evidence/closure identities are unchanged.
+
 ## Architecture A Milestone 9A preflight result and review gate
 
 Milestone 9A is implemented offline and awaits human diff review. The unchanged
