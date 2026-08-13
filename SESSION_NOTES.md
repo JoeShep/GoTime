@@ -1,5 +1,53 @@
 # Session Notes
 
+## 2026-08-12 — Milestone 8 review corrections
+
+- Preserved the fixed same-shell architecture while adding early sourced-script
+  refusal to both operator launchers.
+- Rehearsed the unchanged preflight launcher through its unchanged Docker
+  wrapper with xtrace enabled. A lower-level test-only process/import seam
+  supplied synthetic authorization and provider entry; Docker argv retained
+  only the credential variable name, never its value.
+- Wired the execution boundary to the canonical OpenAI client factory and
+  exercised `max_retries=0`, `trust_env=False`, fixed base URL, frozen timeout,
+  and zero construction-time/provider-network calls through the actual boundary.
+- Added isolated post-credential checks for aggregate expiry, grant expiry,
+  released reservation, and concurrent consumption, each with an exact
+  pre-dispatch diagnostic.
+- Reconciled the 18-to-2 skip change: the identical full-offline path originally
+  lacked zsh and skipped sixteen zsh-only cases plus two Docker-dependent cases.
+  The read-only host-zsh mount enables those sixteen; the same two Docker cases
+  remain skipped, so coverage was not reduced.
+- Corrected validation passed 20 Milestone 8 tests, 222 focused Milestones 1–8
+  tests, and 1,254 full-offline tests with the two Docker-dependent skips.
+- No live authorization, provider operation, real credential, Milestone 9
+  result handling, framework, or frozen-identity change was introduced.
+
+## Architecture A Milestone 8
+
+- Continued from the partial production-closed execution boundary without
+  restarting or changing Milestone 7 state.
+- Added fixed preflight and generation zsh launchers. Preflight owns the silent
+  same-shell credential/process-tree lifecycle; generation remains a pre-prompt
+  readiness-only failure while evidence/live authorization are absent.
+- Added exact precheck, local client-preparation seam, post-secret revalidation,
+  durable dispatch, and immediate synthetic entry ordering. Synthetic seams are
+  subclass-only and the fixed wrapper is network-disabled.
+- Reused the frozen 5/12-second timeouts and pinned OpenAI 2.45.0 client policy:
+  application/transport retries are zero and client construction explicitly
+  uses `max_retries=0` with `trust_env=False`.
+- Provider results are returned only to a future Milestone 9 interface and are
+  not persisted. No live key, provider call, network access, result validation,
+  or closure behavior was introduced.
+- Validation passed: 13 Milestone 8 tests and 215 focused Milestones 1–8 tests.
+  The final full-offline run passed 1,247 tests with 2 skipped.
+  Backend passed 148 tests and frontend passed 17 tests;
+  TypeScript/production build, Python/JSON/TOML parsing, frozen-foundation
+  verification, zsh/sh syntax, and scoped diff checks. Host zsh was mounted
+  read-only into the pinned network-disabled image; no dependency was installed.
+- Build-vs-adopt remains `defer_adoption`; reassessment remains after committed
+  Milestone 9 and before Milestone 10.
+
 ## Architecture A Milestone 7
 
 - Began fresh from committed reconciliation `5117e442ad735b4c8409b6da3883a64bcc9aa01b`.

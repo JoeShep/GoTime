@@ -1,5 +1,29 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 8 same-shell boundary
+
+Milestone 8 continues offline from `6043cbc`. The fixed human-run zsh preflight
+launcher performs credential-free readiness, silent same-shell credential
+entry, final revalidation, durable `provider_dispatch_started`, and immediate
+synthetic provider entry with cleanup and preserved exit status. Production is
+closed before prompting because Milestone 18 live authorization is absent;
+generation is also blocked by absent production reviewed evidence. The pinned
+SDK is 2.45.0 with explicit zero retries; frozen preflight/generation timeouts
+remain 5/12 seconds. No provider operation or Milestone 9 behavior exists.
+Both launchers reject sourcing before changing the caller, and the unchanged
+preflight launcher is rehearsed through its unchanged Docker wrapper with
+xtrace enabled. The boundary is wired to the canonical client factory, whose
+actual constructor arguments prove `max_retries=0` and `trust_env=False`.
+Aggregate expiry, grant expiry, released reservation, and concurrent consumption
+are independently revalidated before dispatch. The full-suite skip reduction
+from 18 to 2 comes from mounting the existing host zsh read-only: sixteen
+zsh-only tests run, while two Docker-daemon-dependent rehearsals remain skipped.
+Corrected validation passed 20 Milestone 8 tests, 222 focused Milestones 1–8
+tests, and 1,254 full-offline tests with those two documented skips.
+
+Build-vs-adopt remains `defer_adoption`; reassess after committed Milestone 9
+and before Milestone 10.
+
 ## Architecture A Milestone 7 generation grants
 
 Milestone 7 is implemented offline and awaits human diff review. The version-1
