@@ -1,5 +1,29 @@
 # Session Notes
 
+## 2026-08-12 — Milestone 9 ownership reconciliation
+
+- Stopped Milestone 9 implementation at the committed reviewed-preflight
+  ownership gate; no code or tests were changed.
+- Confirmed the canonical frozen-v4 gate requires an explicit human preflight
+  evidence review with reviewer identity, approve/reject/request-changes
+  decision, four confirmations, bounded notes, exact evidence/history binding,
+  and a timely review timestamp. Machine validation cannot substitute for it.
+- Recorded a design-only clarification preserving the eighteen-milestone plan:
+  Milestone 9A owns preflight result validation/evidence and the canonical
+  preflight evidence review; Milestone 9B owns generation result validation and
+  provider-phase closure. Top-level Milestone 9 completes only after both
+  checkpoints are committed.
+- Preserved Milestone 10 ownership of generated-evidence grounding/quality
+  review, deletion, and the separate 24-hour deadline.
+- Left the digested implementation plan and architecture memo unchanged. The
+  architecture already requires preflight evidence review before generation;
+  the separate reconciliation record is the authoritative ownership
+  clarification.
+- Build-vs-adopt remains `defer_adoption`. Mandatory framework reassessment
+  remains after both 9A and 9B are committed and before Milestone 10.
+- No runtime, test, frozen identity, provider, credential, network, live
+  authorization, Milestone 9 implementation, or Milestone 10 change occurred.
+
 ## 2026-08-12 — Milestone 8 review corrections
 
 - Preserved the fixed same-shell architecture while adding early sourced-script

@@ -1,5 +1,25 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 9 ownership reconciliation
+
+Milestone 9 implementation is paused pending human review of the design-only
+ownership clarification in
+`docs/experiments/suggest-moving-service-questions/v4-formal-evaluation-milestone-9-ownership-reconciliation.md`.
+Preserve the eighteen-milestone numbering and implement top-level Milestone 9
+through two separately reviewed and committed checkpoints: 9A owns preflight
+result validation, bounded evidence, and the exact canonical human preflight
+evidence review that alone may establish generation eligibility; 9B owns
+generation execution/result validation, bounded diagnostics/evidence, and
+provider-phase closure. Milestone 10 continues to own human review and deletion
+of validated generation evidence plus its 24-hour deadline.
+
+Do not begin 9A before approval of the reconciliation. After approval, complete
+and commit 9A, then complete and commit 9B. Only after both are committed is
+top-level Milestone 9 complete. The mandatory Temporal/Inngest/LangGraph
+reassessment follows completed Milestone 9 and must precede Milestone 10.
+Build-vs-adopt remains `defer_adoption`, and permanent live authorization
+remains `closed_no_execution_authorized`.
+
 ## Architecture A Milestone 8 same-shell boundary
 
 Milestone 8 continues offline from `6043cbc`. The fixed human-run zsh preflight
