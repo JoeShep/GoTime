@@ -14,6 +14,7 @@ from openai_client_factory import (
 )
 from v4_formal_evaluation_live_generation import generation_grant_is_expired
 from v4_formal_evaluation_live_models import MAX_RETRIES
+from v4_formal_evaluation_live_preflight_result import PreflightResultError
 from v4_formal_evaluation_live_state import AggregateStateError, AggregateStore, parse_time
 
 CREDENTIAL = "GOTIME_MOVING_SERVICE_EVAL_OPENAI_API_KEY"
@@ -126,4 +127,25 @@ class ProviderExecutionBoundary:
             consumed = self.store.record_provider_dispatch_started()
             if consumed["provider_budget_reservations"][prepared.case_id]["lifecycle"]["status"] != "consumed":
                 raise AggregateStateError("durable dispatch did not consume the attempt")
-            return self._enter_provider(prepared, client)
+            try:
+                outcome = self._enter_provider(prepared, client)
+            except TimeoutError:
+                self.store.record_preflight_failure("timeout")
+                raise
+            except (ConnectionError, OSError):
+                self.store.record_preflight_failure("transport_error")
+                raise
+            except Exception:
+                self.store.record_preflight_failure("provider_error")
+                raise
+            if (not isinstance(outcome, dict) or set(outcome) != {"input_tokens"}
+                    or not isinstance(outcome["input_tokens"], int)
+                    or isinstance(outcome["input_tokens"], bool)):
+                self.store.record_preflight_failure("invalid_result")
+                raise ExecutionBoundaryError("preflight provider result structure is invalid")
+            try:
+                self.store.record_preflight_success(outcome["input_tokens"])
+            except PreflightResultError as error:
+                self.store.record_preflight_failure("invalid_result")
+                raise ExecutionBoundaryError("preflight provider token-count result is invalid") from error
+            return outcome

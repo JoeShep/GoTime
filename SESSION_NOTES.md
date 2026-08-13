@@ -1,5 +1,43 @@
 # Session Notes
 
+## 2026-08-12 — Architecture A Milestone 9A
+
+- Corrected final-review replay findings without changing canonical identities:
+  validated result history now requires exact evidence atomically, and result
+  dispatch identity must equal the actual retained dispatch event at the
+  authoritative before-state journal head. Added fully rehashed persisted
+  attacks for missing evidence and a valid-looking wrong dispatch digest.
+- Added versioned bounded preflight result, evidence, human-review, and closure
+  models bound to the exact consumed dispatch, case, envelope, grant,
+  reservation, request/attempt, and provider identities.
+- Wired the Milestone 8 preflight return directly into automatic bounded result
+  handling. Case 01 retains 2,852 input tokens and locally derives `$0.0019408`;
+  arbitrary raw payloads and exception text are not persisted.
+- Added explicit `preflight_result_validated`, `preflight_provider_failed`, and
+  `preflight_evidence_reviewed` history operations with exact rerun idempotency,
+  conflict rejection, retained-head immutability, and history-first recovery.
+- Added the fixed provider-free preflight evidence review action. It resolves
+  the current evidence, requires the configured reviewer, canonical decision,
+  four explicit confirmations, bounded notes, and a timestamp satisfying the
+  frozen 15-minute review deadline.
+- Machine-valid evidence remains review-pending and generation-ineligible.
+  Only exact approval creates the existing production generation evidence
+  binding. Reject/request-changes and provider failures remain consumed,
+  terminal, no-retry, and generation-ineligible.
+- Preserved the ten-command coordination CLI, Milestone 7 synthetic-evidence
+  isolation, permanent closed live authorization, and zero generation provider
+  entries. Milestone 9B and Milestone 10 were not begun.
+- Validation passed 18 dedicated Milestone 9A tests, the focused live-state and
+  result boundary suites, and the full offline experiment suite with 1,251
+  passed and 23 environment-dependent skips. Backend passed 148 tests and
+  frontend passed 17 tests; TypeScript, production build, read-only Python and
+  JSON/TOML parsing, frozen-v4 verification, shell syntax, and scoped diff
+  checks also passed. The existing host zsh was mounted read-only into the
+  network-disabled image for the exact Milestone 8 launcher suite; all 20
+  launcher/process tests passed, including the 9A result-handler handoff.
+- Build-vs-adopt remains `defer_adoption`; reassessment remains after committed
+  9B/top-level Milestone 9 and before Milestone 10.
+
 ## 2026-08-12 — Milestone 9 ownership reconciliation
 
 - Stopped Milestone 9 implementation at the committed reviewed-preflight

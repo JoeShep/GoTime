@@ -1,5 +1,30 @@
 # NEXT_SESSION
 
+## Architecture A Milestone 9A preflight result and review gate
+
+Milestone 9A is implemented offline and awaits human diff review. The unchanged
+Milestone 8 preflight execution boundary now hands its in-memory outcome
+directly to versioned bounded result/evidence handling. A valid case-01 result
+records 2,852 tokens and locally derives `$0.0019408`; machine validation leaves
+generation ineligible until the separate fixed human preflight evidence review
+records an exact approval with all four canonical confirmations before the
+15-minute deadline. Reject and request-changes decisions are terminal and do
+not permit retry or generation.
+
+The coordination CLI remains ten commands. Human review uses the fixed
+provider-free `review_v4_formal_evaluation_live_preflight_evidence_docker.sh`
+entry point, which resolves case/evidence from authoritative state. No live
+provider call, real credential, raw provider payload retention, or generation
+provider entry was introduced. Do not begin 9B before 9A human review and
+commit. Framework reassessment remains after committed 9B/top-level Milestone
+9 and before Milestone 10.
+
+Human review found and the correction now closes two replay-only gaps:
+`preflight_result_validated` requires its exact evidence atomically, and its
+dispatch digest must resolve the actual retained `provider_dispatch_started`
+event. Canonical result/evidence/review identities and review policy are
+unchanged.
+
 ## Architecture A Milestone 9 ownership reconciliation
 
 Milestone 9 implementation is paused pending human review of the design-only

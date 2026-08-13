@@ -55,7 +55,7 @@ class SyntheticBoundary(ProviderExecutionBoundary):
         assert state["provider_budget_reservations"][prepared.case_id]["lifecycle"]["status"] == "consumed"
         self.calls += 1
         if self.fail: raise self.fail
-        return {"synthetic": True}  # Future Milestone 9 handoff; never persisted.
+        return {"input_tokens": 2852}
 
 
 def prepared_store(tmp_path):
@@ -89,11 +89,11 @@ def test_synthetic_generation_precheck_binds_exact_active_evidence_and_reservati
 
 def test_durable_dispatch_immediately_precedes_synthetic_entry_and_secret_is_not_durable(tmp_path):
     store, _ = prepared_store(tmp_path); boundary = SyntheticBoundary(store, {CREDENTIAL: FAKE})
-    assert boundary.execute_preflight() == {"synthetic": True}
+    assert boundary.execute_preflight() == {"input_tokens": 2852}
     assert boundary.calls == 1
     state = store.load(); history = store._read_journal()
     assert state["counters"]["token_preflights_consumed"] == 1
-    assert history["events"][-1]["operation"] == "provider_dispatch_started"
+    assert history["events"][-1]["operation"] == "preflight_result_validated"
     assert FAKE not in json.dumps(state) and FAKE not in json.dumps(history)
     with pytest.raises((AggregateStateError, ExecutionBoundaryError)):
         boundary.execute_preflight()
@@ -312,7 +312,7 @@ def _write_fake_docker_and_hook(tmp_path, synthetic=True):
             assert owned.client.arguments["max_retries"] == 0
             assert owned._http_client.arguments == {"trust_env": False}
             Path(os.environ["M8_PROVIDER_MARKER"]).write_text("synthetic-entry=1\\n")
-            return {"synthetic": True}
+            return {"input_tokens": 2852}
         execution.ProviderExecutionBoundary._enter_provider = enter
     """)
     (hook / "sitecustomize.py").write_text(textwrap.dedent("""\
@@ -365,6 +365,9 @@ def test_exact_unchanged_operator_launcher_rehearses_real_docker_wrapper_with_xt
     durable = json.dumps(state) + json.dumps(store._read_journal())
     assert FAKE not in durable
     assert state["counters"]["token_preflights_consumed"] == 1
+    assert state["preflight_results"]["eval-v4-01"]["immutable_binding"]["input_tokens"] == 2852
+    assert state["preflight_evidence"]["eval-v4-01"]["immutable_binding"]["generation_gate_binding_eligible"] is False
+    assert state["reviewed_preflight_evidence"] == {}
     for path in tmp_path.rglob("*"):
         if path.is_file() and path.name != "sitecustomize.py":
             assert FAKE not in path.read_text(errors="ignore"), path

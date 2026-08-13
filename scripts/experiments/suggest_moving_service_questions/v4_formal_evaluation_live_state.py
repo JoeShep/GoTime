@@ -49,6 +49,9 @@ OPERATION_STATES = {
     "provider_budget_reserved": ("in_progress", "in_progress"),
     "provider_budget_released": ({"in_progress", "expired_paused"}, {"in_progress", "expired_paused"}),
     "provider_dispatch_started": ("in_progress", "in_progress"),
+    "preflight_result_validated": ("in_progress", "in_progress"),
+    "preflight_provider_failed": ("in_progress", "in_progress"),
+    "preflight_evidence_reviewed": ("in_progress", "in_progress"),
     "generation_grant_prepared": ("in_progress", "in_progress"),
     "generation_budget_reserved": ("in_progress", "in_progress"),
 }
@@ -230,6 +233,10 @@ class AggregateStore:
                 "provider_authority": False,
                 "ai_case_envelopes": {},
                 "preflight_grants": {},
+                "preflight_results": {},
+                "preflight_evidence": {},
+                "preflight_reviews": {},
+                "preflight_phase_closures": {},
                 "reviewed_preflight_evidence": {},
                 "generation_grants": {},
                 "provider_budget_reservations": {},
@@ -441,6 +448,12 @@ class AggregateStore:
         if operation == "provider_dispatch_started":
             self._validate_provider_dispatch_started_event(event)
             return
+        if operation in {"preflight_result_validated", "preflight_provider_failed"}:
+            self._validate_preflight_result_event(event)
+            return
+        if operation == "preflight_evidence_reviewed":
+            self._validate_preflight_review_event(event)
+            return
         if operation == "generation_grant_prepared":
             self._validate_generation_grant_preparation(event)
             return
@@ -490,6 +503,16 @@ class AggregateStore:
         for case_id, evidence in before["reviewed_preflight_evidence"].items():
             if after["reviewed_preflight_evidence"].get(case_id) != evidence:
                 raise AggregateStateError("prior generation history cannot delete or replace retained evidence")
+        for collection in ("preflight_results", "preflight_evidence", "preflight_reviews"):
+            for case_id, record in before[collection].items():
+                if after[collection].get(case_id) != record:
+                    raise AggregateStateError(f"retained {collection} history cannot be deleted or replaced")
+        for case_id, closure in before["preflight_phase_closures"].items():
+            retained = after["preflight_phase_closures"].get(case_id)
+            if retained is None or (
+                closure["immutable_binding"]["status"] != "review_pending" and retained != closure
+            ):
+                raise AggregateStateError("retained preflight phase closure cannot be deleted or replaced")
         for key, reservation in before["provider_budget_reservations"].items():
             if reservation["immutable_binding"]["phase"] != "generation":
                 continue
@@ -536,6 +559,10 @@ class AggregateStore:
             or state["cases"] != self._expected_initial_cases()
             or state["ai_case_envelopes"] != {}
             or state["preflight_grants"] != {}
+            or state["preflight_results"] != {}
+            or state["preflight_evidence"] != {}
+            or state["preflight_reviews"] != {}
+            or state["preflight_phase_closures"] != {}
             or state["reviewed_preflight_evidence"] != {}
             or state["generation_grants"] != {}
             or state["provider_budget_reservations"] != {}
@@ -564,6 +591,8 @@ class AggregateStore:
             "state_version", "aggregate_id", "package_identity_sha256", "immutable_package",
             "operator", "reviewer", "status", "initialized_at", "expires_at",
             "coordination_only", "provider_authority", "ai_case_envelopes", "preflight_grants",
+            "preflight_results", "preflight_evidence", "preflight_reviews",
+            "preflight_phase_closures",
             "reviewed_preflight_evidence", "generation_grants",
             "provider_budget_reservations", "budget_accounting", "cases", "counters",
             "acknowledgement", "extension_history", "next_case_id", "history_count",
@@ -610,6 +639,7 @@ class AggregateStore:
         except AiCaseEnvelopeError as error:
             raise AggregateStateError(str(error)) from error
         self._validate_preflight_grants(state)
+        self._validate_preflight_result_state(state)
         self._validate_generation_state(state)
         _validate_acknowledgement(state["acknowledgement"])
         if state["extension_history"] != []:
@@ -834,6 +864,119 @@ class AggregateStore:
                 )
                 if lifecycle != expected_lifecycle:
                     raise AggregateStateError("grant lifecycle does not match its durable reservation")
+
+    def _validate_preflight_result_state(self, state: Mapping[str, object]) -> None:
+        from v4_formal_evaluation_live_preflight_result import (
+            PreflightResultError, validate_bundle,
+        )
+
+        collections = tuple(state[name] for name in (
+            "preflight_results", "preflight_evidence", "preflight_reviews",
+            "preflight_phase_closures",
+        ))
+        if any(not isinstance(value, dict) or len(value) > len(AI_CASE_ORDER) for value in collections):
+            raise AggregateStateError("preflight result/review collections are malformed")
+        results, evidence_records, reviews, closures = collections
+        if set(closures) != set(results) or not set(reviews) <= set(evidence_records) <= set(results):
+            raise AggregateStateError("preflight result/evidence/review lifecycle is incomplete")
+        for case_id, result in results.items():
+            if case_id not in AI_CASE_ORDER or case_id not in state["ai_case_envelopes"]:
+                raise AggregateStateError("preflight result targets an unavailable AI case")
+            grant = state["preflight_grants"].get(case_id)
+            reservation = state["provider_budget_reservations"].get(case_id)
+            if (grant is None or reservation is None
+                    or reservation["lifecycle"]["status"] != "consumed"
+                    or reservation["lifecycle"]["attempt_consumed"] is not True):
+                raise AggregateStateError("preflight result requires exact consumed dispatch history")
+            try:
+                validate_bundle(result, evidence_records.get(case_id), reviews.get(case_id),
+                                closures[case_id], state["ai_case_envelopes"][case_id],
+                                grant, reservation)
+            except PreflightResultError as error:
+                raise AggregateStateError(str(error)) from error
+            eligible = state["reviewed_preflight_evidence"].get(case_id)
+            review = reviews.get(case_id)
+            if review is None or review["immutable_binding"]["decision"] != "approve":
+                if eligible is not None:
+                    raise AggregateStateError("generation eligibility requires exact approved preflight review")
+            else:
+                from v4_formal_evaluation_live_generation import build_reviewed_preflight_evidence
+                expected = build_reviewed_preflight_evidence(
+                    case_id, state["ai_case_envelopes"][case_id],
+                    input_tokens=evidence_records[case_id]["immutable_binding"]["input_tokens"],
+                    evidence_sha256=evidence_records[case_id]["evidence_sha256"],
+                    review_sha256=review["review_sha256"],
+                )
+                if eligible != expected:
+                    raise AggregateStateError("generation eligibility does not match approved preflight review")
+
+    def _validate_preflight_result_event(self, event: Mapping[str, object]) -> None:
+        before, after, metadata = event["before_state"], event["after_state"], event["metadata"]
+        if not isinstance(metadata, dict) or set(metadata) != {
+            "case_id", "classification", "result_sha256", "evidence_sha256",
+        }:
+            raise AggregateStateError("preflight result event metadata is not exact")
+        case_id = metadata["case_id"]
+        if before["next_case_id"] != case_id or case_id in before["preflight_results"]:
+            raise AggregateStateError("preflight result must bind the exact current unrecorded attempt")
+        result = after["preflight_results"].get(case_id)
+        evidence = after["preflight_evidence"].get(case_id)
+        classification = result["immutable_binding"]["classification"] if result else None
+        expected_operation = "preflight_result_validated" if classification == "validated" else "preflight_provider_failed"
+        if (result is None
+                or result["immutable_binding"].get("provider_dispatch_started_sha256")
+                != before["history_head_sha256"]):
+            raise AggregateStateError(
+                "preflight result must bind the actual retained provider dispatch event"
+            )
+        if (expected_operation == "preflight_result_validated") != (evidence is not None):
+            raise AggregateStateError(
+                "validated preflight result and exact evidence must be recorded atomically"
+            )
+        if event["operation"] != expected_operation or metadata != {
+            "case_id": case_id, "classification": classification,
+            "result_sha256": result["result_sha256"] if result else None,
+            "evidence_sha256": evidence["evidence_sha256"] if evidence else None,
+        }:
+            raise AggregateStateError("preflight result event identity mismatch")
+        expected = json.loads(canonical_json(before))
+        expected["preflight_results"][case_id] = result
+        if evidence is not None:
+            expected["preflight_evidence"][case_id] = evidence
+        expected["preflight_phase_closures"][case_id] = after["preflight_phase_closures"][case_id]
+        expected["history_count"] = after["history_count"]
+        expected["history_head_sha256"] = after["history_head_sha256"]
+        if after != expected:
+            raise AggregateStateError("preflight result event mutated prohibited state")
+        self._validate_preflight_result_state(after)
+
+    def _validate_preflight_review_event(self, event: Mapping[str, object]) -> None:
+        before, after, metadata = event["before_state"], event["after_state"], event["metadata"]
+        if not isinstance(metadata, dict) or set(metadata) != {
+            "case_id", "evidence_sha256", "review_sha256", "decision",
+        }:
+            raise AggregateStateError("preflight review event metadata is not exact")
+        case_id = metadata["case_id"]
+        if case_id in before["preflight_reviews"] or case_id not in before["preflight_evidence"]:
+            raise AggregateStateError("preflight evidence review must bind one unreviewed evidence record")
+        review = after["preflight_reviews"].get(case_id)
+        if review is None or metadata != {
+            "case_id": case_id,
+            "evidence_sha256": before["preflight_evidence"][case_id]["evidence_sha256"],
+            "review_sha256": review["review_sha256"],
+            "decision": review["immutable_binding"]["decision"],
+        }:
+            raise AggregateStateError("preflight evidence review event identity mismatch")
+        expected = json.loads(canonical_json(before))
+        expected["preflight_reviews"][case_id] = review
+        expected["preflight_phase_closures"][case_id] = after["preflight_phase_closures"][case_id]
+        if review["immutable_binding"]["decision"] == "approve":
+            expected["reviewed_preflight_evidence"][case_id] = after["reviewed_preflight_evidence"][case_id]
+        expected["history_count"] = after["history_count"]
+        expected["history_head_sha256"] = after["history_head_sha256"]
+        if after != expected:
+            raise AggregateStateError("preflight evidence review event mutated prohibited state")
+        self._validate_preflight_result_state(after)
 
     def _validate_generation_state(self, state: Mapping[str, object]) -> None:
         from v4_formal_evaluation_live_generation import (
@@ -1505,6 +1648,148 @@ class AggregateStore:
             )
             journal = self._read_journal()
             journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def _preflight_dispatch_event_sha256(self, case_id: str) -> str:
+        for event in reversed(self._read_journal()["events"]):
+            if (event["operation"] == "provider_dispatch_started"
+                    and event["metadata"].get("case_id") == case_id
+                    and event["metadata"].get("phase") == "preflight"):
+                return event["event_sha256"]
+        raise AggregateStateError("consumed preflight dispatch event is unavailable")
+
+    def record_preflight_success(self, input_tokens: int) -> dict[str, object]:
+        """Persist a bounded validated result/evidence; human review remains separate."""
+        from v4_formal_evaluation_live_preflight_result import (
+            build_closure, build_evidence, build_validated_result,
+        )
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=False, recover_projection=True)
+            case_id = state["next_case_id"]
+            existing = state["preflight_results"].get(case_id)
+            if existing is not None:
+                binding = existing["immutable_binding"]
+                if binding["classification"] == "validated" and binding["input_tokens"] == input_tokens:
+                    return dict(state)
+                raise AggregateStateError("conflicting preflight result is prohibited")
+            reservation = state["provider_budget_reservations"].get(case_id)
+            if reservation is None or reservation["lifecycle"]["status"] != "consumed":
+                raise AggregateStateError("preflight result requires consumed provider dispatch")
+            occurred_at = self.clock()
+            result = build_validated_result(
+                case_id, state["ai_case_envelopes"][case_id], state["preflight_grants"][case_id],
+                reservation, self._preflight_dispatch_event_sha256(case_id), input_tokens, occurred_at,
+            )
+            evidence = build_evidence(result, state["ai_case_envelopes"][case_id], occurred_at)
+            closure = build_closure(case_id, result, evidence, None, occurred_at)
+            after = json.loads(canonical_json(state))
+            after["preflight_results"][case_id] = result
+            after["preflight_evidence"][case_id] = evidence
+            after["preflight_phase_closures"][case_id] = closure
+            event = self._make_event(state, after, "preflight_result_validated", {
+                "case_id": case_id, "classification": "validated",
+                "result_sha256": result["result_sha256"],
+                "evidence_sha256": evidence["evidence_sha256"],
+            }, occurred_at=occurred_at)
+            journal = self._read_journal(); journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def record_preflight_failure(self, classification: str) -> dict[str, object]:
+        """Persist only bounded post-dispatch provider failure classification."""
+        from v4_formal_evaluation_live_preflight_result import build_closure, build_provider_failure
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=False, recover_projection=True)
+            case_id = state["next_case_id"]
+            existing = state["preflight_results"].get(case_id)
+            if existing is not None:
+                if existing["immutable_binding"]["classification"] == classification:
+                    return dict(state)
+                raise AggregateStateError("conflicting preflight result is prohibited")
+            reservation = state["provider_budget_reservations"].get(case_id)
+            if reservation is None or reservation["lifecycle"]["status"] != "consumed":
+                raise AggregateStateError("preflight failure requires consumed provider dispatch")
+            occurred_at = self.clock()
+            result = build_provider_failure(
+                case_id, state["ai_case_envelopes"][case_id], state["preflight_grants"][case_id],
+                reservation, self._preflight_dispatch_event_sha256(case_id), classification, occurred_at,
+            )
+            closure = build_closure(case_id, result, None, None, occurred_at)
+            after = json.loads(canonical_json(state))
+            after["preflight_results"][case_id] = result
+            after["preflight_phase_closures"][case_id] = closure
+            event = self._make_event(state, after, "preflight_provider_failed", {
+                "case_id": case_id, "classification": classification,
+                "result_sha256": result["result_sha256"], "evidence_sha256": None,
+            }, occurred_at=occurred_at)
+            journal = self._read_journal(); journal["events"].append(event)
+            canonical = self._validate_journal(journal)[-1]
+            self._commit(journal, canonical)
+            return canonical
+
+    def review_preflight_evidence(
+        self, *, reviewer: str, decision: str, reviewed_at: datetime,
+        token_count_plausible: bool, cost_within_limit: bool,
+        frozen_bindings_confirmed: bool, evidence_history_confirmed: bool,
+        notes: str,
+    ) -> dict[str, object]:
+        """Record the one canonical human review; this performs no provider operation."""
+        from v4_formal_evaluation_live_generation import build_reviewed_preflight_evidence
+        from v4_formal_evaluation_live_preflight_result import build_closure, build_review
+
+        with _lock(self.root):
+            state = self._load_unlocked(observe_expiry=False, recover_projection=True)
+            case_id = state["next_case_id"]
+            if reviewer != state["reviewer"]:
+                raise AggregateStateError("preflight evidence reviewer must match aggregate reviewer")
+            evidence = state["preflight_evidence"].get(case_id)
+            if evidence is None:
+                raise AggregateStateError("current case has no reviewable preflight evidence")
+            existing = state["preflight_reviews"].get(case_id)
+            requested = {
+                "reviewer": reviewer, "decision": decision,
+                "reviewed_at": format_time(reviewed_at),
+                "token_count_plausible": token_count_plausible,
+                "cost_within_limit": cost_within_limit,
+                "frozen_bindings_confirmed": frozen_bindings_confirmed,
+                "evidence_history_confirmed": evidence_history_confirmed,
+                "bounded_notes": notes,
+            }
+            if existing is not None:
+                binding = existing["immutable_binding"]
+                if all(binding.get(key) == value for key, value in requested.items()):
+                    return dict(state)
+                raise AggregateStateError("conflicting preflight evidence review is prohibited")
+            review = build_review(
+                evidence, reviewer=reviewer, decision=decision, reviewed_at=reviewed_at,
+                token_count_plausible=token_count_plausible,
+                cost_within_limit=cost_within_limit,
+                frozen_bindings_confirmed=frozen_bindings_confirmed,
+                evidence_history_confirmed=evidence_history_confirmed,
+                notes=notes, now=self.clock(),
+            )
+            result = state["preflight_results"][case_id]
+            closure = build_closure(case_id, result, evidence, review, reviewed_at)
+            after = json.loads(canonical_json(state))
+            after["preflight_reviews"][case_id] = review
+            after["preflight_phase_closures"][case_id] = closure
+            if decision == "approve":
+                after["reviewed_preflight_evidence"][case_id] = build_reviewed_preflight_evidence(
+                    case_id, state["ai_case_envelopes"][case_id],
+                    input_tokens=evidence["immutable_binding"]["input_tokens"],
+                    evidence_sha256=evidence["evidence_sha256"],
+                    review_sha256=review["review_sha256"],
+                )
+            event = self._make_event(state, after, "preflight_evidence_reviewed", {
+                "case_id": case_id, "evidence_sha256": evidence["evidence_sha256"],
+                "review_sha256": review["review_sha256"], "decision": decision,
+            }, occurred_at=reviewed_at)
+            journal = self._read_journal(); journal["events"].append(event)
             canonical = self._validate_journal(journal)[-1]
             self._commit(journal, canonical)
             return canonical
