@@ -55,12 +55,12 @@ context. It does not normalize or geocode the area, calculate a route or travel
 time, verify a workplace, or score candidate locations. Work arrangement,
 commute tolerance, workplace area, and intended mode are only inputs to
 employment planning; suitable employment remains an unconfirmed Assumption.
-The backend also persists one fixed family relocation plan in SQLite. Its four
-ordered phases and tasks are available through a fixed API; tasks support
-bounded status, category, assignees, dates, priority, and dependencies, with
-blocked state derived from incomplete dependencies. The task-management UI is
-not implemented yet, and the earlier recommendation inputs still remain in
-browser/request memory. There is no authentication or generalized multi-goal
+The backend also persists one fixed family relocation plan in SQLite. The main
+screen now loads its four ordered phases and lets the family add and edit tasks,
+change status, assign people and dates, and select dependencies. Blocked state
+is derived from incomplete dependencies and shown directly in the plan. The
+earlier recommendation inputs still remain in browser/request memory and do not
+yet rank stored tasks. There is no authentication or generalized multi-goal
 infrastructure.
 
 The current interface also includes an optional, explicitly triggered

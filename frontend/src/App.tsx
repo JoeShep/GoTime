@@ -20,6 +20,7 @@ import {
   type WorkArrangement,
 } from './api/recommendations'
 import { MovingServiceQuestionExperiment } from './MovingServiceQuestionExperiment'
+import { RelocationPlan } from './RelocationPlan'
 
 const workArrangementLabels: Record<WorkArrangement, string> = {
   remote: 'Remote',
@@ -133,6 +134,8 @@ function App() {
               </p>
               <p className="goal-name mb-0">Relocate to Northern California</p>
             </section>
+
+            <RelocationPlan />
 
             {isLoading && (
               <div className="loading-state mt-5 py-5 text-center" role="status">

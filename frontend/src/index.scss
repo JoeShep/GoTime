@@ -119,3 +119,40 @@ body {
   font-size: 1.1rem;
   font-weight: 600;
 }
+
+.phase-card {
+  border-color: rgb(42 61 52 / 12%);
+
+  .card-header {
+    color: variables.$forest;
+    background: #eef1eb;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+}
+
+.task-item,
+.dependency-options {
+  border: 1px solid rgb(42 61 52 / 12%);
+  background: #fff;
+}
+
+.task-item.is-blocked {
+  border-left: 0.3rem solid #d9a441;
+  background: #fffaf0;
+}
+
+.task-title {
+  color: variables.$ink;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.task-actions .form-select {
+  width: auto;
+}
+
+.dependency-context {
+  color: variables.$muted-ink;
+  font-size: 0.9rem;
+}

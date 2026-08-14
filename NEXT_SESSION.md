@@ -1,5 +1,21 @@
 # NEXT_SESSION
 
+## MVP Increment 1B — persistent relocation-plan UI
+
+The main React screen now loads the singleton SQLite relocation plan and shows
+its four ordered phases and stored tasks. Users can add tasks, fully edit every
+supported field, select dependencies, and change status. Blocked tasks and
+their dependency context are visible, successful writes update the screen from
+the authoritative API response, and backend validation/network failures are
+shown without discarding an in-progress edit.
+
+The existing deterministic recommendation experience remains alongside the
+plan and is unchanged. The next product increment may make stored task state
+help answer “What should I do next?”, but task-based ranking was deliberately
+not started here. Do not resume the parked AI evaluation milestones, add
+authentication/notifications, or generalize the singleton plan without a new
+approved increment.
+
 ## MVP Increment 1A — persistent relocation-plan backend
 
 The backend now has a focused SQLite repository and fixed API for one family

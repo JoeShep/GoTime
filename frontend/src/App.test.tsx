@@ -4,6 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Recommendation } from './api/recommendations'
 
+vi.mock('./RelocationPlan', () => ({
+  RelocationPlan: () => <div data-testid="relocation-plan" />,
+}))
+
 const assumption = {
   id: 'spouse-employment',
   description:

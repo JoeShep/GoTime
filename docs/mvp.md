@@ -2,14 +2,15 @@ This document should become the contract for v0.1.
 
 ## Current product increment
 
-The backend now stores one fixed family relocation plan in SQLite. The plan has
-ordered phases and mutable tasks with status, category, assignees, optional
-dates, priority, dependencies, and derived blocked state. This establishes the
-first durable execution representation without adding authentication,
-multi-goal infrastructure, notifications, or AI.
+GoTime now stores one fixed family relocation plan in SQLite and displays it on
+the main React screen. The plan has four ordered phases and mutable tasks with
+status, category, assignees, optional dates, priority, dependencies, and
+backend-derived blocked state. Users can add and edit tasks, change status, and
+select dependencies without adding authentication, multi-goal infrastructure,
+notifications, or AI.
 
-The task-maintenance frontend and integration between stored tasks and the
-Recommendation engine remain future product work.
+Integration between stored tasks and the Recommendation engine remains future
+product work.
 
 ## Goal
 

@@ -1,5 +1,23 @@
 # Session Notes
 
+## 2026-08-13 — MVP Increment 1B persistent relocation-plan UI
+
+- Added a typed frontend client for the fixed relocation-plan API.
+- Added a React-Bootstrap plan view that renders all four phases, empty states,
+  persisted task details, dependencies, and backend-derived blocked state.
+- Added one bounded task editor for create and full-replacement update. Edit
+  drafts hydrate every replaceable field, and blank nullable fields are sent as
+  explicit `null` values.
+- Added narrow task-status updates and clear success, validation, loading, and
+  network-error states.
+- Added focused UI tests for loading/rendering, create, complete PUT behavior,
+  status changes, dependency selection/self-exclusion, blocked presentation,
+  validation errors, and network failure.
+- Preserved the existing deterministic recommendation experience. Stored-task
+  recommendation ranking is deferred to the next approved product increment.
+- No backend, AI experiment, authentication, notification, or multi-plan work
+  was added. `docs/parking-lot.md` was not modified.
+
 ## 2026-08-13 — MVP Increment 1A persistent relocation-plan backend
 
 - Added bounded `RelocationPlan`, `Phase`, and `Task` product models for one
