@@ -1,5 +1,20 @@
 # NEXT_SESSION
 
+## MVP Increment 1A — persistent relocation-plan backend
+
+The backend now has a focused SQLite repository and fixed API for one family
+relocation plan. Four ordered phases are seeded once; tasks can be created,
+replaced, retrieved, and moved through `not_started`, `in_progress`, and
+`completed`. Tasks retain bounded category, assignees, optional dates, priority,
+and dependencies. Blocked state is derived from incomplete dependencies and is
+never independently editable.
+
+Focused and full backend validation pass. Increment 1B should add the smallest
+frontend plan/task-maintenance experience against this API. Do not generalize
+to multiple goals/projects, add authentication/notifications, or connect the
+parked AI evaluation infrastructure. The existing recommendation experience is
+unchanged and does not yet rank persisted tasks.
+
 ## Post-Milestone-9 framework reassessment
 
 The design-only reassessment recommends

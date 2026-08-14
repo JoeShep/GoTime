@@ -1,5 +1,29 @@
 # Session Notes
 
+## 2026-08-13 — MVP Increment 1A persistent relocation-plan backend
+
+- Added bounded `RelocationPlan`, `Phase`, and `Task` product models for one
+  family relocation plan. Status, category, and priority use explicit MVP
+  vocabularies; assignees are required and dates are optional.
+- Added a standard-library SQLite repository with normalized plan, phase, task,
+  assignee, and dependency tables. A named Compose volume preserves the default
+  database across backend container replacement.
+- Added fixed GET/create/replace/status API operations under
+  `/api/relocation-plan`; no generic goal/project API was introduced.
+- Derived blocked state on every read: a non-completed task is blocked when any
+  dependency is incomplete. Blocked state is not stored or editable.
+- Enforced existing phases/tasks, no self-dependencies, unique dependencies,
+  cycle rejection with transaction rollback, bounded values, and valid date
+  ordering.
+- Added repository reconstruction and API tests covering persistence, task
+  mutation, status transitions, dependencies, blocking, invalid references,
+  cycles, and schema constraints.
+- Focused persistence/API/recommendation validation passed 69 tests; the full
+  backend suite passed 160 tests. No historical AI experiment suite was run.
+- Preserved the existing recommendation behavior. No frontend task UI,
+  authentication, AI, notifications, research, or generalized multi-goal
+  infrastructure was added.
+
 ## 2026-08-13 — Post-Milestone-9 framework reassessment
 
 - Completed the required design-only checkpoint after top-level Milestone 9.

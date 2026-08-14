@@ -6,6 +6,7 @@ frontend/dist/
 backend/.venv/
 backend/__pycache__/
 backend/**/*.py[cod]
+backend/data/
 
 # Environment and tooling
 .env

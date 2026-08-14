@@ -1,5 +1,42 @@
 ## A domain model describes the concepts the reasoning engine understands and the relationships between them.
 
+## Implemented relocation-plan execution model
+
+MVP Increment 1A adds a deliberately bounded execution model for one family
+relocation plan. It does not settle the broader Goal/Project/Milestone language
+still listed in `TODO.md`.
+
+`RelocationPlan` is the singleton stored plan. It has one stable identity, a
+title, ordered `Phase` records, and `Task` records. The initial phases are:
+
+1. decide where and how to move;
+2. prepare for the move;
+3. complete the move; and
+4. settle in.
+
+A `Task` belongs to exactly one phase and records a stable ID, title, optional
+description, category, status, one or more assignee names, optional start/due
+dates, user priority, and zero or more dependency task IDs.
+
+The implemented status vocabulary is `not_started`, `in_progress`, and
+`completed`. Priority is `low`, `medium`, `high`, or `critical`. Categories are
+bounded to administrative, employment, family, financial, healthcare, housing,
+and logistics.
+
+Blocked state is derived rather than persisted: a task that is not completed is
+blocked when at least one dependency is not completed. A completed task is not
+blocked. Dependencies must reference existing tasks in the singleton plan;
+self-dependencies, missing dependencies, duplicates, and cycles are invalid.
+
+The fixed task update API uses full-replacement semantics. Every task field must
+be supplied; nullable description and date values must be sent explicitly as
+`null` when the user intends to clear them. Omitted fields are rejected rather
+than silently reset to defaults.
+
+This model stores execution work but does not yet feed the existing relocation
+Recommendation engine. Frontend maintenance and deterministic task ranking are
+deferred to later product increments.
+
 1. Inputs — goal, current state, constraints, preferences, assumptions, open decisions.
 2. Reasoning — why the location decision matters now.
 3. Dependencies — what information is required before the decision is ready.

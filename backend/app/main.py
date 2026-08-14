@@ -1,4 +1,7 @@
-from fastapi import FastAPI, HTTPException, Query, Request, status
+import os
+from pathlib import Path
+
+from fastapi import APIRouter, FastAPI, HTTPException, Query, Request, status
 
 from app.models import (
     LIKELY_WORKPLACE_AREA_MAX_LENGTH,
@@ -12,20 +15,101 @@ from app.moving_service_questions import (
     run_experiment,
 )
 from app.reasoning import UnsupportedReasoningStateError, recommend_next_step
+from app.relocation_plan_models import (
+    RelocationPlan,
+    TaskCreate,
+    TaskStatusUpdate,
+    TaskUpdate,
+)
+from app.relocation_plan_repository import (
+    DependencyCycleError,
+    InvalidDependencyError,
+    InvalidPhaseError,
+    SQLiteRelocationPlanRepository,
+    TaskAlreadyExistsError,
+    TaskNotFoundError,
+)
 from app.scenarios import (
     build_relocation_scenario,
     build_work_arrangement_scenario,
 )
 
-app = FastAPI(title="GoTime API")
+DEFAULT_DATABASE_PATH = Path(os.environ.get("GOTIME_DATABASE_PATH", "data/gotime.db"))
+router = APIRouter()
 
 
-@app.get("/api/health")
+def create_app(database_path: str | Path = DEFAULT_DATABASE_PATH) -> FastAPI:
+    application = FastAPI(title="GoTime API")
+    application.state.database_path = Path(database_path)
+    application.include_router(router)
+    return application
+
+
+def get_plan_repository(request: Request) -> SQLiteRelocationPlanRepository:
+    repository = getattr(request.app.state, "plan_repository", None)
+    if repository is None:
+        repository = SQLiteRelocationPlanRepository(request.app.state.database_path)
+        request.app.state.plan_repository = repository
+    return repository
+
+
+def plan_error(error: ValueError) -> HTTPException:
+    if isinstance(error, TaskNotFoundError):
+        return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
+    if isinstance(error, TaskAlreadyExistsError):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error))
+    if isinstance(error, (InvalidPhaseError, InvalidDependencyError, DependencyCycleError)):
+        return HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)
+        )
+    return HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@router.get("/api/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get(
+@router.get("/api/relocation-plan", response_model=RelocationPlan)
+async def relocation_plan(request: Request) -> RelocationPlan:
+    return get_plan_repository(request).get_plan()
+
+
+@router.post(
+    "/api/relocation-plan/tasks",
+    response_model=RelocationPlan,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_relocation_task(request: Request, task: TaskCreate) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).create_task(task)
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.put("/api/relocation-plan/tasks/{task_id}", response_model=RelocationPlan)
+async def update_relocation_task(
+    request: Request, task_id: str, task: TaskUpdate
+) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).update_task(task_id, task)
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.patch(
+    "/api/relocation-plan/tasks/{task_id}/status", response_model=RelocationPlan
+)
+async def update_relocation_task_status(
+    request: Request, task_id: str, update: TaskStatusUpdate
+) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).update_task_status(task_id, update.status)
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.get(
     "/api/experiments/moving-service-question",
     response_model=MovingServiceQuestionExperimentResult,
 )
@@ -44,7 +128,7 @@ async def moving_service_question_experiment(
     return run_experiment(scenario)
 
 
-@app.get("/api/recommendations/primary", response_model=Recommendation)
+@router.get("/api/recommendations/primary", response_model=Recommendation)
 async def primary_recommendation(
     request: Request,
     work_arrangement: WorkArrangement | None = None,
@@ -130,3 +214,6 @@ async def primary_recommendation(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(error),
         ) from error
+
+
+app = create_app()

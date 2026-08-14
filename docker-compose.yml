@@ -4,6 +4,8 @@ services:
       context: ./backend
     ports:
       - "8000:8000"
+    volumes:
+      - gotime_data:/app/data
     healthcheck:
       test:
         - CMD
@@ -32,3 +34,4 @@ services:
 
 volumes:
   frontend_node_modules:
+  gotime_data:
