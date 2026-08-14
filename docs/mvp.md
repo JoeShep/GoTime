@@ -9,8 +9,12 @@ backend-derived blocked state. Users can add and edit tasks, change status, and
 select dependencies without adding authentication, multi-goal infrastructure,
 notifications, or AI.
 
-Integration between stored tasks and the Recommendation engine remains future
-product work.
+The primary recommendation now selects one actionable stored task through a
+documented deterministic order using user priority, due timing, work status,
+direct dependency leverage, phase order, and a stable task-ID tie-breaker.
+Completing or editing a task refreshes that recommendation without a page
+reload. Richer scheduling, personalized ranking, and generalized goal reasoning
+remain future product work.
 
 ## Goal
 

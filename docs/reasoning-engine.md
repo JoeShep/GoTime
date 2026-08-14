@@ -11,6 +11,31 @@ If the answer is yes, we're probably moving in the right direction.
 ## Purpose
 The reasoning engine exists to continuously evaluate the current state of a user's plan and recommend the work most likely to help achieve the goal successfully.
 
+## Implemented deterministic next-task rule
+
+For the singleton relocation-plan MVP, GoTime recommends one persisted task
+without AI or an opaque score. A task is actionable only when it is not
+completed, has no incomplete dependency, and has no start date later than the
+current date.
+
+Actionable tasks are compared lexicographically in this exact order:
+
+1. user priority (`critical`, `high`, `medium`, `low`);
+2. overdue tasks, then other dated tasks, then undated tasks;
+3. earlier due date within the same due-date group;
+4. `in_progress` before an otherwise equivalent `not_started` task;
+5. more incomplete downstream tasks that this task alone would directly
+   unblock;
+6. the persisted phase order; and
+7. task ID as the stable final tie-breaker.
+
+The response retains these factors as structured data and explains the selected
+task's due state, priority, in-progress state where applicable, and direct
+unblocking effect. If no task is actionable, the response distinguishes an
+empty plan, a fully completed plan, and a plan whose remaining work is blocked
+or scheduled for later. The legacy employment/commute reasoning remains in the
+codebase as a separate planning flow; it does not rank persisted tasks.
+
 # GoTime Reasoning Architecture
 
 ## Version 1 — Foundational Model

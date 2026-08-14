@@ -29,6 +29,10 @@ from app.relocation_plan_repository import (
     TaskAlreadyExistsError,
     TaskNotFoundError,
 )
+from app.relocation_plan_recommendation import (
+    RelocationTaskRecommendation,
+    recommend_relocation_task,
+)
 from app.scenarios import (
     build_relocation_scenario,
     build_work_arrangement_scenario,
@@ -73,6 +77,16 @@ async def health() -> dict[str, str]:
 @router.get("/api/relocation-plan", response_model=RelocationPlan)
 async def relocation_plan(request: Request) -> RelocationPlan:
     return get_plan_repository(request).get_plan()
+
+
+@router.get(
+    "/api/relocation-plan/recommendation",
+    response_model=RelocationTaskRecommendation,
+)
+async def relocation_plan_recommendation(
+    request: Request,
+) -> RelocationTaskRecommendation:
+    return recommend_relocation_task(get_plan_repository(request).get_plan())
 
 
 @router.post(

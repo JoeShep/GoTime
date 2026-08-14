@@ -1,5 +1,24 @@
 # Session Notes
 
+## 2026-08-13 — MVP Increment 2 deterministic next-task recommendation
+
+- Added a read-only singleton-plan recommendation endpoint and bounded response
+  model with structured ranking factors.
+- Added a transparent actionable-task filter: incomplete, dependency-unblocked,
+  and started as of the current date.
+- Added explicit lexicographic ranking by priority, due state/date, in-progress
+  status, direct unblocking leverage, phase order, and stable task ID.
+- Added clear empty/completed/blocked-or-future no-actionable states without an
+  opaque score or AI.
+- Made the stored-task recommendation the primary React recommendation and kept
+  the existing employment/commute flow as a separate planning section.
+- Refreshes the recommendation from the API after successful plan mutations, so
+  completing the current task can reveal the next task without a reload.
+- Added focused engine, API, and frontend tests for eligibility, every ranking
+  tie-break, explanations, no-actionable state, and mutation-driven refresh.
+- No task schema, mutation API, AI experiment, authentication, notification, or
+  multi-plan behavior changed. `docs/parking-lot.md` was not modified.
+
 ## 2026-08-13 — MVP Increment 1B persistent relocation-plan UI
 
 - Added a typed frontend client for the fixed relocation-plan API.

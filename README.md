@@ -59,9 +59,10 @@ The backend also persists one fixed family relocation plan in SQLite. The main
 screen now loads its four ordered phases and lets the family add and edit tasks,
 change status, assign people and dates, and select dependencies. Blocked state
 is derived from incomplete dependencies and shown directly in the plan. The
-earlier recommendation inputs still remain in browser/request memory and do not
-yet rank stored tasks. There is no authentication or generalized multi-goal
-infrastructure.
+primary recommendation now selects one currently actionable stored task through
+an explicit deterministic order. The earlier employment-planning inputs remain
+in browser/request memory as a separate recommendation flow. There is no
+authentication or generalized multi-goal infrastructure.
 
 The current interface also includes an optional, explicitly triggered
 fake-adapter experiment for suggesting one moving-service question. It uses

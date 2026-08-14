@@ -105,7 +105,7 @@ export function generateTaskId(title: string): string {
   return `${slug || 'task'}-${crypto.randomUUID()}`
 }
 
-export function RelocationPlan() {
+export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }) {
   const [plan, setPlan] = useState<RelocationPlanData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -160,6 +160,7 @@ export function RelocationPlan() {
         ? await replaceTask(editingId, write)
         : await createTask(generateTaskId(write.title), write)
       setPlan(updated)
+      onPlanChanged?.()
       setDraft(null)
       setEditingId(null)
       setNotice(editingId ? 'Task updated.' : 'Task added.')
@@ -176,6 +177,7 @@ export function RelocationPlan() {
     setNotice(null)
     try {
       setPlan(await changeTaskStatus(task.id, status))
+      onPlanChanged?.()
       setNotice(`Status updated for ${task.title}.`)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to update task status.')

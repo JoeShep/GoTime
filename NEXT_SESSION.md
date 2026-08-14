@@ -1,5 +1,22 @@
 # NEXT_SESSION
 
+## MVP Increment 2 — deterministic stored-task recommendation
+
+GoTime's primary recommendation now comes from the persistent singleton
+relocation plan. Only incomplete, unblocked tasks whose start date has arrived
+are eligible. The engine uses an explicit lexicographic order: user priority,
+due state/date, in-progress status, direct downstream unblocking leverage, phase
+order, then task ID. The API returns the chosen task, phase, explanation,
+unblocking context, and structured ranking factors; it returns a clear bounded
+no-actionable state when appropriate.
+
+The React plan experience refreshes the recommendation after successful task
+creation, replacement, or status change. The older employment/commute reasoning
+remains available as a separate planning section and was not deleted. Future
+work may refine deterministic ranking using demonstrated family needs, but do
+not introduce AI, opaque scoring, multi-plan infrastructure, authentication, or
+notifications without a separately approved increment.
+
 ## MVP Increment 1B — persistent relocation-plan UI
 
 The main React screen now loads the singleton SQLite relocation plan and shows

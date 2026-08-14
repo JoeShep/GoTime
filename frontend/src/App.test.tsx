@@ -4,8 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Recommendation } from './api/recommendations'
 
-vi.mock('./RelocationPlan', () => ({
-  RelocationPlan: () => <div data-testid="relocation-plan" />,
+vi.mock('./RelocationPlanExperience', () => ({
+  RelocationPlanExperience: () => <div data-testid="relocation-plan" />,
 }))
 
 const assumption = {
@@ -160,7 +160,7 @@ describe('recommendation screen', () => {
       ),
     ).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Use this requirement' })).toBeDisabled()
-    const primaryRecommendation = screen.getByText('Primary recommendation')
+    const primaryRecommendation = screen.getByText('Employment planning recommendation')
     const experimentHeading = screen.getByRole('heading', {
       name: 'Something else worth clarifying',
     })

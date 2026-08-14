@@ -20,7 +20,7 @@ import {
   type WorkArrangement,
 } from './api/recommendations'
 import { MovingServiceQuestionExperiment } from './MovingServiceQuestionExperiment'
-import { RelocationPlan } from './RelocationPlan'
+import { RelocationPlanExperience } from './RelocationPlanExperience'
 
 const workArrangementLabels: Record<WorkArrangement, string> = {
   remote: 'Remote',
@@ -135,7 +135,7 @@ function App() {
               <p className="goal-name mb-0">Relocate to Northern California</p>
             </section>
 
-            <RelocationPlan />
+            <RelocationPlanExperience />
 
             {isLoading && (
               <div className="loading-state mt-5 py-5 text-center" role="status">
@@ -183,7 +183,7 @@ function App() {
                   aria-labelledby="next-step-heading"
                 >
                   <p className="section-label mb-2" id="next-step-heading">
-                    Primary recommendation
+                    Employment planning recommendation
                   </p>
                   <h2 className="step-name mb-0">{recommendation.what}</h2>
                   {!submittedWorkArrangement && (
