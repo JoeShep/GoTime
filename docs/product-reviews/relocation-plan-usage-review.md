@@ -194,27 +194,132 @@ Sections should eventually be collapsible and navigable.
 
 Do not build all views now.
 
-## Immediate follow-up
+## First usability improvement
 
-Implement only the friction that interferes with continued use:
+Document the five items that were selected for immediate implementation:
 
 1. Remove real-name placeholders.
 2. Keep assignee optional.
-3. Verify dependencies are editable after creation.
-4. Scroll/focus the edit form when Edit is selected.
-5. Replace the flat dependency picker with a searchable, phase-grouped picker.
+3. Make dependencies editable after creation.
+4. Scroll/focus the edit form.
+5. Add searchable, phase-grouped dependency selection.
 
-Then resume entering and using the real relocation plan.
+Status:
 
-## Next design sequence
+Implemented and accepted in commit:
 
-After the immediate usability patch, review the larger observations in this order:
+`ca8ce39 Improve relocation plan first-use usability`
 
-1. Multi-category task model.
-2. People and reusable participant identities.
-3. Related-task links distinct from dependencies.
-4. Dependency-chain visualization and derived graph information.
-5. Priority / importance / urgency model.
-6. Alternate task views and navigation.
+## Ongoing usage observations
 
-Do not assume every item needs implementation. Continue to let hands-on use determine which change comes next.
+### Completed tasks
+
+Completed tasks need to be handled in some way other than simply remaining in the normal task list with status `completed`.
+
+Possible future treatments include a collapsed Completed section or hiding completed tasks by default while preserving them as plan history.
+
+Do not decide the presentation yet.
+
+### Completed dependencies
+
+When a task is completed:
+
+- it should no longer block downstream tasks;
+- it should no longer appear as a candidate in the dependency picker;
+- existing dependency relationships should remain recorded so sequencing history is preserved.
+
+### Priority remains problematic
+
+Continued real use reinforces that the current `low / medium / high / critical` Priority field is not useful enough.
+
+It appears to mix:
+
+- importance;
+- urgency;
+- time pressure;
+- due dates;
+- dependency leverage;
+- consequence;
+- explicit human override.
+
+This strengthens the earlier observation rather than creating a separate issue.
+
+Do not redesign this yet.
+
+### Family members and assignment identities
+
+Family members will eventually need to be defined once and selectable for task assignment rather than repeatedly entered as names.
+
+Before implementation, determine whether these should be:
+
+- reusable People records;
+- actual GoTime Users/accounts;
+- or separate concepts that can be linked.
+
+Do not assume every participant must have a GoTime account.
+
+### Task search
+
+Plan-wide task search will be needed as the task list grows.
+
+### Category vocabulary
+
+`Administrative` and `Logistics` currently feel too close in meaning.
+
+Continue observing real task categorization before changing the taxonomy.
+
+### Phase vocabulary
+
+`Complete the move` and `Settle in` currently feel too close in meaning.
+
+Continued use should determine whether they need clearer definitions, different names, different boundaries, or consolidation.
+
+### Add Task interaction
+
+The `Add Task` button can be confusing while the new-task form is already open.
+
+It has been clicked accidentally when the intended action was Save.
+
+Possible improvement:
+
+- disable or hide `Add Task` while the new-task form is open.
+
+Do not choose the interaction yet.
+
+### Save action placement
+
+The Save button at the bottom of the form creates increasing friction.
+
+As the dependency list grows, Save moves well below the fold.
+
+Even with few dependencies, reaching the Save action can require awkward scrolling.
+
+Possible approaches include:
+
+- a sticky action area;
+- Save near the top of the editor;
+- another persistently visible Save action.
+
+Choose the solution based on continued hands-on use.
+
+## Candidate next improvements
+
+Do not treat this as a committed roadmap.
+
+When continued use is materially impeded, review the observations above and select the smallest useful improvement.
+
+Current likely candidates include:
+
+- completed-task and completed-dependency behavior;
+- Add Task / Save interaction;
+- task search.
+
+Larger model or vocabulary decisions should continue to accumulate evidence before implementation.
+
+## Development rule
+
+Do not automatically convert every observation into Codex work.
+
+Preserve the observation first.
+
+Promote it into implementation only when hands-on use demonstrates that the change is worthwhile
