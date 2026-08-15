@@ -15,7 +15,7 @@ title, ordered `Phase` records, and `Task` records. The initial phases are:
 4. settle in.
 
 A `Task` belongs to exactly one phase and records a stable ID, title, optional
-description, category, status, one or more assignee names, optional start/due
+description, category, status, zero or more assignee names, optional start/due
 dates, user priority, and zero or more dependency task IDs.
 
 The implemented status vocabulary is `not_started`, `in_progress`, and

@@ -1,5 +1,21 @@
 # NEXT_SESSION
 
+## Relocation-plan first-use usability follow-up
+
+The approved first-use follow-up is implemented and passed hands-on
+verification. Tasks may now be unassigned; the editor uses no real-person
+placeholder names and displays unassigned tasks explicitly. Editing a task
+scrolls its complete form into view, focuses the title, and continues to
+support adding and removing direct dependencies.
+
+The dependency picker is searchable and grouped in relocation-phase order. It
+excludes the task being edited and preserves selections when filtering, while
+the backend remains authoritative for cycles and invalid dependencies. Resume
+entering and using the real relocation task list; do not yet implement multiple
+categories, first-class People, related-task links, persisted transitive
+dependencies, priority redesign, alternate views, AI, authentication, or
+notifications.
+
 ## MVP Increment 2 — deterministic stored-task recommendation
 
 GoTime's primary recommendation now comes from the persistent singleton

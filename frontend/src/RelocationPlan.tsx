@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Badge, Button, Card, Col, Form, Row, Spinner, Stack } from 'react-bootstrap'
 import {
   changeTaskStatus,
@@ -113,6 +113,9 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [notice, setNotice] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft | null>(null)
+  const [dependencyQuery, setDependencyQuery] = useState('')
+  const editorRef = useRef<HTMLDivElement>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -133,11 +136,29 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     () => new Map(plan?.tasks.map((task) => [task.id, task]) ?? []),
     [plan],
   )
+  const dependencyGroups = useMemo(() => {
+    const normalizedQuery = dependencyQuery.trim().toLocaleLowerCase()
+    return (plan?.phases ?? []).map((phase) => ({
+      phase,
+      tasks: (plan?.tasks ?? []).filter((task) =>
+        task.id !== editingId
+        && task.phase_id === phase.id
+        && task.title.toLocaleLowerCase().includes(normalizedQuery),
+      ),
+    })).filter((group) => group.tasks.length > 0)
+  }, [dependencyQuery, editingId, plan])
+
+  useEffect(() => {
+    if (!draft) return
+    editorRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    titleInputRef.current?.focus()
+  }, [draft !== null, editingId])
 
   function beginAdd() {
     if (!plan) return
     setEditingId(null)
     setDraft(emptyDraft(plan.phases[0].id))
+    setDependencyQuery('')
     setError(null)
     setNotice(null)
   }
@@ -145,6 +166,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   function beginEdit(task: RelocationTask) {
     setEditingId(task.id)
     setDraft(draftFromTask(task))
+    setDependencyQuery('')
     setError(null)
     setNotice(null)
   }
@@ -203,38 +225,55 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       {notice && <Alert variant="success">{notice}</Alert>}
 
       {draft && plan && (
-        <Card className="task-editor mb-4">
-          <Card.Body>
-            <Card.Title as="h3">{editingId ? 'Edit task' : 'Add task'}</Card.Title>
-            <Form onSubmit={(event) => { event.preventDefault(); void saveTask() }}>
+        <div ref={editorRef}>
+          <Card className="task-editor mb-4">
+            <Card.Body>
+              <Card.Title as="h3">{editingId ? 'Edit task' : 'Add task'}</Card.Title>
+              <Form onSubmit={(event) => { event.preventDefault(); void saveTask() }}>
               <Row className="g-3">
-                <Col md={8}><Form.Group controlId="task-title"><Form.Label>Title</Form.Label><Form.Control required maxLength={200} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></Form.Group></Col>
+                <Col md={8}><Form.Group controlId="task-title"><Form.Label>Title</Form.Label><Form.Control ref={titleInputRef} required maxLength={200} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></Form.Group></Col>
                 <Col md={4}><Form.Group controlId="task-phase"><Form.Label>Phase</Form.Label><Form.Select value={draft.phaseId} onChange={(event) => setDraft({ ...draft, phaseId: event.target.value })}>{plan.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}</Form.Select></Form.Group></Col>
                 <Col xs={12}><Form.Group controlId="task-description"><Form.Label>Description <span className="text-muted">(optional)</span></Form.Label><Form.Control as="textarea" rows={2} maxLength={2000} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></Form.Group></Col>
                 <Col md={4}><Form.Group controlId="task-category"><Form.Label>Category</Form.Label><Form.Select value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as TaskCategory })}>{Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
                 <Col md={4}><Form.Group controlId="task-priority"><Form.Label>Priority</Form.Label><Form.Select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
                 <Col md={4}><Form.Group controlId="task-status"><Form.Label>Status</Form.Label><Form.Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
-                <Col md={6}><Form.Group controlId="task-assignees"><Form.Label>Assignees</Form.Label><Form.Control required placeholder="Joe, Sarah" value={draft.assignees} onChange={(event) => setDraft({ ...draft, assignees: event.target.value })} /><Form.Text>Separate names with commas.</Form.Text></Form.Group></Col>
+                <Col md={6}><Form.Group controlId="task-assignees"><Form.Label>Assignees <span className="text-muted">(optional)</span></Form.Label><Form.Control placeholder="Separate names with commas" value={draft.assignees} onChange={(event) => setDraft({ ...draft, assignees: event.target.value })} /></Form.Group></Col>
                 <Col md={3}><Form.Group controlId="task-start-date"><Form.Label>Start date <span className="text-muted">(optional)</span></Form.Label><Form.Control type="date" value={draft.startDate} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })} /></Form.Group></Col>
                 <Col md={3}><Form.Group controlId="task-due-date"><Form.Label>Due date <span className="text-muted">(optional)</span></Form.Label><Form.Control type="date" value={draft.dueDate} onChange={(event) => setDraft({ ...draft, dueDate: event.target.value })} /></Form.Group></Col>
                 <Col xs={12}>
                   <Form.Group>
                     <Form.Label>Dependencies <span className="text-muted">(optional)</span></Form.Label>
+                    <Form.Control
+                      className="mb-2"
+                      type="search"
+                      aria-label="Search dependencies"
+                      placeholder="Search tasks"
+                      value={dependencyQuery}
+                      onChange={(event) => setDependencyQuery(event.target.value)}
+                    />
                     <div className="dependency-options rounded-3 p-3">
-                      {plan.tasks.filter((task) => task.id !== editingId).length === 0 ? <p className="text-muted mb-0">No other tasks are available.</p> : plan.tasks.filter((task) => task.id !== editingId).map((task) => (
-                        <Form.Check key={task.id} id={`dependency-${task.id}`} label={`${task.title} (${statusLabels[task.status]})`} checked={draft.dependencies.includes(task.id)} onChange={(event) => setDraft({ ...draft, dependencies: event.target.checked ? [...draft.dependencies, task.id] : draft.dependencies.filter((id) => id !== task.id) })} />
+                      {dependencyGroups.map(({ phase, tasks }) => (
+                        <fieldset className="dependency-phase mb-3" key={phase.id}>
+                          <legend className="dependency-phase-title mb-1">{phase.title}</legend>
+                          {tasks.map((task) => (
+                            <Form.Check key={task.id} id={`dependency-${task.id}`} label={`${task.title} (${statusLabels[task.status]})`} checked={draft.dependencies.includes(task.id)} onChange={(event) => setDraft({ ...draft, dependencies: event.target.checked ? [...draft.dependencies, task.id] : draft.dependencies.filter((id) => id !== task.id) })} />
+                          ))}
+                        </fieldset>
                       ))}
+                      {plan.tasks.filter((task) => task.id !== editingId).length === 0 && <p className="text-muted mb-0">No other tasks are available.</p>}
+                      {plan.tasks.some((task) => task.id !== editingId) && dependencyGroups.length === 0 && <p className="text-muted mb-0">No tasks match your search.</p>}
                     </div>
                   </Form.Group>
                 </Col>
               </Row>
               <Stack direction="horizontal" gap={2} className="mt-4">
                 <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save task'}</Button>
-                <Button variant="outline-secondary" disabled={saving} onClick={() => { setDraft(null); setEditingId(null) }}>Cancel</Button>
+                <Button variant="outline-secondary" disabled={saving} onClick={() => { setDraft(null); setEditingId(null); setDependencyQuery('') }}>Cancel</Button>
               </Stack>
-            </Form>
-          </Card.Body>
-        </Card>
+              </Form>
+            </Card.Body>
+          </Card>
+        </div>
       )}
 
       {plan?.phases.map((phase) => {
@@ -250,7 +289,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                     <div className="d-flex flex-wrap justify-content-between gap-3">
                       <div>
                         <div className="d-flex flex-wrap align-items-center gap-2 mb-1"><h4 className="task-title mb-0">{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
-                        <p className="text-muted mb-2">{categoryLabels[task.category]} · {task.assignees.join(', ')}{task.due_date ? ` · Due ${task.due_date}` : ''}</p>
+                        <p className="text-muted mb-2">{categoryLabels[task.category]}{task.assignees.length > 0 ? ` · ${task.assignees.join(', ')}` : ' · Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</p>
                         {task.description && <p className="mb-2">{task.description}</p>}
                         {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
                       </div>

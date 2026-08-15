@@ -52,7 +52,7 @@ class TaskFields(PlanModel):
     phase_id: str = Field(min_length=1, max_length=64)
     category: TaskCategory
     status: TaskStatus = TaskStatus.NOT_STARTED
-    assignees: tuple[str, ...] = Field(min_length=1, max_length=10)
+    assignees: tuple[str, ...] = Field(default=(), max_length=10)
     start_date: date | None = None
     due_date: date | None = None
     priority: TaskPriority = TaskPriority.MEDIUM
@@ -113,7 +113,7 @@ class TaskUpdate(PlanModel):
     phase_id: str = Field(min_length=1, max_length=64)
     category: TaskCategory
     status: TaskStatus
-    assignees: tuple[str, ...] = Field(min_length=1, max_length=10)
+    assignees: tuple[str, ...] = Field(max_length=10)
     start_date: date | None
     due_date: date | None
     priority: TaskPriority

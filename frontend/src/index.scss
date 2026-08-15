@@ -152,6 +152,16 @@ body {
   width: auto;
 }
 
+.dependency-phase:last-child {
+  margin-bottom: 0 !important;
+}
+
+.dependency-phase-title {
+  color: variables.$forest;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .dependency-context {
   color: variables.$muted-ink;
   font-size: 0.9rem;

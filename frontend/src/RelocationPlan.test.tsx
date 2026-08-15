@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { generateTaskId, RelocationPlan } from './RelocationPlan'
 import type { RelocationPlan as RelocationPlanData } from './api/relocationPlan'
@@ -94,7 +94,7 @@ describe('persistent relocation plan', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Pack the kitchen' } })
-    fireEvent.change(screen.getByLabelText('Assignees'), { target: { value: 'Joe, Sarah' } })
+    fireEvent.change(screen.getByLabelText(/^Assignees/), { target: { value: 'Joe, Sarah' } })
     fireEvent.click(screen.getByLabelText('Choose a mover (Not started)'))
     fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
 
@@ -112,6 +112,25 @@ describe('persistent relocation plan', () => {
     }))
   })
 
+  it('uses no person-name placeholder and creates an unassigned task', async () => {
+    const fetchMock = mockPlanRequests()
+    render(<RelocationPlan />)
+    await screen.findByRole('heading', { name: 'Choose a mover' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    const assignees = screen.getByLabelText('Assignees (optional)')
+    expect(assignees).not.toBeRequired()
+    expect(assignees).toHaveAttribute('placeholder', 'Separate names with commas')
+    expect(assignees).not.toHaveAttribute('placeholder', expect.stringMatching(/Joe|Sarah/i))
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Make a shared decision' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(
+      expect.objectContaining({ assignees: [] }),
+    )
+  })
+
   it('creates a valid bounded ID without changing a 200-character title', async () => {
     const longTitle = 'A'.repeat(200)
     const fetchMock = mockPlanRequests()
@@ -120,7 +139,7 @@ describe('persistent relocation plan', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: longTitle } })
-    fireEvent.change(screen.getByLabelText('Assignees'), { target: { value: 'Joe' } })
+    fireEvent.change(screen.getByLabelText(/^Assignees/), { target: { value: 'Joe' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
@@ -235,6 +254,89 @@ describe('persistent relocation plan', () => {
 
     expect(screen.queryByLabelText('Choose a mover (Not started)')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Pay the mover deposit (Not started)')).toBeVisible()
+  })
+
+  it('scrolls the editor into view and focuses its title when Edit is clicked', async () => {
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    mockPlanRequests()
+    render(<RelocationPlan />)
+    await screen.findByRole('heading', { name: 'Choose a mover' })
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0])
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' }))
+    expect(screen.getByLabelText('Title')).toHaveFocus()
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
+  })
+
+  it('groups and filters dependencies without losing hidden selections', async () => {
+    const planWithAnotherPhaseTask: RelocationPlanData = {
+      ...plan,
+      tasks: [
+        {
+          ...plan.tasks[0],
+          id: 'choose-region',
+          title: 'Choose a region',
+          phase_id: 'decide',
+        },
+        ...plan.tasks,
+      ],
+    }
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(planWithAnotherPhaseTask))))
+    render(<RelocationPlan />)
+    await screen.findByRole('heading', { name: 'Pay the mover deposit' })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[2])
+
+    const decideGroup = screen.getByRole('group', { name: 'Decide where and how to move' })
+    const prepareGroup = screen.getByRole('group', { name: 'Prepare for the move' })
+    expect(within(decideGroup).getByLabelText('Choose a region (Not started)')).toBeVisible()
+    expect(within(prepareGroup).getByLabelText('Choose a mover (Not started)')).toBeChecked()
+    expect(screen.queryByLabelText('Pay the mover deposit (Not started)')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Search dependencies'), { target: { value: 'region' } })
+    fireEvent.click(screen.getByLabelText('Choose a region (Not started)'))
+    expect(screen.queryByLabelText('Choose a mover (Not started)')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Search dependencies'), { target: { value: 'mover' } })
+    expect(screen.getByLabelText('Choose a mover (Not started)')).toBeChecked()
+    fireEvent.change(screen.getByLabelText('Search dependencies'), { target: { value: '' } })
+    expect(screen.getByLabelText('Choose a region (Not started)')).toBeChecked()
+  })
+
+  it('adds and removes dependencies while editing an existing task', async () => {
+    const planWithAnotherTask: RelocationPlanData = {
+      ...plan,
+      tasks: [
+        {
+          ...plan.tasks[0],
+          id: 'choose-region',
+          title: 'Choose a region',
+          phase_id: 'decide',
+        },
+        ...plan.tasks,
+      ],
+    }
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(planWithAnotherTask))
+      return Promise.resolve(response(planWithAnotherTask))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<RelocationPlan />)
+    await screen.findByRole('heading', { name: 'Pay the mover deposit' })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[2])
+
+    fireEvent.click(screen.getByLabelText('Choose a mover (Not started)'))
+    fireEvent.click(screen.getByLabelText('Choose a region (Not started)'))
+    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(
+      expect.objectContaining({ dependency_task_ids: ['choose-region'] }),
+    )
   })
 
   it('shows backend validation details without discarding the editor', async () => {

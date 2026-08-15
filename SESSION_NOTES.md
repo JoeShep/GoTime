@@ -1,5 +1,34 @@
 # Session Notes
 
+## 2026-08-14 — Relocation-plan first-use usability verification
+
+- Passed hands-on verification in the running application for generic
+  assignee guidance, unassigned task creation, dependency editing, edit
+  scroll/focus behavior, and searchable phase-grouped dependency selection.
+- Passed 9 focused backend tests, 16 focused frontend tests, the full 177-test
+  backend suite, the full 36-test frontend suite, the production frontend
+  build, backend compilation, and rebuilt Compose runtime health checks.
+
+## 2026-08-13 — Relocation-plan first-use usability follow-up
+
+- Removed real-person assignee placeholders and made unassigned tasks valid in
+  both create and full-replacement update contracts; unassigned tasks are
+  labeled clearly in the plan.
+- Preserved the complete dependency edit flow for existing tasks and added
+  focused coverage for adding and removing dependencies after creation.
+- Made Edit scroll the complete editor into view and focus the title field.
+- Replaced the flat dependency list with case-insensitive search and
+  relocation-phase grouping, excluding the edited task while preserving hidden
+  selections during filtering. Backend cycle validation remains authoritative.
+- Added focused API and UI regressions for unassigned tasks, generic
+  placeholders, edit focus/scroll, dependency editing, phase grouping, search,
+  and selection preservation.
+- Deferred multiple categories, People, related links, transitive dependency
+  storage, priority/ranking redesign, alternate views, AI, authentication, and
+  notifications exactly as directed by the approved first-use review.
+- The pre-existing unrelated `docs/parking-lot.md` working-tree change was
+  excluded from this patch.
+
 ## 2026-08-13 — MVP Increment 2 deterministic next-task recommendation
 
 - Added a read-only singleton-plan recommendation endpoint and bounded response
@@ -41,7 +70,7 @@
 
 - Added bounded `RelocationPlan`, `Phase`, and `Task` product models for one
   family relocation plan. Status, category, and priority use explicit MVP
-  vocabularies; assignees are required and dates are optional.
+  vocabularies; assignee names are bounded and dates are optional.
 - Added a standard-library SQLite repository with normalized plan, phase, task,
   assignee, and dependency tables. A named Compose volume preserves the default
   database across backend container replacement.

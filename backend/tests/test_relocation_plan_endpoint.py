@@ -92,6 +92,37 @@ def test_create_update_and_retrieve_task_across_app_reconstruction(tmp_path) -> 
     assert task["priority"] == "critical"
 
 
+def test_create_and_replace_allow_an_unassigned_task(tmp_path) -> None:
+    database_path = tmp_path / "gotime.db"
+    payload = task_payload("shared-decision")
+    payload.pop("assignees")
+
+    created = asyncio.run(
+        request(
+            database_path,
+            "POST",
+            "/api/relocation-plan/tasks",
+            json=payload,
+        )
+    )
+    assert created.status_code == 201
+    assert created.json()["tasks"][0]["assignees"] == []
+
+    replacement = {key: value for key, value in payload.items() if key != "id"}
+    replacement["title"] = "Shared family decision"
+    replacement["assignees"] = []
+    replaced = asyncio.run(
+        request(
+            database_path,
+            "PUT",
+            "/api/relocation-plan/tasks/shared-decision",
+            json=replacement,
+        )
+    )
+    assert replaced.status_code == 200
+    assert replaced.json()["tasks"][0]["assignees"] == []
+
+
 def test_incomplete_put_is_rejected_without_resetting_existing_task(tmp_path) -> None:
     database_path = tmp_path / "gotime.db"
     original = task_payload(
