@@ -1,5 +1,20 @@
 # NEXT_SESSION
 
+## Relocation vocabulary cleanup
+
+The approved relocation vocabulary cleanup is implemented and ready for human
+review. The stable `move` phase ID now displays as `Make the move`, so existing
+task phase assignments remain intact. The current category vocabulary is
+Employment, Family, Financial, Healthcare, Housing, and Logistics.
+
+Opening an older SQLite plan reconciles Administrative tasks in place to
+Logistics and rebuilds the category constraint while copying task, assignee,
+and dependency rows without changing their identities or other fields. Focused
+backend and frontend regressions cover migration, reload, labels, and selectable
+options. User-defined phases/categories and subtasks are recorded only in the
+Parking Lot; multi-category tasks and the other deferred features remain
+unimplemented.
+
 ## Plan-wide task finder
 
 The approved frontend-only plan-wide task finder is implemented and passed

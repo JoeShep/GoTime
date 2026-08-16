@@ -1,5 +1,25 @@
 # Session Notes
 
+## 2026-08-16 — Relocation vocabulary cleanup
+
+- Preserved the stable `move` phase ID and changed its user-facing title from
+  `Complete the move` to `Make the move`, including existing seeded databases.
+- Reduced the bounded task categories to Employment, Family, Financial,
+  Healthcare, Housing, and Logistics across backend validation, SQLite
+  constraints, frontend types, and the task editor.
+- Added an idempotent legacy SQLite migration that reconciles Administrative
+  tasks to Logistics and rebuilds the task/relationship tables by copying all
+  rows, preserving task IDs, phase assignments, status, dates, priority,
+  assignees, dependencies, and all other stored task fields.
+- Added backend reload/migration and frontend vocabulary regressions; focused
+  validation passed 35 backend tests and 32 frontend tests.
+- Added only the approved future notes for user-defined project phases,
+  user-defined categories, and subtasks/task hierarchy to the existing Parking
+  Lot content.
+- Kept multi-category tasks, editable phases/categories, People, related-task
+  links, subtasks, priority redesign, dependency graph changes, and alternate
+  views unimplemented.
+
 ## 2026-08-15 — Plan-wide task finder
 
 - Passed hands-on verification for matching, keyboard and pointer navigation,

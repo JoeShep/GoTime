@@ -17,7 +17,6 @@ class TaskStatus(StrEnum):
 
 
 class TaskCategory(StrEnum):
-    ADMINISTRATIVE = "administrative"
     EMPLOYMENT = "employment"
     FAMILY = "family"
     FINANCIAL = "financial"

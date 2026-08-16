@@ -19,7 +19,7 @@ RELOCATION_PLAN_TITLE = "Relocate the family to Northern California"
 DEFAULT_PHASES = (
     Phase(id="decide", title="Decide where and how to move", position=10),
     Phase(id="prepare", title="Prepare for the move", position=20),
-    Phase(id="move", title="Complete the move", position=30),
+    Phase(id="move", title="Make the move", position=30),
     Phase(id="settle", title="Settle in", position=40),
 )
 
@@ -84,8 +84,8 @@ class SQLiteRelocationPlanRepository:
                     title TEXT NOT NULL,
                     description TEXT,
                     category TEXT NOT NULL CHECK (category IN (
-                        'administrative', 'employment', 'family', 'financial',
-                        'healthcare', 'housing', 'logistics'
+                        'employment', 'family', 'financial', 'healthcare',
+                        'housing', 'logistics'
                     )),
                     status TEXT NOT NULL CHECK (status IN (
                         'not_started', 'in_progress', 'completed'
@@ -115,6 +115,7 @@ class SQLiteRelocationPlanRepository:
                 );
                 """
             )
+            self._migrate_relocation_vocabulary(connection)
             connection.execute(
                 "INSERT OR IGNORE INTO relocation_plans (id, title) VALUES (?, ?)",
                 (RELOCATION_PLAN_ID, RELOCATION_PLAN_TITLE),
@@ -129,6 +130,79 @@ class SQLiteRelocationPlanRepository:
                     for phase in DEFAULT_PHASES
                 ),
             )
+            connection.executemany(
+                "UPDATE phases SET title = ?, position = ? WHERE id = ? AND plan_id = ?",
+                (
+                    (phase.title, phase.position, phase.id, RELOCATION_PLAN_ID)
+                    for phase in DEFAULT_PHASES
+                ),
+            )
+
+    @staticmethod
+    def _migrate_relocation_vocabulary(connection: sqlite3.Connection) -> None:
+        tasks_schema = connection.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tasks'"
+        ).fetchone()["sql"]
+        if "'administrative'" not in tasks_schema:
+            return
+
+        connection.execute(
+            "UPDATE tasks SET category = 'logistics' WHERE category = 'administrative'"
+        )
+        connection.executescript(
+            """
+            CREATE TABLE tasks_vocabulary_migration (
+                id TEXT PRIMARY KEY,
+                plan_id TEXT NOT NULL REFERENCES relocation_plans(id),
+                phase_id TEXT NOT NULL REFERENCES phases(id),
+                title TEXT NOT NULL,
+                description TEXT,
+                category TEXT NOT NULL CHECK (category IN (
+                    'employment', 'family', 'financial', 'healthcare',
+                    'housing', 'logistics'
+                )),
+                status TEXT NOT NULL CHECK (status IN (
+                    'not_started', 'in_progress', 'completed'
+                )),
+                start_date TEXT,
+                due_date TEXT,
+                priority TEXT NOT NULL CHECK (priority IN (
+                    'low', 'medium', 'high', 'critical'
+                ))
+            );
+
+            INSERT INTO tasks_vocabulary_migration
+            SELECT * FROM tasks;
+
+            CREATE TABLE task_assignees_vocabulary_migration (
+                task_id TEXT NOT NULL REFERENCES tasks_vocabulary_migration(id) ON DELETE CASCADE,
+                position INTEGER NOT NULL CHECK (position >= 0),
+                name TEXT NOT NULL,
+                PRIMARY KEY (task_id, position),
+                UNIQUE (task_id, name)
+            );
+            INSERT INTO task_assignees_vocabulary_migration
+            SELECT * FROM task_assignees;
+
+            CREATE TABLE task_dependencies_vocabulary_migration (
+                task_id TEXT NOT NULL REFERENCES tasks_vocabulary_migration(id) ON DELETE CASCADE,
+                dependency_task_id TEXT NOT NULL REFERENCES tasks_vocabulary_migration(id),
+                position INTEGER NOT NULL CHECK (position >= 0),
+                PRIMARY KEY (task_id, dependency_task_id),
+                UNIQUE (task_id, position),
+                CHECK (task_id <> dependency_task_id)
+            );
+            INSERT INTO task_dependencies_vocabulary_migration
+            SELECT * FROM task_dependencies;
+
+            DROP TABLE task_dependencies;
+            DROP TABLE task_assignees;
+            DROP TABLE tasks;
+            ALTER TABLE tasks_vocabulary_migration RENAME TO tasks;
+            ALTER TABLE task_assignees_vocabulary_migration RENAME TO task_assignees;
+            ALTER TABLE task_dependencies_vocabulary_migration RENAME TO task_dependencies;
+            """
+        )
 
     def get_plan(self) -> RelocationPlan:
         with self._connect() as connection:

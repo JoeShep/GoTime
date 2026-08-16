@@ -27,7 +27,6 @@ const priorityLabels: Record<TaskPriority, string> = {
 }
 
 const categoryLabels: Record<TaskCategory, string> = {
-  administrative: 'Administrative',
   employment: 'Employment',
   family: 'Family',
   financial: 'Financial',

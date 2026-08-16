@@ -6,7 +6,7 @@ import type { RelocationPlan as RelocationPlanData } from './api/relocationPlan'
 const phases = [
   { id: 'decide', title: 'Decide where and how to move', position: 10 },
   { id: 'prepare', title: 'Prepare for the move', position: 20 },
-  { id: 'move', title: 'Complete the move', position: 30 },
+  { id: 'move', title: 'Make the move', position: 30 },
   { id: 'settle', title: 'Settle in', position: 40 },
 ]
 
@@ -69,6 +69,22 @@ afterEach(() => {
 })
 
 describe('persistent relocation plan', () => {
+  it('shows the current phase and category vocabulary', async () => {
+    mockPlanRequests()
+    render(<RelocationPlan />)
+
+    expect(await screen.findByRole('heading', { name: 'Make the move' })).toBeVisible()
+    expect(screen.queryByText('Complete the move')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    const category = screen.getByLabelText('Category')
+    expect(within(category).queryByRole('option', { name: 'Administrative' })).not.toBeInTheDocument()
+    expect(within(category).getByRole('option', { name: 'Logistics' })).toBeVisible()
+    expect(within(category).getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'Employment', 'Family', 'Financial', 'Healthcare', 'Housing', 'Logistics',
+    ])
+  })
+
   it('shows a loading state while retrieving the plan', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => undefined)))
     render(<RelocationPlan />)

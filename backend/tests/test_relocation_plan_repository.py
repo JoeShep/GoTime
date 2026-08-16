@@ -2,7 +2,13 @@ import sqlite3
 
 import pytest
 
-from app.relocation_plan_models import TaskCreate, TaskPriority, TaskStatus, TaskUpdate
+from app.relocation_plan_models import (
+    TaskCategory,
+    TaskCreate,
+    TaskPriority,
+    TaskStatus,
+    TaskUpdate,
+)
 from app.relocation_plan_repository import (
     DependencyCycleError,
     InvalidDependencyError,
@@ -52,6 +58,9 @@ def test_plan_and_tasks_survive_repository_reconstruction(tmp_path) -> None:
         "move",
         "settle",
     ]
+    assert next(phase for phase in recovered.phases if phase.id == "move").title == (
+        "Make the move"
+    )
     assert len(recovered.tasks) == 1
     assert recovered.tasks[0].title == "Book Movers"
     assert recovered.tasks[0].assignees == ("Joe", "Sarah")
@@ -228,3 +237,77 @@ def test_sqlite_schema_rejects_invalid_status_and_priority(tmp_path) -> None:
             connection.execute(
                 "UPDATE tasks SET priority = 'urgent-ish' WHERE id = 'valid-task'"
             )
+        with pytest.raises(sqlite3.IntegrityError):
+            connection.execute(
+                "UPDATE tasks SET category = 'administrative' WHERE id = 'valid-task'"
+            )
+
+
+def test_legacy_vocabulary_migration_preserves_tasks_and_relationships(tmp_path) -> None:
+    database_path = tmp_path / "gotime.db"
+    with sqlite3.connect(database_path) as connection:
+        connection.executescript(
+            """
+            PRAGMA foreign_keys = ON;
+            CREATE TABLE relocation_plans (id TEXT PRIMARY KEY, title TEXT NOT NULL);
+            CREATE TABLE phases (
+                id TEXT PRIMARY KEY, plan_id TEXT NOT NULL REFERENCES relocation_plans(id),
+                title TEXT NOT NULL, position INTEGER NOT NULL CHECK (position >= 0),
+                UNIQUE (plan_id, position)
+            );
+            CREATE TABLE tasks (
+                id TEXT PRIMARY KEY, plan_id TEXT NOT NULL REFERENCES relocation_plans(id),
+                phase_id TEXT NOT NULL REFERENCES phases(id), title TEXT NOT NULL,
+                description TEXT, category TEXT NOT NULL CHECK (category IN (
+                    'administrative', 'employment', 'family', 'financial',
+                    'healthcare', 'housing', 'logistics'
+                )), status TEXT NOT NULL CHECK (status IN ('not_started', 'in_progress', 'completed')),
+                start_date TEXT, due_date TEXT,
+                priority TEXT NOT NULL CHECK (priority IN ('low', 'medium', 'high', 'critical'))
+            );
+            CREATE TABLE task_assignees (
+                task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+                position INTEGER NOT NULL CHECK (position >= 0), name TEXT NOT NULL,
+                PRIMARY KEY (task_id, position), UNIQUE (task_id, name)
+            );
+            CREATE TABLE task_dependencies (
+                task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+                dependency_task_id TEXT NOT NULL REFERENCES tasks(id),
+                position INTEGER NOT NULL CHECK (position >= 0),
+                PRIMARY KEY (task_id, dependency_task_id), UNIQUE (task_id, position),
+                CHECK (task_id <> dependency_task_id)
+            );
+            INSERT INTO relocation_plans VALUES ('family-relocation-plan', 'Relocate the family');
+            INSERT INTO phases VALUES ('move', 'family-relocation-plan', 'Complete the move', 30);
+            INSERT INTO tasks VALUES (
+                'file-address', 'family-relocation-plan', 'move', 'File change of address',
+                'Preserve every field.', 'administrative', 'in_progress',
+                '2026-08-20', '2026-08-25', 'high'
+            );
+            INSERT INTO tasks VALUES (
+                'unpack', 'family-relocation-plan', 'move', 'Unpack', NULL,
+                'logistics', 'not_started', NULL, NULL, 'medium'
+            );
+            INSERT INTO task_assignees VALUES ('file-address', 0, 'Alex');
+            INSERT INTO task_dependencies VALUES ('unpack', 'file-address', 0);
+            """
+        )
+
+    plan = SQLiteRelocationPlanRepository(database_path).get_plan()
+
+    migrated = next(item for item in plan.tasks if item.id == "file-address")
+    dependent = next(item for item in plan.tasks if item.id == "unpack")
+    assert migrated.category is TaskCategory.LOGISTICS
+    assert migrated.phase_id == "move"
+    assert migrated.description == "Preserve every field."
+    assert migrated.status is TaskStatus.IN_PROGRESS
+    assert migrated.assignees == ("Alex",)
+    assert migrated.start_date.isoformat() == "2026-08-20"
+    assert migrated.due_date.isoformat() == "2026-08-25"
+    assert migrated.priority is TaskPriority.HIGH
+    assert dependent.dependency_task_ids == ("file-address",)
+    assert dependent.blocked is True
+    assert next(phase for phase in plan.phases if phase.id == "move").title == "Make the move"
+
+    reloaded = SQLiteRelocationPlanRepository(database_path).get_plan()
+    assert reloaded == plan

@@ -279,13 +279,17 @@ list filter; broader filtering remains a separate future capability.
 
 `Administrative` and `Logistics` currently feel too close in meaning.
 
-Continue observing real task categorization before changing the taxonomy.
+This observation was resolved by retiring `Administrative` and reconciling
+existing Administrative tasks to `Logistics`. The current relocation defaults
+remain a six-category vocabulary; configurable project categories are parked.
 
 ### Phase vocabulary
 
 `Complete the move` and `Settle in` currently feel too close in meaning.
 
-Continued use should determine whether they need clearer definitions, different names, different boundaries, or consolidation.
+This observation was resolved by renaming the stable `move` phase label to
+`Make the move`. The phase identity and existing task assignments are unchanged;
+configurable project phases are parked.
 
 ### Add Task interaction
 

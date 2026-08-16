@@ -1,7 +1,6 @@
 export type TaskStatus = 'not_started' | 'in_progress' | 'completed'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical'
 export type TaskCategory =
-  | 'administrative'
   | 'employment'
   | 'family'
   | 'financial'

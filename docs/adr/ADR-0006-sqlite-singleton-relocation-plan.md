@@ -29,6 +29,12 @@ SQLite constraints. A task's blocked state is derived at read time: a
 non-completed task is blocked when any dependency is not completed. Blocked
 state is not stored or directly editable.
 
+The relocation defaults use the stable phase IDs `decide`, `prepare`, `move`,
+and `settle`; phase titles are user-facing labels rather than identities. The
+current task categories are Employment, Family, Financial, Healthcare, Housing,
+and Logistics. Existing Administrative tasks are reconciled in place to
+Logistics when an older database is opened.
+
 The default Docker Compose environment stores the database in a named volume.
 Tests use isolated temporary SQLite databases.
 

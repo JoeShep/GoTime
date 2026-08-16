@@ -9,7 +9,7 @@ import type {
 const phases = [
   { id: 'decide', title: 'Decide where and how to move', position: 10 },
   { id: 'prepare', title: 'Prepare for the move', position: 20 },
-  { id: 'move', title: 'Complete the move', position: 30 },
+  { id: 'move', title: 'Make the move', position: 30 },
   { id: 'settle', title: 'Settle in', position: 40 },
 ]
 

@@ -9,6 +9,10 @@ backend-derived blocked state. Users can add and edit tasks, change status, and
 select dependencies without adding authentication, multi-goal infrastructure,
 notifications, or AI.
 
+The relocation plan uses four default phases: Decide where and how to move,
+Prepare for the move, Make the move, and Settle in. Its current category choices
+are Employment, Family, Financial, Healthcare, Housing, and Logistics.
+
 The primary recommendation now selects one actionable stored task through a
 documented deterministic order using user priority, due timing, work status,
 direct dependency leverage, phase order, and a stable task-ID tie-breaker.
