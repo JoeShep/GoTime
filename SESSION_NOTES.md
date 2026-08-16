@@ -1680,3 +1680,24 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   preflight functions. The live entry now verifies that history while the
   exact generation manifest is active and rejects wrong authorization and
   manifest states with zero credential, client, or provider boundary calls.
+# 2026-08-16 — Multi-category task enhancement
+
+- Replaced the required scalar task category with a required zero-or-more
+  `categories` request/response collection; empty is valid, omission on create
+  or full replacement is invalid, and duplicates/unknown values are rejected.
+- Added normalized `task_categories` persistence and a transactional,
+  idempotent migration that preserves current and legacy scalar assignments,
+  task data, assignees, and dependencies.
+- Added checkbox-style multi-category editing, ordered wrapping card labels,
+  derived Uncategorized presentation, and a local OR category filter that
+  hides empty phases while leaving the plan-wide finder independent.
+- Kept deterministic task recommendation behavior unchanged and recorded the
+  schema/API decision in ADR-0007.
+- Focused verification passed 40 backend tests and 35 frontend tests before the
+  final contract regressions were added. Final verification passed all 189
+  backend tests, all 53 frontend tests, the production frontend build, and a
+  rebuilt Docker Compose runtime. The persisted family plan migrated in place
+  and returned every existing task with a `categories` collection.
+- Automated runtime verification confirmed backend health, the complete
+  persisted-plan response, and frontend availability. Interactive browser
+  verification remains to be performed by a human reviewer.

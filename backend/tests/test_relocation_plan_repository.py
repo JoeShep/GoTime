@@ -23,7 +23,7 @@ def task(task_id: str, **changes: object) -> TaskCreate:
         "title": task_id.replace("-", " ").title(),
         "description": None,
         "phase_id": "prepare",
-        "category": "logistics",
+        "categories": ("logistics",),
         "status": "not_started",
         "assignees": ("Joe",),
         "start_date": None,
@@ -66,6 +66,52 @@ def test_plan_and_tasks_survive_repository_reconstruction(tmp_path) -> None:
     assert recovered.tasks[0].assignees == ("Joe", "Sarah")
     assert recovered.tasks[0].priority is TaskPriority.HIGH
     assert recovered.tasks[0].due_date.isoformat() == "2026-09-15"
+
+
+def test_zero_and_multiple_categories_survive_in_configured_order(tmp_path) -> None:
+    database_path = tmp_path / "gotime.db"
+    repository = SQLiteRelocationPlanRepository(database_path)
+    repository.create_task(task("uncategorized", categories=()))
+    repository.create_task(
+        task("cross-category", categories=("logistics", "employment", "housing"))
+    )
+
+    recovered = SQLiteRelocationPlanRepository(database_path).get_plan()
+
+    assert next(item for item in recovered.tasks if item.id == "uncategorized").categories == ()
+    assert next(item for item in recovered.tasks if item.id == "cross-category").categories == (
+        TaskCategory.EMPLOYMENT,
+        TaskCategory.HOUSING,
+        TaskCategory.LOGISTICS,
+    )
+
+
+def test_replacement_can_add_remove_and_clear_categories(tmp_path) -> None:
+    repository = SQLiteRelocationPlanRepository(tmp_path / "gotime.db")
+    repository.create_task(task("categorized", categories=("family",)))
+    original = task("categorized").model_dump(exclude={"id"})
+
+    multiple = repository.update_task(
+        "categorized",
+        TaskUpdate.model_validate(
+            {**original, "categories": ("healthcare", "financial")}
+        ),
+    )
+    assert multiple.tasks[0].categories == (
+        TaskCategory.FINANCIAL,
+        TaskCategory.HEALTHCARE,
+    )
+
+    cleared = repository.update_task(
+        "categorized",
+        TaskUpdate.model_validate({**original, "categories": ()}),
+    )
+    assert cleared.tasks[0].categories == ()
+
+
+def test_duplicate_categories_are_rejected_by_the_bounded_model() -> None:
+    with pytest.raises(ValueError, match="categories must be unique"):
+        task("duplicate-categories", categories=("family", "family"))
 
 
 def test_completion_and_reopening_rederive_blocking_without_deleting_dependency(
@@ -239,7 +285,7 @@ def test_sqlite_schema_rejects_invalid_status_and_priority(tmp_path) -> None:
             )
         with pytest.raises(sqlite3.IntegrityError):
             connection.execute(
-                "UPDATE tasks SET category = 'administrative' WHERE id = 'valid-task'"
+            "INSERT INTO task_categories VALUES ('valid-task', 'administrative')"
             )
 
 
@@ -297,7 +343,7 @@ def test_legacy_vocabulary_migration_preserves_tasks_and_relationships(tmp_path)
 
     migrated = next(item for item in plan.tasks if item.id == "file-address")
     dependent = next(item for item in plan.tasks if item.id == "unpack")
-    assert migrated.category is TaskCategory.LOGISTICS
+    assert migrated.categories == (TaskCategory.LOGISTICS,)
     assert migrated.phase_id == "move"
     assert migrated.description == "Preserve every field."
     assert migrated.status is TaskStatus.IN_PROGRESS

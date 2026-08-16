@@ -21,7 +21,7 @@ def task(task_id: str, **changes: object) -> Task:
         "title": task_id.replace("-", " ").title(),
         "description": None,
         "phase_id": "prepare",
-        "category": "logistics",
+        "categories": ("logistics",),
         "status": "not_started",
         "assignees": ("Joe",),
         "start_date": None,
@@ -71,6 +71,18 @@ def test_future_start_tasks_are_never_recommended() -> None:
     )
 
     assert recommendation.task_id == "available"
+
+
+def test_category_assignments_do_not_change_recommendation_order() -> None:
+    recommendation = recommend_relocation_task(
+        plan(
+            task("b-task", categories=()),
+            task("a-task", categories=("employment", "housing", "logistics")),
+        ),
+        today=TODAY,
+    )
+
+    assert recommendation.task_id == "a-task"
 
 
 def test_critical_undated_beats_low_priority_future_dated() -> None:
@@ -206,7 +218,7 @@ def test_api_returns_a_recommendation_from_the_persisted_plan(tmp_path) -> None:
                     "title": "Book movers",
                     "description": None,
                     "phase_id": "prepare",
-                    "category": "logistics",
+                    "categories": ["logistics"],
                     "status": "not_started",
                     "assignees": ["Joe"],
                     "start_date": None,
@@ -250,7 +262,7 @@ def test_api_recommends_through_dependency_chain_completion_and_reopening(
                         "title": task_id.upper(),
                         "description": None,
                         "phase_id": "prepare",
-                        "category": "logistics",
+                        "categories": ["logistics"],
                         "status": "not_started",
                         "assignees": [],
                         "start_date": None,

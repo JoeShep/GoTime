@@ -12,7 +12,7 @@ def task_payload(task_id: str, **changes: object) -> dict[str, object]:
         "title": task_id.replace("-", " ").title(),
         "description": None,
         "phase_id": "prepare",
-        "category": "logistics",
+        "categories": ["logistics"],
         "status": "not_started",
         "assignees": ["Joe"],
         "start_date": None,
@@ -66,7 +66,7 @@ def test_create_update_and_retrieve_task_across_app_reconstruction(tmp_path) -> 
         title="Book an interstate mover",
         description="Select the reviewed quote.",
         phase_id="move",
-        category="financial",
+        categories=["financial"],
         assignees=["Sarah"],
         priority="critical",
         start_date="2026-09-01",
@@ -90,6 +90,83 @@ def test_create_update_and_retrieve_task_across_app_reconstruction(tmp_path) -> 
     assert task["phase_id"] == "move"
     assert task["assignees"] == ["Sarah"]
     assert task["priority"] == "critical"
+    assert task["categories"] == ["financial"]
+
+
+def test_categories_are_required_and_allow_empty_or_multiple_values(tmp_path) -> None:
+    database_path = tmp_path / "gotime.db"
+    missing_payload = task_payload("missing-categories")
+    missing_payload.pop("categories")
+    missing = asyncio.run(
+        request(database_path, "POST", "/api/relocation-plan/tasks", json=missing_payload)
+    )
+    assert missing.status_code == 422
+
+    empty = asyncio.run(
+        request(
+            database_path,
+            "POST",
+            "/api/relocation-plan/tasks",
+            json=task_payload("uncategorized", categories=[]),
+        )
+    )
+    assert empty.status_code == 201
+    assert empty.json()["tasks"][0]["categories"] == []
+
+    multiple = asyncio.run(
+        request(
+            database_path,
+            "POST",
+            "/api/relocation-plan/tasks",
+            json=task_payload(
+                "multiple", categories=["logistics", "employment", "housing"]
+            ),
+        )
+    )
+    assert multiple.status_code == 201
+    task = next(item for item in multiple.json()["tasks"] if item["id"] == "multiple")
+    assert task["categories"] == ["employment", "housing", "logistics"]
+
+    incomplete_replacement = task_payload("ignored", categories=["family"])
+    incomplete_replacement.pop("id")
+    incomplete_replacement.pop("categories")
+    rejected = asyncio.run(
+        request(
+            database_path,
+            "PUT",
+            "/api/relocation-plan/tasks/multiple",
+            json=incomplete_replacement,
+        )
+    )
+    assert rejected.status_code == 422
+    recovered = asyncio.run(request(database_path, "GET", "/api/relocation-plan"))
+    unchanged = next(
+        item for item in recovered.json()["tasks"] if item["id"] == "multiple"
+    )
+    assert unchanged["categories"] == ["employment", "housing", "logistics"]
+
+
+def test_duplicate_and_unknown_categories_are_rejected(tmp_path) -> None:
+    database_path = tmp_path / "gotime.db"
+    duplicate = asyncio.run(
+        request(
+            database_path,
+            "POST",
+            "/api/relocation-plan/tasks",
+            json=task_payload("duplicate", categories=["family", "family"]),
+        )
+    )
+    unknown = asyncio.run(
+        request(
+            database_path,
+            "POST",
+            "/api/relocation-plan/tasks",
+            json=task_payload("unknown", categories=["invented"]),
+        )
+    )
+
+    assert duplicate.status_code == 422
+    assert unknown.status_code == 422
 
 
 def test_create_and_replace_allow_an_unassigned_task(tmp_path) -> None:

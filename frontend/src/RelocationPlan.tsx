@@ -1,5 +1,5 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { Accordion, Alert, Badge, Button, Card, Col, Form, Row, Spinner, Stack } from 'react-bootstrap'
+import { Accordion, Alert, Badge, Button, Card, Col, Dropdown, Form, Row, Spinner, Stack } from 'react-bootstrap'
 import {
   changeTaskStatus,
   createTask,
@@ -35,11 +35,14 @@ const categoryLabels: Record<TaskCategory, string> = {
   logistics: 'Logistics',
 }
 
+const categoryOrder = Object.keys(categoryLabels) as TaskCategory[]
+type CategoryFilter = TaskCategory | 'uncategorized'
+
 interface TaskDraft {
   title: string
   description: string
   phaseId: string
-  category: TaskCategory
+  categories: TaskCategory[]
   status: TaskStatus
   assignees: string
   startDate: string
@@ -53,7 +56,7 @@ function emptyDraft(phaseId: string): TaskDraft {
     title: '',
     description: '',
     phaseId,
-    category: 'logistics',
+    categories: [],
     status: 'not_started',
     assignees: '',
     startDate: '',
@@ -68,7 +71,7 @@ function draftFromTask(task: RelocationTask): TaskDraft {
     title: task.title,
     description: task.description ?? '',
     phaseId: task.phase_id,
-    category: task.category,
+    categories: [...task.categories],
     status: task.status,
     assignees: task.assignees.join(', '),
     startDate: task.start_date ?? '',
@@ -83,7 +86,7 @@ function writeFromDraft(draft: TaskDraft): TaskWrite {
     title: draft.title.trim(),
     description: draft.description.trim() || null,
     phase_id: draft.phaseId,
-    category: draft.category,
+    categories: categoryOrder.filter((category) => draft.categories.includes(category)),
     status: draft.status,
     assignees: draft.assignees.split(',').map((name) => name.trim()).filter(Boolean),
     start_date: draft.startDate || null,
@@ -104,6 +107,19 @@ export function generateTaskId(title: string): string {
   return `${slug || 'task'}-${crypto.randomUUID()}`
 }
 
+function CategoryLabels({ categories }: { categories: TaskCategory[] }) {
+  if (categories.length === 0) {
+    return <span className="text-muted">Uncategorized</span>
+  }
+  return (
+    <span className="task-category-labels d-inline-flex flex-wrap gap-1">
+      {categoryOrder.filter((category) => categories.includes(category)).map((category) => (
+        <Badge bg="light" text="dark" key={category}>{categoryLabels[category]}</Badge>
+      ))}
+    </span>
+  )
+}
+
 export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }) {
   const [plan, setPlan] = useState<RelocationPlanData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -119,6 +135,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [expandedCompletedPhaseIds, setExpandedCompletedPhaseIds] = useState<Set<string>>(new Set())
   const [pendingNavigationTaskId, setPendingNavigationTaskId] = useState<string | null>(null)
   const [foundTaskId, setFoundTaskId] = useState<string | null>(null)
+  const [categoryFilters, setCategoryFilters] = useState<Set<CategoryFilter>>(new Set())
   const editorRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const taskRefs = useRef(new Map<string, HTMLElement>())
@@ -165,6 +182,11 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       ),
     })).filter((group) => group.tasks.length > 0)
   }, [dependencyQuery, draft?.dependencies, editingId, plan])
+  const categoryMatches = (task: RelocationTask) => (
+    categoryFilters.size === 0
+    || task.categories.some((category) => categoryFilters.has(category))
+    || (task.categories.length === 0 && categoryFilters.has('uncategorized'))
+  )
 
   useEffect(() => {
     if (!draft) return
@@ -301,7 +323,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         <div className="d-flex flex-wrap justify-content-between gap-3">
           <div>
             <div className="d-flex flex-wrap align-items-center gap-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
-            <p className="text-muted mb-2">{categoryLabels[task.category]}{task.assignees.length > 0 ? ` · ${task.assignees.join(', ')}` : ' · Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</p>
+            <div className="d-flex flex-wrap align-items-center gap-2 mb-2"><CategoryLabels categories={task.categories} /><span className="text-muted">{task.assignees.length > 0 ? task.assignees.join(', ') : 'Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</span></div>
             {task.description && <p className="mb-2">{task.description}</p>}
             {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
           </div>
@@ -379,7 +401,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                       <strong>{task.title}</strong>
                       {task.status === 'completed' && <Badge bg="secondary">Completed</Badge>}
                     </span>
-                    <small className="d-block mt-1">{phase?.title} · {categoryLabels[task.category]}</small>
+                    <small className="d-block mt-1">{phase?.title} · {task.categories.length > 0 ? categoryOrder.filter((category) => task.categories.includes(category)).map((category) => categoryLabels[category]).join(', ') : 'Uncategorized'}</small>
                   </button>
                 )
               })}
@@ -407,7 +429,33 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                 <Col md={8}><Form.Group controlId="task-title"><Form.Label>Title</Form.Label><Form.Control ref={titleInputRef} required maxLength={200} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></Form.Group></Col>
                 <Col md={4}><Form.Group controlId="task-phase"><Form.Label>Phase</Form.Label><Form.Select value={draft.phaseId} onChange={(event) => setDraft({ ...draft, phaseId: event.target.value })}>{plan.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}</Form.Select></Form.Group></Col>
                 <Col xs={12}><Form.Group controlId="task-description"><Form.Label>Description <span className="text-muted">(optional)</span></Form.Label><Form.Control as="textarea" rows={2} maxLength={2000} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></Form.Group></Col>
-                <Col md={4}><Form.Group controlId="task-category"><Form.Label>Category</Form.Label><Form.Select value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value as TaskCategory })}>{Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
+                <Col md={4}>
+                  <Form.Group controlId="task-categories">
+                    <Form.Label>Categories (optional)</Form.Label>
+                    <Dropdown autoClose={false}>
+                      <Dropdown.Toggle className="category-select-toggle text-start w-100" id="task-categories" variant="outline-secondary">
+                        {draft.categories.length > 0 ? categoryOrder.filter((category) => draft.categories.includes(category)).map((category) => categoryLabels[category]).join(', ') : 'Select categories'}
+                      </Dropdown.Toggle>
+                      <Dropdown.Menu className="category-menu p-3">
+                        {categoryOrder.map((category) => (
+                          <Form.Check
+                            checked={draft.categories.includes(category)}
+                            id={`task-category-${category}`}
+                            key={category}
+                            label={categoryLabels[category]}
+                            onChange={(event) => setDraft({
+                              ...draft,
+                              categories: event.target.checked
+                                ? categoryOrder.filter((item) => item === category || draft.categories.includes(item))
+                                : draft.categories.filter((item) => item !== category),
+                            })}
+                          />
+                        ))}
+                        {draft.categories.length > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => setDraft({ ...draft, categories: [] })}>Clear all</Button>}
+                      </Dropdown.Menu>
+                    </Dropdown>
+                  </Form.Group>
+                </Col>
                 <Col md={4}><Form.Group controlId="task-priority"><Form.Label>Priority</Form.Label><Form.Select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
                 <Col md={4}><Form.Group controlId="task-status"><Form.Label>Status</Form.Label><Form.Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
                 <Col md={6}><Form.Group controlId="task-assignees"><Form.Label>Assignees <span className="text-muted">(optional)</span></Form.Label><Form.Control placeholder="Separate names with commas" value={draft.assignees} onChange={(event) => setDraft({ ...draft, assignees: event.target.value })} /></Form.Group></Col>
@@ -445,8 +493,51 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         </div>
       )}
 
+      {plan && !draft && (
+        <div className="mb-3">
+          <Dropdown autoClose={false}>
+            <Dropdown.Toggle aria-label="Filter by categories" variant="outline-secondary">
+              Categories{categoryFilters.size > 0 ? ` (${categoryFilters.size})` : ''}
+            </Dropdown.Toggle>
+            <Dropdown.Menu className="category-menu p-3">
+              {categoryOrder.map((category) => (
+                <Form.Check
+                  checked={categoryFilters.has(category)}
+                  id={`category-filter-${category}`}
+                  key={category}
+                  label={categoryLabels[category]}
+                  onChange={(event) => setCategoryFilters((current) => {
+                    const next = new Set(current)
+                    if (event.target.checked) next.add(category)
+                    else next.delete(category)
+                    return next
+                  })}
+                />
+              ))}
+              <Form.Check
+                checked={categoryFilters.has('uncategorized')}
+                id="category-filter-uncategorized"
+                label="Uncategorized"
+                onChange={(event) => setCategoryFilters((current) => {
+                  const next = new Set(current)
+                  if (event.target.checked) next.add('uncategorized')
+                  else next.delete('uncategorized')
+                  return next
+                })}
+              />
+              {categoryFilters.size > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => setCategoryFilters(new Set())}>Clear all</Button>}
+            </Dropdown.Menu>
+          </Dropdown>
+        </div>
+      )}
+
+      {plan && categoryFilters.size > 0 && !plan.tasks.some(categoryMatches) && (
+        <p className="text-muted py-4 mb-0">No tasks match the selected categories.</p>
+      )}
+
       {plan?.phases.map((phase) => {
-        const phaseTasks = plan.tasks.filter((task) => task.phase_id === phase.id)
+        const phaseTasks = plan.tasks.filter((task) => task.phase_id === phase.id && categoryMatches(task))
+        if (categoryFilters.size > 0 && phaseTasks.length === 0) return null
         const activeTasks = phaseTasks.filter((task) => task.status !== 'completed')
         const completedTasks = phaseTasks.filter((task) => task.status === 'completed')
         const completedExpanded = expandedCompletedPhaseIds.has(phase.id)

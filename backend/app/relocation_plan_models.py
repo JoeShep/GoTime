@@ -25,6 +25,9 @@ class TaskCategory(StrEnum):
     LOGISTICS = "logistics"
 
 
+CATEGORY_ORDER = tuple(TaskCategory)
+
+
 class TaskPriority(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
@@ -49,7 +52,7 @@ class TaskFields(PlanModel):
     title: str = Field(min_length=1, max_length=200)
     description: str | None = Field(default=None, max_length=2_000)
     phase_id: str = Field(min_length=1, max_length=64)
-    category: TaskCategory
+    categories: tuple[TaskCategory, ...]
     status: TaskStatus = TaskStatus.NOT_STARTED
     assignees: tuple[str, ...] = Field(default=(), max_length=10)
     start_date: date | None = None
@@ -85,6 +88,16 @@ class TaskFields(PlanModel):
             raise ValueError("Dependency task IDs must be unique.")
         return values
 
+    @field_validator("categories")
+    @classmethod
+    def validate_categories(
+        cls, values: tuple[TaskCategory, ...]
+    ) -> tuple[TaskCategory, ...]:
+        if len(set(values)) != len(values):
+            raise ValueError("Task categories must be unique.")
+        selected = set(values)
+        return tuple(category for category in CATEGORY_ORDER if category in selected)
+
     @model_validator(mode="after")
     def validate_timing(self) -> "TaskFields":
         if (
@@ -110,7 +123,7 @@ class TaskUpdate(PlanModel):
     title: str = Field(min_length=1, max_length=200)
     description: str | None = Field(max_length=2_000)
     phase_id: str = Field(min_length=1, max_length=64)
-    category: TaskCategory
+    categories: tuple[TaskCategory, ...]
     status: TaskStatus
     assignees: tuple[str, ...] = Field(max_length=10)
     start_date: date | None
@@ -127,6 +140,9 @@ class TaskUpdate(PlanModel):
     )
     _validate_dependencies = field_validator("dependency_task_ids")(
         TaskFields.validate_dependencies.__func__
+    )
+    _validate_categories = field_validator("categories")(
+        TaskFields.validate_categories.__func__
     )
 
     @model_validator(mode="after")

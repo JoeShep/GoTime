@@ -1,5 +1,23 @@
 # NEXT_SESSION
 
+## Multi-category task enhancement
+
+The approved multi-category enhancement is implemented. Tasks now carry a
+required API `categories` collection containing zero or more configured
+category identifiers; `[]` is valid and means uncategorized, while omission,
+duplicates, and unknown identifiers are rejected. Existing scalar assignments
+migrate transactionally into normalized `task_categories` rows, including the
+direct Administrative-to-Logistics legacy path, without changing task or
+relationship identities.
+
+The editor provides an open-on-selection checkbox menu with selected labels and
+Clear all. Cards and finder results show every category in configured order or
+derived Uncategorized text. A separate non-persisted Categories filter uses OR
+behavior across the six categories and Uncategorized, hides empty phases, and
+keeps filtered completed counts; the plan-wide task finder remains independent.
+Recommendation logic is unchanged. ADR-0007 records the persistence and API
+decision. User-configurable categories remain in the Parking Lot.
+
 ## Relocation vocabulary cleanup
 
 The approved relocation vocabulary cleanup is implemented and ready for human

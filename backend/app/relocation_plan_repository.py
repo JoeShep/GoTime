@@ -5,9 +5,11 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from app.relocation_plan_models import (
+    CATEGORY_ORDER,
     Phase,
     RelocationPlan,
     Task,
+    TaskCategory,
     TaskCreate,
     TaskStatus,
     TaskUpdate,
@@ -83,10 +85,6 @@ class SQLiteRelocationPlanRepository:
                     phase_id TEXT NOT NULL REFERENCES phases(id),
                     title TEXT NOT NULL,
                     description TEXT,
-                    category TEXT NOT NULL CHECK (category IN (
-                        'employment', 'family', 'financial', 'healthcare',
-                        'housing', 'logistics'
-                    )),
                     status TEXT NOT NULL CHECK (status IN (
                         'not_started', 'in_progress', 'completed'
                     )),
@@ -95,6 +93,15 @@ class SQLiteRelocationPlanRepository:
                     priority TEXT NOT NULL CHECK (priority IN (
                         'low', 'medium', 'high', 'critical'
                     ))
+                );
+
+                CREATE TABLE IF NOT EXISTS task_categories (
+                    task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+                    category TEXT NOT NULL CHECK (category IN (
+                        'employment', 'family', 'financial', 'healthcare',
+                        'housing', 'logistics'
+                    )),
+                    PRIMARY KEY (task_id, category)
                 );
 
                 CREATE TABLE IF NOT EXISTS task_assignees (
@@ -115,7 +122,7 @@ class SQLiteRelocationPlanRepository:
                 );
                 """
             )
-            self._migrate_relocation_vocabulary(connection)
+            self._migrate_task_categories(connection)
             connection.execute(
                 "INSERT OR IGNORE INTO relocation_plans (id, title) VALUES (?, ?)",
                 (RELOCATION_PLAN_ID, RELOCATION_PLAN_TITLE),
@@ -139,28 +146,21 @@ class SQLiteRelocationPlanRepository:
             )
 
     @staticmethod
-    def _migrate_relocation_vocabulary(connection: sqlite3.Connection) -> None:
-        tasks_schema = connection.execute(
-            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tasks'"
-        ).fetchone()["sql"]
-        if "'administrative'" not in tasks_schema:
+    def _migrate_task_categories(connection: sqlite3.Connection) -> None:
+        task_columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(tasks)")
+        }
+        if "category" not in task_columns:
             return
-
-        connection.execute(
-            "UPDATE tasks SET category = 'logistics' WHERE category = 'administrative'"
-        )
         connection.executescript(
             """
-            CREATE TABLE tasks_vocabulary_migration (
+            BEGIN IMMEDIATE;
+            CREATE TABLE tasks_category_migration (
                 id TEXT PRIMARY KEY,
                 plan_id TEXT NOT NULL REFERENCES relocation_plans(id),
                 phase_id TEXT NOT NULL REFERENCES phases(id),
                 title TEXT NOT NULL,
                 description TEXT,
-                category TEXT NOT NULL CHECK (category IN (
-                    'employment', 'family', 'financial', 'healthcare',
-                    'housing', 'logistics'
-                )),
                 status TEXT NOT NULL CHECK (status IN (
                     'not_started', 'in_progress', 'completed'
                 )),
@@ -171,36 +171,59 @@ class SQLiteRelocationPlanRepository:
                 ))
             );
 
-            INSERT INTO tasks_vocabulary_migration
-            SELECT * FROM tasks;
+            INSERT INTO tasks_category_migration (
+                id, plan_id, phase_id, title, description, status,
+                start_date, due_date, priority
+            )
+            SELECT id, plan_id, phase_id, title, description, status,
+                start_date, due_date, priority
+            FROM tasks;
 
-            CREATE TABLE task_assignees_vocabulary_migration (
-                task_id TEXT NOT NULL REFERENCES tasks_vocabulary_migration(id) ON DELETE CASCADE,
+            CREATE TABLE task_categories_category_migration (
+                task_id TEXT NOT NULL REFERENCES tasks_category_migration(id) ON DELETE CASCADE,
+                category TEXT NOT NULL CHECK (category IN (
+                    'employment', 'family', 'financial', 'healthcare',
+                    'housing', 'logistics'
+                )),
+                PRIMARY KEY (task_id, category)
+            );
+            INSERT INTO task_categories_category_migration (task_id, category)
+            SELECT id, CASE category
+                WHEN 'administrative' THEN 'logistics'
+                ELSE category
+            END
+            FROM tasks;
+
+            CREATE TABLE task_assignees_category_migration (
+                task_id TEXT NOT NULL REFERENCES tasks_category_migration(id) ON DELETE CASCADE,
                 position INTEGER NOT NULL CHECK (position >= 0),
                 name TEXT NOT NULL,
                 PRIMARY KEY (task_id, position),
                 UNIQUE (task_id, name)
             );
-            INSERT INTO task_assignees_vocabulary_migration
+            INSERT INTO task_assignees_category_migration
             SELECT * FROM task_assignees;
 
-            CREATE TABLE task_dependencies_vocabulary_migration (
-                task_id TEXT NOT NULL REFERENCES tasks_vocabulary_migration(id) ON DELETE CASCADE,
-                dependency_task_id TEXT NOT NULL REFERENCES tasks_vocabulary_migration(id),
+            CREATE TABLE task_dependencies_category_migration (
+                task_id TEXT NOT NULL REFERENCES tasks_category_migration(id) ON DELETE CASCADE,
+                dependency_task_id TEXT NOT NULL REFERENCES tasks_category_migration(id),
                 position INTEGER NOT NULL CHECK (position >= 0),
                 PRIMARY KEY (task_id, dependency_task_id),
                 UNIQUE (task_id, position),
                 CHECK (task_id <> dependency_task_id)
             );
-            INSERT INTO task_dependencies_vocabulary_migration
+            INSERT INTO task_dependencies_category_migration
             SELECT * FROM task_dependencies;
 
+            DROP TABLE task_categories;
             DROP TABLE task_dependencies;
             DROP TABLE task_assignees;
             DROP TABLE tasks;
-            ALTER TABLE tasks_vocabulary_migration RENAME TO tasks;
-            ALTER TABLE task_assignees_vocabulary_migration RENAME TO task_assignees;
-            ALTER TABLE task_dependencies_vocabulary_migration RENAME TO task_dependencies;
+            ALTER TABLE tasks_category_migration RENAME TO tasks;
+            ALTER TABLE task_categories_category_migration RENAME TO task_categories;
+            ALTER TABLE task_assignees_category_migration RENAME TO task_assignees;
+            ALTER TABLE task_dependencies_category_migration RENAME TO task_dependencies;
+            COMMIT;
             """
         )
 
@@ -234,6 +257,20 @@ class SQLiteRelocationPlanRepository:
                     """
                 ).fetchall()
             )
+            category_rows = connection.execute(
+                "SELECT task_id, category FROM task_categories"
+            ).fetchall()
+            categories_by_task: dict[str, set[str]] = {}
+            for row in category_rows:
+                categories_by_task.setdefault(row["task_id"], set()).add(row["category"])
+            categories = {
+                task_id: tuple(
+                    category.value
+                    for category in CATEGORY_ORDER
+                    if category.value in selected
+                )
+                for task_id, selected in categories_by_task.items()
+            }
             dependencies = self._group_values(
                 connection.execute(
                     """
@@ -253,7 +290,7 @@ class SQLiteRelocationPlanRepository:
                 title=row["title"],
                 description=row["description"],
                 phase_id=row["phase_id"],
-                category=row["category"],
+                categories=categories.get(row["id"], ()),
                 status=row["status"],
                 assignees=assignees.get(row["id"], ()),
                 start_date=row["start_date"],
@@ -316,14 +353,13 @@ class SQLiteRelocationPlanRepository:
             connection.execute(
                 """
                 UPDATE tasks SET phase_id = ?, title = ?, description = ?,
-                    category = ?, status = ?, start_date = ?, due_date = ?, priority = ?
+                    status = ?, start_date = ?, due_date = ?, priority = ?
                 WHERE id = ?
                 """,
                 (
                     task.phase_id,
                     task.title,
                     task.description,
-                    task.category.value,
                     task.status.value,
                     task.start_date.isoformat() if task.start_date else None,
                     task.due_date.isoformat() if task.due_date else None,
@@ -332,7 +368,11 @@ class SQLiteRelocationPlanRepository:
                 ),
             )
             self._replace_relations(
-                connection, task_id, task.assignees, task.dependency_task_ids
+                connection,
+                task_id,
+                task.categories,
+                task.assignees,
+                task.dependency_task_ids,
             )
             self._reject_cycles(connection)
         return self.get_plan()
@@ -413,9 +453,9 @@ class SQLiteRelocationPlanRepository:
         connection.execute(
             """
             INSERT INTO tasks (
-                id, plan_id, phase_id, title, description, category, status,
+                id, plan_id, phase_id, title, description, status,
                 start_date, due_date, priority
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 task_id,
@@ -423,7 +463,6 @@ class SQLiteRelocationPlanRepository:
                 task.phase_id,
                 task.title,
                 task.description,
-                task.category.value,
                 task.status.value,
                 task.start_date.isoformat() if task.start_date else None,
                 task.due_date.isoformat() if task.due_date else None,
@@ -431,18 +470,24 @@ class SQLiteRelocationPlanRepository:
             ),
         )
         self._replace_relations(
-            connection, task_id, task.assignees, task.dependency_task_ids
+            connection, task_id, task.categories, task.assignees, task.dependency_task_ids
         )
 
     @staticmethod
     def _replace_relations(
         connection: sqlite3.Connection,
         task_id: str,
+        categories: tuple[TaskCategory, ...],
         assignees: tuple[str, ...],
         dependencies: tuple[str, ...],
     ) -> None:
+        connection.execute("DELETE FROM task_categories WHERE task_id = ?", (task_id,))
         connection.execute("DELETE FROM task_assignees WHERE task_id = ?", (task_id,))
         connection.execute("DELETE FROM task_dependencies WHERE task_id = ?", (task_id,))
+        connection.executemany(
+            "INSERT INTO task_categories (task_id, category) VALUES (?, ?)",
+            ((task_id, category.value) for category in categories),
+        )
         connection.executemany(
             "INSERT INTO task_assignees (task_id, position, name) VALUES (?, ?, ?)",
             ((task_id, position, name) for position, name in enumerate(assignees)),

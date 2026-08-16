@@ -59,6 +59,10 @@ The backend also persists one fixed family relocation plan in SQLite. The main
 screen now loads its four ordered phases and lets the family add and edit tasks,
 change status, assign people and dates, and select dependencies. Blocked state
 is derived from incomplete dependencies and shown directly in the plan. The
+fixed relocation categories are optional equal labels: tasks may have none or
+several, cards show all assignments, and a local OR filter includes a derived
+Uncategorized choice. Existing single-category databases migrate in place, and
+the plan-wide title finder remains independent of category filtering. The
 primary recommendation now selects one currently actionable stored task through
 an explicit deterministic order. The earlier employment-planning inputs remain
 in browser/request memory as a separate recommendation flow. There is no

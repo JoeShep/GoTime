@@ -15,13 +15,21 @@ title, ordered `Phase` records, and `Task` records. The initial phases are:
 4. settle in.
 
 A `Task` belongs to exactly one phase and records a stable ID, title, optional
-description, category, status, zero or more assignee names, optional start/due
+description, zero or more categories, status, zero or more assignee names, optional start/due
 dates, user priority, and zero or more dependency task IDs.
 
 The implemented status vocabulary is `not_started`, `in_progress`, and
 `completed`. Priority is `low`, `medium`, `high`, or `critical`. Categories are
-bounded to administrative, employment, family, financial, healthcare, housing,
-and logistics.
+optional, equal labels bounded to employment, family, financial, healthcare,
+housing, and logistics. A task may have any combination of those labels, with
+no primary category. Duplicate and unknown assignments are invalid. Category
+collections use configured category order rather than selection order.
+`Uncategorized` is derived from an empty collection and is never persisted.
+
+With no category filter selected, the plan shows every task. Selected
+categories use OR behavior, including the derived Uncategorized choice, and a
+matching task appears once. Filtering changes only the plan view; task state,
+relationships, and recommendation results remain unchanged.
 
 Blocked state is derived rather than persisted: a task that is not completed is
 blocked when at least one dependency is not completed. A completed task is not

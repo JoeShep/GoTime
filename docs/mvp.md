@@ -4,14 +4,18 @@ This document should become the contract for v0.1.
 
 GoTime now stores one fixed family relocation plan in SQLite and displays it on
 the main React screen. The plan has four ordered phases and mutable tasks with
-status, category, assignees, optional dates, priority, dependencies, and
+status, zero or more categories, assignees, optional dates, priority, dependencies, and
 backend-derived blocked state. Users can add and edit tasks, change status, and
 select dependencies without adding authentication, multi-goal infrastructure,
 notifications, or AI.
 
 The relocation plan uses four default phases: Decide where and how to move,
 Prepare for the move, Make the move, and Settle in. Its current category choices
-are Employment, Family, Financial, Healthcare, Housing, and Logistics.
+are Employment, Family, Financial, Healthcare, Housing, and Logistics. They are
+optional equal labels: cards show all assignments in configured order and show
+derived Uncategorized text when none are assigned. The plan can be filtered by
+any OR combination of those categories and Uncategorized without affecting the
+plan-wide task finder or recommendation.
 
 The primary recommendation now selects one actionable stored task through a
 documented deterministic order using user priority, due timing, work status,

@@ -179,6 +179,18 @@ body {
   width: auto;
 }
 
+.task-category-labels {
+  max-width: 100%;
+}
+
+.category-select-toggle {
+  white-space: normal;
+}
+
+.category-menu {
+  min-width: 15rem;
+}
+
 .task-editor-actions {
   z-index: 2;
   border-bottom: 1px solid rgb(42 61 52 / 15%);

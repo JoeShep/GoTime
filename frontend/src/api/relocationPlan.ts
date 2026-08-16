@@ -19,7 +19,7 @@ export interface RelocationTask {
   title: string
   description: string | null
   phase_id: string
-  category: TaskCategory
+  categories: TaskCategory[]
   status: TaskStatus
   assignees: string[]
   start_date: string | null
@@ -40,7 +40,7 @@ export interface TaskWrite {
   title: string
   description: string | null
   phase_id: string
-  category: TaskCategory
+  categories: TaskCategory[]
   status: TaskStatus
   assignees: string[]
   start_date: string | null

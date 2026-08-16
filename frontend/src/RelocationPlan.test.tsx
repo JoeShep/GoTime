@@ -20,7 +20,7 @@ const plan: RelocationPlanData = {
       title: 'Choose a mover',
       description: 'Compare the final quotes.',
       phase_id: 'prepare',
-      category: 'logistics',
+      categories: ['logistics'],
       status: 'not_started',
       assignees: ['Joe', 'Sarah'],
       start_date: '2026-09-01',
@@ -34,7 +34,7 @@ const plan: RelocationPlanData = {
       title: 'Pay the mover deposit',
       description: null,
       phase_id: 'prepare',
-      category: 'financial',
+      categories: ['financial'],
       status: 'not_started',
       assignees: ['Sarah'],
       start_date: null,
@@ -77,12 +77,122 @@ describe('persistent relocation plan', () => {
     expect(screen.queryByText('Complete the move')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
-    const category = screen.getByLabelText('Category')
-    expect(within(category).queryByRole('option', { name: 'Administrative' })).not.toBeInTheDocument()
-    expect(within(category).getByRole('option', { name: 'Logistics' })).toBeVisible()
-    expect(within(category).getAllByRole('option').map((option) => option.textContent)).toEqual([
-      'Employment', 'Family', 'Financial', 'Healthcare', 'Housing', 'Logistics',
-    ])
+    const category = screen.getByLabelText('Categories (optional)')
+    expect(category).toHaveTextContent('Select categories')
+    fireEvent.click(category)
+    expect(screen.queryByLabelText('Administrative')).not.toBeInTheDocument()
+    expect(['Employment', 'Family', 'Financial', 'Healthcare', 'Housing', 'Logistics'].map(
+      (label) => screen.getByLabelText(label).nextSibling?.textContent,
+    )).toEqual(['Employment', 'Family', 'Financial', 'Healthcare', 'Housing', 'Logistics'])
+  })
+
+  it('keeps the category editor open, shows selections, and clears them', async () => {
+    mockPlanRequests()
+    render(<RelocationPlan />)
+    await screen.findByRole('button', { name: 'Add task' })
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    const categories = screen.getByLabelText('Categories (optional)')
+
+    fireEvent.click(categories)
+    fireEvent.click(screen.getByLabelText('Housing'))
+    fireEvent.click(screen.getByLabelText('Employment'))
+
+    expect(screen.getByLabelText('Housing')).toBeVisible()
+    expect(screen.getByLabelText('Employment')).toBeVisible()
+    expect(categories).toHaveTextContent('Employment, Housing')
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+    expect(categories).toHaveTextContent('Select categories')
+    expect(screen.queryByRole('button', { name: 'Clear all' })).not.toBeInTheDocument()
+  })
+
+  it('preserves every existing category while editing in configured order', async () => {
+    const multiCategoryPlan: RelocationPlanData = {
+      ...plan,
+      tasks: [
+        { ...plan.tasks[0], categories: ['logistics', 'employment', 'housing'] },
+        plan.tasks[1],
+      ],
+    }
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan' && !init?.method) {
+        return Promise.resolve(response(multiCategoryPlan))
+      }
+      return Promise.resolve(response(multiCategoryPlan))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<RelocationPlan />)
+    const heading = await screen.findByRole('heading', { name: 'Choose a mover' })
+    fireEvent.click(within(heading.closest('article')!).getByRole('button', { name: 'Edit' }))
+
+    const categories = screen.getByLabelText('Categories (optional)')
+    expect(categories).toHaveTextContent('Employment, Housing, Logistics')
+    fireEvent.click(categories)
+    expect(screen.getByLabelText('Employment')).toBeChecked()
+    expect(screen.getByLabelText('Housing')).toBeChecked()
+    expect(screen.getByLabelText('Logistics')).toBeChecked()
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(
+      expect.objectContaining({ categories: ['employment', 'housing', 'logistics'] }),
+    )
+  })
+
+  it('filters categories with OR behavior, hides empty phases, and clears filters', async () => {
+    const filterPlan: RelocationPlanData = {
+      ...plan,
+      tasks: [
+        { ...plan.tasks[0], categories: ['logistics', 'housing'] },
+        { ...plan.tasks[1], categories: ['financial'], status: 'completed', blocked: false },
+        { ...plan.tasks[0], id: 'uncategorized-task', title: 'Uncategorized task', phase_id: 'settle', categories: [] },
+      ],
+    }
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(filterPlan))))
+    render(<RelocationPlan />)
+    const filter = await screen.findByRole('button', { name: 'Filter by categories' })
+
+    fireEvent.click(filter)
+    fireEvent.click(screen.getByLabelText('Housing'))
+    expect(filter).toHaveTextContent('Categories (1)')
+    expect(screen.getByRole('heading', { name: 'Choose a mover' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Settle in' })).not.toBeInTheDocument()
+    const finder = screen.getByRole('combobox', { name: 'Find a task' })
+    fireEvent.change(finder, { target: { value: 'deposit' } })
+    expect(screen.getByRole('option', { name: /Pay the mover deposit/ })).toBeVisible()
+    fireEvent.keyDown(finder, { key: 'Escape' })
+
+    fireEvent.click(screen.getByLabelText('Uncategorized'))
+    expect(filter).toHaveTextContent('Categories (2)')
+    expect(screen.getByRole('heading', { name: 'Choose a mover' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Uncategorized task' })).toBeVisible()
+    expect(screen.getByText('Uncategorized', { selector: '.text-muted' })).toBeVisible()
+    expect(screen.getAllByRole('heading', { name: 'Choose a mover' })).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+    expect(filter).toHaveTextContent(/^Categories$/)
+    expect(screen.getByRole('heading', { name: 'Prepare for the move' })).toBeVisible()
+  })
+
+  it('filters completed counts and shows one empty state when nothing matches', async () => {
+    const completedPlan: RelocationPlanData = {
+      ...plan,
+      tasks: [
+        { ...plan.tasks[0], categories: ['housing'], status: 'completed' },
+        { ...plan.tasks[1], categories: ['financial'], status: 'completed', blocked: false },
+      ],
+    }
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(completedPlan))))
+    render(<RelocationPlan />)
+    const filter = await screen.findByRole('button', { name: 'Filter by categories' })
+    fireEvent.click(filter)
+    fireEvent.click(screen.getByLabelText('Housing'))
+
+    expect(screen.getByRole('button', { name: 'Completed (1)' })).toBeVisible()
+    fireEvent.click(screen.getByLabelText('Housing'))
+    fireEvent.click(screen.getByLabelText('Healthcare'))
+    expect(screen.getByText('No tasks match the selected categories.')).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Completed \(/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Prepare for the move' })).not.toBeInTheDocument()
   })
 
   it('shows a loading state while retrieving the plan', () => {
@@ -192,7 +302,7 @@ describe('persistent relocation plan', () => {
           id: 'choose-region',
           title: 'Choose a region',
           phase_id: 'decide',
-          category: 'housing',
+          categories: ['housing'],
         },
         { ...plan.tasks[0], status: 'completed' },
         plan.tasks[1],
@@ -340,6 +450,7 @@ describe('persistent relocation plan', () => {
     expect(fetchMock.mock.calls[1][0]).toBe('/api/relocation-plan/tasks')
     expect(JSON.parse(String(init?.body))).toEqual(expect.objectContaining({
       title: 'Pack the kitchen',
+      categories: [],
       assignees: ['Joe', 'Sarah'],
       dependency_task_ids: ['choose-mover'],
       description: null,
@@ -418,7 +529,7 @@ describe('persistent relocation plan', () => {
       title: 'Choose the mover',
       description: 'Compare the final quotes.',
       phase_id: 'prepare',
-      category: 'logistics',
+      categories: ['logistics'],
       status: 'not_started',
       assignees: ['Joe', 'Sarah'],
       start_date: '2026-09-01',
