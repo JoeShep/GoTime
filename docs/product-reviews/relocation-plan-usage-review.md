@@ -291,7 +291,9 @@ Possible improvement:
 
 - disable or hide `Add Task` while the new-task form is open.
 
-Do not choose the interaction yet.
+The page-level interaction observation was promoted into the task-editor action
+ergonomics enhancement. The page-level `Add task` action is hidden whenever the
+editor is open and returns after Cancel or a successful save.
 
 If tasks continue to be listed under phase sections, consider adding an
 `Add task` action to each phase header. It could open the existing task form
@@ -312,7 +314,9 @@ Possible approaches include:
 - Save near the top of the editor;
 - another persistently visible Save action.
 
-Choose the solution based on continued hands-on use.
+This observation was promoted into the same enhancement. One compact top-sticky
+action area now keeps `Create task` or `Save changes` and Cancel available while
+the user navigates the editor. The controls are not duplicated.
 
 ### Dependency terminology
 
@@ -329,11 +333,14 @@ When continued use is materially impeded, review the observations above and sele
 
 Current likely candidates include:
 
-- Add Task / Save interaction;
 - task search.
 
 Completed-task and completed-dependency behavior was intentionally promoted
 and implemented before selecting another candidate.
+
+The page-level Add Task and editor Save-placement observations were also
+intentionally promoted and implemented. The phase-header Add action remains an
+unimplemented observation.
 
 Larger model or vocabulary decisions should continue to accumulate evidence before implementation.
 

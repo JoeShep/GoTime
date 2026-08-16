@@ -152,6 +152,12 @@ body {
   width: auto;
 }
 
+.task-editor-actions {
+  z-index: 2;
+  border-bottom: 1px solid rgb(42 61 52 / 15%);
+  background: var(--bs-card-bg);
+}
+
 .dependency-phase:last-child {
   margin-bottom: 0 !important;
 }

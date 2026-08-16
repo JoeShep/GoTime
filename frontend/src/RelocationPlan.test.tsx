@@ -75,6 +75,81 @@ describe('persistent relocation plan', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Loading relocation plan')
   })
 
+  it('hides Add task in add mode and restores it after Cancel', async () => {
+    mockPlanRequests()
+    render(<RelocationPlan />)
+    await screen.findByRole('button', { name: 'Add task' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+
+    expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Create task' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument()
+    const actionArea = screen.getByRole('button', { name: 'Create task' })
+      .closest<HTMLElement>('.task-editor-actions')
+    expect(actionArea).toHaveClass('sticky-top', 'flex-wrap')
+    expect(within(actionArea!).getAllByRole('button')).toHaveLength(2)
+    expect(within(actionArea!).getByRole('button', { name: 'Cancel' })).toHaveAttribute('type', 'button')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('heading', { name: 'Add task' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add task' })).toBeVisible()
+  })
+
+  it('hides Add task in edit mode and uses Save changes only', async () => {
+    mockPlanRequests()
+    render(<RelocationPlan />)
+    const taskHeading = await screen.findByRole('heading', { name: 'Choose a mover' })
+
+    fireEvent.click(within(taskHeading.closest('article')!).getByRole('button', { name: 'Edit' }))
+
+    expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Create task' })).not.toBeInTheDocument()
+  })
+
+  it('disables the editor actions and sends one request while creating', async () => {
+    const pendingCreate = new Promise<Response>(() => undefined)
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(plan))
+      return pendingCreate
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<RelocationPlan />)
+    await screen.findByRole('button', { name: 'Add task' })
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Pack books' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
+
+    const pendingButton = await screen.findByRole('button', { name: 'Creating…' })
+    expect(pendingButton).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    fireEvent.click(pendingButton)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('disables the editor actions and sends one request while saving changes', async () => {
+    const pendingReplacement = new Promise<Response>(() => undefined)
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(plan))
+      return pendingReplacement
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<RelocationPlan />)
+    const taskHeading = await screen.findByRole('heading', { name: 'Choose a mover' })
+    fireEvent.click(within(taskHeading.closest('article')!).getByRole('button', { name: 'Edit' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    const pendingButton = await screen.findByRole('button', { name: 'Saving…' })
+    expect(pendingButton).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    fireEvent.click(pendingButton)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it('renders ordered phases, tasks, blocked state, and dependency context', async () => {
     mockPlanRequests()
     render(<RelocationPlan />)
@@ -96,10 +171,11 @@ describe('persistent relocation plan', () => {
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Pack the kitchen' } })
     fireEvent.change(screen.getByLabelText(/^Assignees/), { target: { value: 'Joe, Sarah' } })
     fireEvent.click(screen.getByLabelText('Choose a mover (Not started)'))
-    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Task added.')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Add task' })).toBeVisible()
     const [, init] = fetchMock.mock.calls[1]
     expect(fetchMock.mock.calls[1][0]).toBe('/api/relocation-plan/tasks')
     expect(JSON.parse(String(init?.body))).toEqual(expect.objectContaining({
@@ -123,7 +199,7 @@ describe('persistent relocation plan', () => {
     expect(assignees).toHaveAttribute('placeholder', 'Separate names with commas')
     expect(assignees).not.toHaveAttribute('placeholder', expect.stringMatching(/Joe|Sarah/i))
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Make a shared decision' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(
@@ -140,7 +216,7 @@ describe('persistent relocation plan', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: longTitle } })
     fireEvent.change(screen.getByLabelText(/^Assignees/), { target: { value: 'Joe' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     const body = JSON.parse(String(fetchMock.mock.calls[1][1]?.body)) as {
@@ -171,9 +247,10 @@ describe('persistent relocation plan', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0])
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Choose the mover' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(screen.getByRole('button', { name: 'Add task' })).toBeVisible()
     const [path, init] = fetchMock.mock.calls[1]
     expect(path).toBe('/api/relocation-plan/tasks/choose-mover')
     expect(JSON.parse(String(init?.body))).toEqual({
@@ -199,7 +276,7 @@ describe('persistent relocation plan', () => {
     fireEvent.change(screen.getByLabelText('Description (optional)'), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText('Start date (optional)'), { target: { value: '' } })
     fireEvent.change(screen.getByLabelText('Due date (optional)'), { target: { value: '' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(
@@ -302,7 +379,7 @@ describe('persistent relocation plan', () => {
     expect(screen.getByLabelText('Choose a mover (Completed)')).toBeChecked()
 
     fireEvent.click(screen.getByLabelText('Choose a mover (Completed)'))
-    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(
@@ -421,7 +498,7 @@ describe('persistent relocation plan', () => {
 
     fireEvent.click(screen.getByLabelText('Choose a mover (Not started)'))
     fireEvent.click(screen.getByLabelText('Choose a region (Not started)'))
-    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(
@@ -440,10 +517,11 @@ describe('persistent relocation plan', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0])
     fireEvent.click(screen.getByLabelText('Pay the mover deposit (Not started)'))
-    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     expect(await screen.findByText('Task dependencies cannot contain a cycle.')).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Edit task' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
   })
 
   it('shows a network error when the plan cannot be loaded', async () => {

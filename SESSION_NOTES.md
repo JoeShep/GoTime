@@ -1,5 +1,23 @@
 # Session Notes
 
+## 2026-08-15 — Task editor action ergonomics
+
+- Hid the page-level `Add task` action while either add or edit mode is open;
+  Cancel and successful saves restore it through the existing draft lifecycle,
+  while failed saves retain the editor.
+- Moved the editor's only primary and Cancel controls directly below its
+  heading in a compact, responsive top-sticky action area within the card.
+- Added operation-specific `Create task`, `Save changes`, `Creating…`, and
+  `Saving…` labels while preserving native form submission and validation.
+- Kept both actions disabled during a pending request and added a save guard to
+  prevent intentional duplicate execution.
+- Preserved editor scroll/focus, dependency selection, and completed-task
+  behavior. Phase-header Add actions and dependency terminology remain
+  unimplemented usage observations.
+- Added focused coverage for action visibility and restoration, labels,
+  pending states, duplicate-request prevention, sticky structure, failure
+  retention, and existing scroll/focus behavior.
+
 ## 2026-08-15 — Completed task lifecycle and dependency semantics
 
 - Kept completed tasks as stored phase history while separating them from

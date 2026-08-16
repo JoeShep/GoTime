@@ -173,7 +173,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   async function saveTask() {
-    if (!draft) return
+    if (!draft || saving) return
     setSaving(true)
     setError(null)
     setNotice(null)
@@ -237,7 +237,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             {plan?.title ?? 'Family relocation plan'}
           </h2>
         </div>
-        {plan && <Button onClick={beginAdd}>Add task</Button>}
+        {plan && !draft && <Button onClick={beginAdd}>Add task</Button>}
       </div>
 
       {loading && <div className="py-4 text-center" role="status"><Spinner size="sm" /> <span>Loading relocation plan…</span></div>}
@@ -250,6 +250,12 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             <Card.Body>
               <Card.Title as="h3">{editingId ? 'Edit task' : 'Add task'}</Card.Title>
               <Form onSubmit={(event) => { event.preventDefault(); void saveTask() }}>
+              <Stack direction="horizontal" gap={2} className="task-editor-actions sticky-top flex-wrap py-3 mb-3">
+                <Button type="submit" disabled={saving}>
+                  {saving ? (editingId ? 'Saving…' : 'Creating…') : (editingId ? 'Save changes' : 'Create task')}
+                </Button>
+                <Button type="button" variant="outline-secondary" disabled={saving} onClick={() => { setDraft(null); setEditingId(null); setDependencyQuery('') }}>Cancel</Button>
+              </Stack>
               <Row className="g-3">
                 <Col md={8}><Form.Group controlId="task-title"><Form.Label>Title</Form.Label><Form.Control ref={titleInputRef} required maxLength={200} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></Form.Group></Col>
                 <Col md={4}><Form.Group controlId="task-phase"><Form.Label>Phase</Form.Label><Form.Select value={draft.phaseId} onChange={(event) => setDraft({ ...draft, phaseId: event.target.value })}>{plan.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}</Form.Select></Form.Group></Col>
@@ -286,10 +292,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                   </Form.Group>
                 </Col>
               </Row>
-              <Stack direction="horizontal" gap={2} className="mt-4">
-                <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save task'}</Button>
-                <Button variant="outline-secondary" disabled={saving} onClick={() => { setDraft(null); setEditingId(null); setDependencyQuery('') }}>Cancel</Button>
-              </Stack>
               </Form>
             </Card.Body>
           </Card>

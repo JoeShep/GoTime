@@ -1,21 +1,36 @@
 # NEXT_SESSION
 
+## Task editor action ergonomics
+
+The approved frontend-only editor ergonomics enhancement is implemented and
+awaiting hands-on verification. The page-level `Add task` action is hidden in
+both add and edit modes, then returns after Cancel or a successful save. The
+single editor action area sits below the editor heading and remains top-sticky
+within the card, with responsive wrapping and operation-specific labels.
+
+Create and replacement requests continue to use the existing API operations.
+Pending submissions show `Creating…` or `Saving…`, disable both editor actions,
+and are guarded against duplicate execution. Existing editor scroll/focus,
+dependency selection, completed-task lifecycle, and failed-save retention are
+unchanged. Do not implement phase-header Add actions, phase-prefilled creation,
+dependency terminology changes, or any other parked product observation.
+
 ## Completed task lifecycle and dependency semantics
 
-The approved lifecycle enhancement is implemented and awaiting hands-on
-verification. Within each phase, unfinished tasks remain in the active list and
-completed tasks move into a collapsed `Completed (n)` history section. Status
-and Edit controls remain available there so a completed task can be inspected
-or reopened.
+The approved lifecycle enhancement is implemented and passed hands-on
+verification. Within each phase, unfinished tasks remain in the active list
+and completed tasks move into a collapsed `Completed (n)` history section.
+Status and Edit controls remain available there so a completed task can be
+inspected or reopened.
 
 Direct dependency relationships survive completion and reopening. Completed
 dependencies do not block; reopening restores derived blocking. Completed tasks
 cannot be introduced as new dependencies, while an existing completed
 dependency remains visible and removable during editing. Recommendation
 eligibility continues to exclude completed work and refresh after status
-changes. Resume with hands-on lifecycle verification; do not begin priority,
-search, People, category, phase, related-link, alternate-view, authentication,
-or AI work.
+changes. Continue using the real relocation plan before selecting another
+change; do not begin priority, search, People, category, phase, related-link,
+alternate-view, authentication, or AI work.
 
 ## Relocation-plan first-use usability follow-up
 
