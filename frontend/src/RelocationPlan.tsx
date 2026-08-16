@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, Badge, Button, Card, Col, Form, Row, Spinner, Stack } from 'react-bootstrap'
+import { Accordion, Alert, Badge, Button, Card, Col, Form, Row, Spinner, Stack } from 'react-bootstrap'
 import {
   changeTaskStatus,
   createTask,
@@ -143,10 +143,11 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       tasks: (plan?.tasks ?? []).filter((task) =>
         task.id !== editingId
         && task.phase_id === phase.id
+        && (task.status !== 'completed' || draft?.dependencies.includes(task.id))
         && task.title.toLocaleLowerCase().includes(normalizedQuery),
       ),
     })).filter((group) => group.tasks.length > 0)
-  }, [dependencyQuery, editingId, plan])
+  }, [dependencyQuery, draft?.dependencies, editingId, plan])
 
   useEffect(() => {
     if (!draft) return
@@ -208,6 +209,25 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     }
   }
 
+  function renderTask(task: RelocationTask) {
+    return (
+      <article className={`task-item rounded-3 p-3 ${task.blocked ? 'is-blocked' : ''}`} key={task.id}>
+        <div className="d-flex flex-wrap justify-content-between gap-3">
+          <div>
+            <div className="d-flex flex-wrap align-items-center gap-2 mb-1"><h4 className="task-title mb-0">{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
+            <p className="text-muted mb-2">{categoryLabels[task.category]}{task.assignees.length > 0 ? ` · ${task.assignees.join(', ')}` : ' · Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</p>
+            {task.description && <p className="mb-2">{task.description}</p>}
+            {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
+          </div>
+          <div className="task-actions d-flex flex-wrap align-items-start gap-2">
+            <Form.Select aria-label={`Status for ${task.title}`} disabled={saving} value={task.status} onChange={(event) => void updateStatus(task, event.target.value as TaskStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select>
+            <Button variant="outline-secondary" onClick={() => beginEdit(task)}>Edit</Button>
+          </div>
+        </div>
+      </article>
+    )
+  }
+
   return (
     <section className="relocation-plan mt-5" aria-labelledby="relocation-plan-heading">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -260,8 +280,8 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                           ))}
                         </fieldset>
                       ))}
-                      {plan.tasks.filter((task) => task.id !== editingId).length === 0 && <p className="text-muted mb-0">No other tasks are available.</p>}
-                      {plan.tasks.some((task) => task.id !== editingId) && dependencyGroups.length === 0 && <p className="text-muted mb-0">No tasks match your search.</p>}
+                      {!plan.tasks.some((task) => task.id !== editingId && (task.status !== 'completed' || draft.dependencies.includes(task.id))) && <p className="text-muted mb-0">No other tasks are available.</p>}
+                      {plan.tasks.some((task) => task.id !== editingId && (task.status !== 'completed' || draft.dependencies.includes(task.id))) && dependencyGroups.length === 0 && <p className="text-muted mb-0">No tasks match your search.</p>}
                     </div>
                   </Form.Group>
                 </Col>
@@ -278,29 +298,27 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
       {plan?.phases.map((phase) => {
         const phaseTasks = plan.tasks.filter((task) => task.phase_id === phase.id)
+        const activeTasks = phaseTasks.filter((task) => task.status !== 'completed')
+        const completedTasks = phaseTasks.filter((task) => task.status === 'completed')
         return (
           <Card className="phase-card mb-3" key={phase.id}>
             <Card.Header as="h3">{phase.title}</Card.Header>
             <Card.Body>
               {phaseTasks.length === 0 && <p className="text-muted mb-0">No tasks in this phase yet.</p>}
+              {activeTasks.length === 0 && completedTasks.length > 0 && <p className="text-muted mb-0">No active tasks in this phase.</p>}
               <Stack gap={3}>
-                {phaseTasks.map((task) => (
-                  <article className={`task-item rounded-3 p-3 ${task.blocked ? 'is-blocked' : ''}`} key={task.id}>
-                    <div className="d-flex flex-wrap justify-content-between gap-3">
-                      <div>
-                        <div className="d-flex flex-wrap align-items-center gap-2 mb-1"><h4 className="task-title mb-0">{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
-                        <p className="text-muted mb-2">{categoryLabels[task.category]}{task.assignees.length > 0 ? ` · ${task.assignees.join(', ')}` : ' · Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</p>
-                        {task.description && <p className="mb-2">{task.description}</p>}
-                        {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
-                      </div>
-                      <div className="task-actions d-flex flex-wrap align-items-start gap-2">
-                        <Form.Select aria-label={`Status for ${task.title}`} disabled={saving} value={task.status} onChange={(event) => void updateStatus(task, event.target.value as TaskStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select>
-                        <Button variant="outline-secondary" onClick={() => beginEdit(task)}>Edit</Button>
-                      </div>
-                    </div>
-                  </article>
-                ))}
+                {activeTasks.map(renderTask)}
               </Stack>
+              {completedTasks.length > 0 && (
+                <Accordion className="completed-tasks mt-3">
+                  <Accordion.Item eventKey="completed">
+                    <Accordion.Header>Completed ({completedTasks.length})</Accordion.Header>
+                    <Accordion.Body>
+                      <Stack gap={3}>{completedTasks.map(renderTask)}</Stack>
+                    </Accordion.Body>
+                  </Accordion.Item>
+                </Accordion>
+              )}
             </Card.Body>
           </Card>
         )

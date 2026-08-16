@@ -1,5 +1,22 @@
 # NEXT_SESSION
 
+## Completed task lifecycle and dependency semantics
+
+The approved lifecycle enhancement is implemented and awaiting hands-on
+verification. Within each phase, unfinished tasks remain in the active list and
+completed tasks move into a collapsed `Completed (n)` history section. Status
+and Edit controls remain available there so a completed task can be inspected
+or reopened.
+
+Direct dependency relationships survive completion and reopening. Completed
+dependencies do not block; reopening restores derived blocking. Completed tasks
+cannot be introduced as new dependencies, while an existing completed
+dependency remains visible and removable during editing. Recommendation
+eligibility continues to exclude completed work and refresh after status
+changes. Resume with hands-on lifecycle verification; do not begin priority,
+search, People, category, phase, related-link, alternate-view, authentication,
+or AI work.
+
 ## Relocation-plan first-use usability follow-up
 
 The approved first-use follow-up is implemented and passed hands-on

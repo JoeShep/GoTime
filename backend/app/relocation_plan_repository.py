@@ -225,8 +225,19 @@ class SQLiteRelocationPlanRepository:
         with self._connect() as connection:
             if not self._task_exists(connection, task_id):
                 raise TaskNotFoundError(f"Task '{task_id}' does not exist.")
+            existing_dependency_ids = {
+                row["dependency_task_id"]
+                for row in connection.execute(
+                    "SELECT dependency_task_id FROM task_dependencies WHERE task_id = ?",
+                    (task_id,),
+                ).fetchall()
+            }
             self._validate_task_bindings(
-                connection, task_id, task.phase_id, task.dependency_task_ids
+                connection,
+                task_id,
+                task.phase_id,
+                task.dependency_task_ids,
+                allowed_completed_dependency_ids=existing_dependency_ids,
             )
             connection.execute(
                 """
@@ -273,6 +284,8 @@ class SQLiteRelocationPlanRepository:
         task_id: str,
         phase_id: str,
         dependency_ids: tuple[str, ...],
+        *,
+        allowed_completed_dependency_ids: set[str] | None = None,
     ) -> None:
         phase = connection.execute(
             "SELECT 1 FROM phases WHERE id = ? AND plan_id = ?",
@@ -300,6 +313,24 @@ class SQLiteRelocationPlanRepository:
         if missing:
             raise InvalidDependencyError(
                 f"Dependency task(s) do not exist: {', '.join(sorted(missing))}."
+            )
+        completed = (
+            {
+                row["id"]
+                for row in connection.execute(
+                    "SELECT id FROM tasks WHERE status = ? AND id IN "
+                    f"({','.join('?' for _ in dependency_ids)})",
+                    (TaskStatus.COMPLETED.value, *dependency_ids),
+                ).fetchall()
+            }
+            if dependency_ids
+            else set()
+        )
+        newly_completed = completed - (allowed_completed_dependency_ids or set())
+        if newly_completed:
+            raise InvalidDependencyError(
+                "Completed task(s) cannot be added as dependencies: "
+                f"{', '.join(sorted(newly_completed))}."
             )
 
     def _insert_task(

@@ -256,6 +256,96 @@ describe('persistent relocation plan', () => {
     expect(screen.getByLabelText('Pay the mover deposit (Not started)')).toBeVisible()
   })
 
+  it('excludes completed tasks from new dependency choices', async () => {
+    const completedPlan: RelocationPlanData = {
+      ...plan,
+      tasks: plan.tasks.map((task) =>
+        task.id === 'choose-mover' ? { ...task, status: 'completed' } : task,
+      ),
+    }
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(completedPlan))))
+    render(<RelocationPlan />)
+    await screen.findByRole('button', { name: 'Completed (1)' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+
+    expect(screen.queryByLabelText('Choose a mover (Completed)')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Pay the mover deposit (Not started)')).toBeVisible()
+  })
+
+  it('keeps an existing completed dependency visible, searchable, and removable', async () => {
+    const completedPlan: RelocationPlanData = {
+      ...plan,
+      tasks: plan.tasks.map((task) =>
+        task.id === 'choose-mover'
+          ? { ...task, status: 'completed' }
+          : { ...task, blocked: false },
+      ),
+    }
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan' && !init?.method) {
+        return Promise.resolve(response(completedPlan))
+      }
+      return Promise.resolve(response(completedPlan))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<RelocationPlan />)
+    const dependentHeading = await screen.findByRole('heading', { name: 'Pay the mover deposit' })
+
+    fireEvent.click(within(dependentHeading.closest('article')!).getByRole('button', { name: 'Edit' }))
+    const completedDependency = screen.getByLabelText('Choose a mover (Completed)')
+    expect(completedDependency).toBeChecked()
+
+    fireEvent.change(screen.getByLabelText('Search dependencies'), { target: { value: 'missing' } })
+    expect(screen.queryByLabelText('Choose a mover (Completed)')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Search dependencies'), { target: { value: 'choose' } })
+    expect(screen.getByLabelText('Choose a mover (Completed)')).toBeChecked()
+
+    fireEvent.click(screen.getByLabelText('Choose a mover (Completed)'))
+    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(
+      expect.objectContaining({ dependency_task_ids: [] }),
+    )
+  })
+
+  it('separates completed tasks in a collapsed per-phase section and reopens them', async () => {
+    const completedPlan: RelocationPlanData = {
+      ...plan,
+      tasks: plan.tasks.map((task) =>
+        task.id === 'choose-mover'
+          ? { ...task, status: 'completed' }
+          : { ...task, blocked: false },
+      ),
+    }
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan' && !init?.method) {
+        return Promise.resolve(response(completedPlan))
+      }
+      return Promise.resolve(response(plan))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<RelocationPlan />)
+    await screen.findByRole('heading', { name: 'Pay the mover deposit' })
+
+    const completedToggle = screen.getByRole('button', { name: 'Completed (1)' })
+    expect(completedToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('heading', { name: 'Pay the mover deposit' })).toBeVisible()
+
+    fireEvent.click(completedToggle)
+    expect(completedToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('heading', { name: 'Choose a mover' })).toBeVisible()
+
+    fireEvent.change(screen.getByLabelText('Status for Choose a mover'), {
+      target: { value: 'not_started' },
+    })
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('button', { name: 'Completed (1)' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Choose a mover' })).toBeVisible()
+  })
+
   it('scrolls the editor into view and focuses its title when Edit is clicked', async () => {
     const scrollIntoView = vi.fn()
     Object.defineProperty(Element.prototype, 'scrollIntoView', {

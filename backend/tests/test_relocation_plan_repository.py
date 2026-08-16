@@ -59,7 +59,9 @@ def test_plan_and_tasks_survive_repository_reconstruction(tmp_path) -> None:
     assert recovered.tasks[0].due_date.isoformat() == "2026-09-15"
 
 
-def test_dependencies_derive_blocked_state_until_all_are_completed(tmp_path) -> None:
+def test_completion_and_reopening_rederive_blocking_without_deleting_dependency(
+    tmp_path,
+) -> None:
     repository = SQLiteRelocationPlanRepository(tmp_path / "gotime.db")
     repository.create_task(task("choose-mover"))
     plan = repository.create_task(
@@ -70,7 +72,95 @@ def test_dependencies_derive_blocked_state_until_all_are_completed(tmp_path) -> 
 
     completed = repository.update_task_status("choose-mover", TaskStatus.COMPLETED)
 
-    assert next(item for item in completed.tasks if item.id == "pay-deposit").blocked is False
+    dependent = next(item for item in completed.tasks if item.id == "pay-deposit")
+    assert dependent.blocked is False
+    assert dependent.dependency_task_ids == ("choose-mover",)
+
+    reopened = repository.update_task_status("choose-mover", TaskStatus.IN_PROGRESS)
+
+    dependent = next(item for item in reopened.tasks if item.id == "pay-deposit")
+    assert dependent.blocked is True
+    assert dependent.dependency_task_ids == ("choose-mover",)
+
+
+def test_dependency_chain_is_derived_from_direct_relationships(tmp_path) -> None:
+    repository = SQLiteRelocationPlanRepository(tmp_path / "gotime.db")
+    repository.create_task(task("c"))
+    repository.create_task(task("b", dependency_task_ids=("c",)))
+    initial = repository.create_task(task("a", dependency_task_ids=("b",)))
+
+    assert next(item for item in initial.tasks if item.id == "b").blocked is True
+    assert next(item for item in initial.tasks if item.id == "a").blocked is True
+
+    after_c = repository.update_task_status("c", TaskStatus.COMPLETED)
+    assert next(item for item in after_c.tasks if item.id == "b").blocked is False
+    assert next(item for item in after_c.tasks if item.id == "a").blocked is True
+
+    after_b = repository.update_task_status("b", TaskStatus.COMPLETED)
+    assert next(item for item in after_b.tasks if item.id == "a").blocked is False
+
+    reopened_b = repository.update_task_status("b", TaskStatus.NOT_STARTED)
+    task_a = next(item for item in reopened_b.tasks if item.id == "a")
+    task_b = next(item for item in reopened_b.tasks if item.id == "b")
+    assert task_a.blocked is True
+    assert task_a.dependency_task_ids == ("b",)
+    assert task_b.dependency_task_ids == ("c",)
+
+
+def test_completed_tasks_cannot_be_introduced_as_dependencies(tmp_path) -> None:
+    repository = SQLiteRelocationPlanRepository(tmp_path / "gotime.db")
+    repository.create_task(task("completed", status="completed"))
+
+    with pytest.raises(InvalidDependencyError, match="Completed task.*completed"):
+        repository.create_task(task("new", dependency_task_ids=("completed",)))
+
+    repository.create_task(task("existing"))
+    with pytest.raises(InvalidDependencyError, match="Completed task.*completed"):
+        repository.update_task(
+            "existing",
+            TaskUpdate.model_validate(
+                {
+                    **task("existing").model_dump(exclude={"id"}),
+                    "dependency_task_ids": ("completed",),
+                }
+            ),
+        )
+
+
+def test_existing_completed_dependency_can_remain_or_be_removed_but_not_readded(tmp_path) -> None:
+    repository = SQLiteRelocationPlanRepository(tmp_path / "gotime.db")
+    repository.create_task(task("prerequisite"))
+    repository.create_task(task("dependent", dependency_task_ids=("prerequisite",)))
+    repository.update_task_status("prerequisite", TaskStatus.COMPLETED)
+    original = task("dependent").model_dump(exclude={"id"})
+
+    retained = repository.update_task(
+        "dependent",
+        TaskUpdate.model_validate(
+            {**original, "dependency_task_ids": ("prerequisite",)}
+        ),
+    )
+    retained_dependency_ids = next(
+        item for item in retained.tasks if item.id == "dependent"
+    ).dependency_task_ids
+    assert retained_dependency_ids == ("prerequisite",)
+
+    removed = repository.update_task(
+        "dependent",
+        TaskUpdate.model_validate({**original, "dependency_task_ids": ()}),
+    )
+    removed_dependency_ids = next(
+        item for item in removed.tasks if item.id == "dependent"
+    ).dependency_task_ids
+    assert removed_dependency_ids == ()
+
+    with pytest.raises(InvalidDependencyError, match="Completed task.*prerequisite"):
+        repository.update_task(
+            "dependent",
+            TaskUpdate.model_validate(
+                {**original, "dependency_task_ids": ("prerequisite",)}
+            ),
+        )
 
 
 def test_completed_task_is_not_blocked_by_an_incomplete_dependency(tmp_path) -> None:

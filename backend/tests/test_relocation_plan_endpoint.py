@@ -272,6 +272,106 @@ def test_status_change_unblocks_a_dependent_task(tmp_path) -> None:
         item for item in completed.json()["tasks"] if item["id"] == "pay-deposit"
     )["blocked"] is False
 
+    reopened = asyncio.run(
+        request(
+            database_path,
+            "PATCH",
+            "/api/relocation-plan/tasks/choose-mover/status",
+            json={"status": "in_progress"},
+        )
+    )
+    dependent = next(
+        item for item in reopened.json()["tasks"] if item["id"] == "pay-deposit"
+    )
+    assert dependent["blocked"] is True
+    assert dependent["dependency_task_ids"] == ["choose-mover"]
+
+
+def test_completed_dependency_cannot_be_newly_added_but_can_be_retained(
+    tmp_path,
+) -> None:
+    database_path = tmp_path / "gotime.db"
+    asyncio.run(
+        request(
+            database_path,
+            "POST",
+            "/api/relocation-plan/tasks",
+            json=task_payload("prerequisite"),
+        )
+    )
+    asyncio.run(
+        request(
+            database_path,
+            "POST",
+            "/api/relocation-plan/tasks",
+            json=task_payload("dependent", dependency_task_ids=["prerequisite"]),
+        )
+    )
+    asyncio.run(
+        request(
+            database_path,
+            "PATCH",
+            "/api/relocation-plan/tasks/prerequisite/status",
+            json={"status": "completed"},
+        )
+    )
+
+    rejected_create = asyncio.run(
+        request(
+            database_path,
+            "POST",
+            "/api/relocation-plan/tasks",
+            json=task_payload("new-task", dependency_task_ids=["prerequisite"]),
+        )
+    )
+    assert rejected_create.status_code == 422
+    assert "Completed task(s) cannot be added" in rejected_create.json()["detail"]
+
+    retained_payload = task_payload(
+        "ignored", dependency_task_ids=["prerequisite"]
+    )
+    retained_payload.pop("id")
+    retained = asyncio.run(
+        request(
+            database_path,
+            "PUT",
+            "/api/relocation-plan/tasks/dependent",
+            json=retained_payload,
+        )
+    )
+    assert retained.status_code == 200
+    dependent = next(
+        item for item in retained.json()["tasks"] if item["id"] == "dependent"
+    )
+    assert dependent["dependency_task_ids"] == ["prerequisite"]
+
+    removed_payload = task_payload("ignored", dependency_task_ids=[])
+    removed_payload.pop("id")
+    removed = asyncio.run(
+        request(
+            database_path,
+            "PUT",
+            "/api/relocation-plan/tasks/dependent",
+            json=removed_payload,
+        )
+    )
+    assert removed.status_code == 200
+
+    new_relationship_payload = task_payload(
+        "ignored", dependency_task_ids=["prerequisite"]
+    )
+    new_relationship_payload.pop("id")
+    rejected_update = asyncio.run(
+        request(
+            database_path,
+            "PUT",
+            "/api/relocation-plan/tasks/dependent",
+            json=new_relationship_payload,
+        )
+    )
+    assert rejected_update.status_code == 422
+    assert "Completed task(s) cannot be added" in rejected_update.json()["detail"]
+
 
 def test_invalid_dependency_cycle_status_and_priority_return_422(tmp_path) -> None:
     database_path = tmp_path / "gotime.db"

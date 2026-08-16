@@ -1,5 +1,24 @@
 # Session Notes
 
+## 2026-08-15 — Completed task lifecycle and dependency semantics
+
+- Kept completed tasks as stored phase history while separating them from
+  active work in collapsed per-phase `Completed (n)` sections with working Edit
+  and status controls.
+- Prevented completed tasks from being introduced as new dependencies in both
+  repository validation and the dependency picker. Existing completed
+  relationships remain visible, searchable, and removable during editing.
+- Preserved direct dependency rows across status changes. Completed
+  dependencies stop blocking, reopening restores blocking, and transitive
+  behavior remains derived without persisting extra relationships.
+- Preserved completed-task exclusion and status-triggered recalculation in the
+  deterministic recommendation flow.
+- Added repository, endpoint, recommendation integration, picker, presentation,
+  reopening, and `C → B → A` regression coverage.
+- Left priority, task search, People/Users, assignment identities, categories,
+  phases, related links, dependency visualization, Add/Save interaction,
+  alternate views, authentication, and AI work unchanged.
+
 ## 2026-08-14 — Relocation-plan first-use usability verification
 
 - Passed hands-on verification in the running application for generic

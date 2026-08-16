@@ -27,6 +27,16 @@ Blocked state is derived rather than persisted: a task that is not completed is
 blocked when at least one dependency is not completed. A completed task is not
 blocked. Dependencies must reference existing tasks in the singleton plan;
 self-dependencies, missing dependencies, duplicates, and cycles are invalid.
+Completing or reopening a task does not change its stored direct dependency
+relationships. Completed dependencies no longer block downstream tasks;
+reopening one restores blocking automatically. Transitive blocking is derived
+from the direct graph and is not persisted as additional dependencies.
+
+Completed tasks remain stored as plan history but are separated from active
+work in the phase presentation. A completed task cannot be introduced as a new
+dependency. An existing dependency that later becomes completed may remain
+visible and removable while editing, but once removed it cannot be re-added
+while that dependency remains completed.
 
 The fixed task update API uses full-replacement semantics. Every task field must
 be supplied; nullable description and date values must be sent explicitly as

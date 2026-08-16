@@ -226,3 +226,66 @@ def test_api_returns_a_recommendation_from_the_persisted_plan(tmp_path) -> None:
     assert recommendation["task_id"] == "book-movers"
     assert recommendation["task_title"] == "Book movers"
     assert recommendation["phase_title"] == "Prepare for the move"
+
+
+def test_api_recommends_through_dependency_chain_completion_and_reopening(
+    tmp_path,
+) -> None:
+    database_path = tmp_path / "gotime.db"
+
+    async def exercise() -> tuple[str, str, str, dict[str, object]]:
+        app = create_app(database_path)
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://testserver"
+        ) as client:
+            for task_id, dependencies in (
+                ("c", []),
+                ("b", ["c"]),
+                ("a", ["b"]),
+            ):
+                response = await client.post(
+                    "/api/relocation-plan/tasks",
+                    json={
+                        "id": task_id,
+                        "title": task_id.upper(),
+                        "description": None,
+                        "phase_id": "prepare",
+                        "category": "logistics",
+                        "status": "not_started",
+                        "assignees": [],
+                        "start_date": None,
+                        "due_date": None,
+                        "priority": "medium",
+                        "dependency_task_ids": dependencies,
+                    },
+                )
+                assert response.status_code == 201
+
+            first = (await client.get("/api/relocation-plan/recommendation")).json()
+            await client.patch(
+                "/api/relocation-plan/tasks/c/status", json={"status": "completed"}
+            )
+            second = (await client.get("/api/relocation-plan/recommendation")).json()
+            await client.patch(
+                "/api/relocation-plan/tasks/b/status", json={"status": "completed"}
+            )
+            third = (await client.get("/api/relocation-plan/recommendation")).json()
+            reopened = await client.patch(
+                "/api/relocation-plan/tasks/b/status", json={"status": "not_started"}
+            )
+            fourth = (await client.get("/api/relocation-plan/recommendation")).json()
+            return (
+                first["task_id"],
+                second["task_id"],
+                third["task_id"],
+                {"recommendation": fourth, "plan": reopened.json()},
+            )
+
+    first, second, third, reopened = asyncio.run(exercise())
+
+    assert (first, second, third) == ("c", "b", "a")
+    assert reopened["recommendation"]["task_id"] == "b"
+    tasks = {task["id"]: task for task in reopened["plan"]["tasks"]}
+    assert tasks["a"]["blocked"] is True
+    assert tasks["a"]["dependency_task_ids"] == ["b"]
+    assert tasks["b"]["dependency_task_ids"] == ["c"]

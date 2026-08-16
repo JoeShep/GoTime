@@ -218,7 +218,9 @@ Completed tasks need to be handled in some way other than simply remaining in th
 
 Possible future treatments include a collapsed Completed section or hiding completed tasks by default while preserving them as plan history.
 
-Do not decide the presentation yet.
+This observation was promoted into the completed-task lifecycle enhancement.
+Completed tasks remain in their phase history and are presented in a collapsed
+`Completed (n)` section, separate from active work.
 
 ### Completed dependencies
 
@@ -227,6 +229,11 @@ When a task is completed:
 - it should no longer block downstream tasks;
 - it should no longer appear as a candidate in the dependency picker;
 - existing dependency relationships should remain recorded so sequencing history is preserved.
+
+This observation was promoted into the same lifecycle enhancement. Completed
+tasks cannot be introduced as new dependencies. Existing relationships remain
+visible and removable during editing, completed dependencies do not block, and
+reopening a dependency restores blocking without recreating the relationship.
 
 ### Priority remains problematic
 
@@ -286,6 +293,11 @@ Possible improvement:
 
 Do not choose the interaction yet.
 
+If tasks continue to be listed under phase sections, consider adding an
+`Add task` action to each phase header. It could open the existing task form
+with that phase already selected. Preserve this as a future observation; do not
+implement it yet.
+
 ### Save action placement
 
 The Save button at the bottom of the form creates increasing friction.
@@ -302,6 +314,13 @@ Possible approaches include:
 
 Choose the solution based on continued hands-on use.
 
+### Dependency terminology
+
+The term `Dependencies` is proving ambiguous about relationship direction.
+Clearer wording might include `Depends on` or `Blockers`; task cards already
+use `Depends on`. Continue observing usage before choosing or implementing new
+terminology.
+
 ## Candidate next improvements
 
 Do not treat this as a committed roadmap.
@@ -310,9 +329,11 @@ When continued use is materially impeded, review the observations above and sele
 
 Current likely candidates include:
 
-- completed-task and completed-dependency behavior;
 - Add Task / Save interaction;
 - task search.
+
+Completed-task and completed-dependency behavior was intentionally promoted
+and implemented before selecting another candidate.
 
 Larger model or vocabulary decisions should continue to accumulate evidence before implementation.
 
