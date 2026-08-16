@@ -1,5 +1,24 @@
 # Session Notes
 
+## 2026-08-15 — Plan-wide task finder
+
+- Passed hands-on verification for matching, keyboard and pointer navigation,
+  completed-task reveal, focus/highlight, editor visibility, and no-results behavior.
+- Added a frontend-only accessible autocomplete that locates active and
+  completed tasks using case-insensitive title matching without filtering or
+  rearranging phase lists.
+- Kept result metadata bounded to title, phase, category, and completed state,
+  with keyboard and pointer selection plus a concise no-results message.
+- Selecting a result preserves task state, expands only the required completed
+  section, scrolls and focuses the task article, and applies a lightweight
+  reduced-motion-aware visual locator cue.
+- Converted completed accordions to controlled per-phase expansion while
+  preserving user-controlled open sections and existing task controls.
+- Hid the finder throughout add and edit drafts; Cancel and successful saves
+  restore it, while failed saves leave it hidden with the draft intact.
+- Kept general task filtering, phase-header Add actions, phase-prefilled
+  creation, and dependency terminology changes as unimplemented observations.
+
 ## 2026-08-15 — Task editor action ergonomics
 
 - Hid the page-level `Add task` action while either add or edit mode is open;

@@ -139,6 +139,7 @@ describe('relocation-plan recommendation experience', () => {
         screen.getAllByRole('heading', { name: 'Pay the mover deposit' }),
       ).toHaveLength(2)
     })
+    fireEvent.click(screen.getByRole('button', { name: 'Completed (1)' }))
     expect(screen.getByLabelText('Status for Choose a mover')).toHaveValue('completed')
   })
 
@@ -186,6 +187,7 @@ describe('relocation-plan recommendation experience', () => {
     expect(
       screen.getAllByRole('heading', { name: 'Pay the mover deposit' }),
     ).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Completed (1)' }))
     expect(
       screen.getAllByRole('heading', { name: 'Choose a mover' }),
     ).toHaveLength(1)

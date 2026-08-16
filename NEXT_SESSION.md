@@ -1,9 +1,25 @@
 # NEXT_SESSION
 
+## Plan-wide task finder
+
+The approved frontend-only plan-wide task finder is implemented and passed
+hands-on verification. In normal plan mode, an accessible autocomplete finds
+active and completed tasks using case-insensitive title matching. Results show
+only the task title, phase, category, and completed state. Selecting one keeps
+the phase layout intact, expands its completed section when necessary, scrolls
+and focuses the task card, and applies a lightweight reduced-motion-aware
+locator cue without changing task or recommendation state.
+
+The finder is hidden whenever the task editor is open and returns after Cancel
+or a successful save; a failed save retains the editor and keeps the finder
+hidden. Keyboard navigation supports Up/Down, Enter, Escape, and ordinary Tab
+behavior. Phase-header Add actions, phase-prefilled creation, dependency
+terminology changes, and general task filtering remain unimplemented.
+
 ## Task editor action ergonomics
 
 The approved frontend-only editor ergonomics enhancement is implemented and
-awaiting hands-on verification. The page-level `Add task` action is hidden in
+passed hands-on verification. The page-level `Add task` action is hidden in
 both add and edit modes, then returns after Cancel or a successful save. The
 single editor action area sits below the editor heading and remains top-sticky
 within the card, with responsive wrapping and operation-specific labels.

@@ -269,6 +269,12 @@ Do not assume every participant must have a GoTime account.
 
 Plan-wide task search will be needed as the task list grows.
 
+This observation was promoted into the plan-wide task finder enhancement. The
+implemented finder searches loaded task titles, presents active and completed
+matches in an accessible autocomplete, and navigates to one selected task in
+the existing phase layout. It is intentionally a locator rather than a task
+list filter; broader filtering remains a separate future capability.
+
 ### Category vocabulary
 
 `Administrative` and `Logistics` currently feel too close in meaning.

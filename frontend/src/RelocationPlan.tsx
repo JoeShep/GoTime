@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Accordion, Alert, Badge, Button, Card, Col, Form, Row, Spinner, Stack } from 'react-bootstrap'
 import {
   changeTaskStatus,
@@ -114,8 +114,15 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft | null>(null)
   const [dependencyQuery, setDependencyQuery] = useState('')
+  const [finderQuery, setFinderQuery] = useState('')
+  const [finderOpen, setFinderOpen] = useState(false)
+  const [activeFinderIndex, setActiveFinderIndex] = useState(-1)
+  const [expandedCompletedPhaseIds, setExpandedCompletedPhaseIds] = useState<Set<string>>(new Set())
+  const [pendingNavigationTaskId, setPendingNavigationTaskId] = useState<string | null>(null)
+  const [foundTaskId, setFoundTaskId] = useState<string | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const taskRefs = useRef(new Map<string, HTMLElement>())
 
   useEffect(() => {
     const controller = new AbortController()
@@ -136,6 +143,17 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     () => new Map(plan?.tasks.map((task) => [task.id, task]) ?? []),
     [plan],
   )
+  const phaseById = useMemo(
+    () => new Map(plan?.phases.map((phase) => [phase.id, phase]) ?? []),
+    [plan],
+  )
+  const finderResults = useMemo(() => {
+    const normalizedQuery = finderQuery.trim().toLocaleLowerCase()
+    if (!normalizedQuery) return []
+    return (plan?.tasks ?? []).filter((task) =>
+      task.title.toLocaleLowerCase().includes(normalizedQuery),
+    )
+  }, [finderQuery, plan])
   const dependencyGroups = useMemo(() => {
     const normalizedQuery = dependencyQuery.trim().toLocaleLowerCase()
     return (plan?.phases ?? []).map((phase) => ({
@@ -155,8 +173,65 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     titleInputRef.current?.focus()
   }, [draft !== null, editingId])
 
+  useEffect(() => {
+    if (!pendingNavigationTaskId) return
+    const taskElement = taskRefs.current.get(pendingNavigationTaskId)
+    if (!taskElement) return
+    taskElement.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    taskElement.focus({ preventScroll: true })
+    setPendingNavigationTaskId(null)
+  }, [expandedCompletedPhaseIds, pendingNavigationTaskId])
+
+  function closeFinder() {
+    setFinderQuery('')
+    setFinderOpen(false)
+    setActiveFinderIndex(-1)
+  }
+
+  function selectFinderResult(task: RelocationTask) {
+    closeFinder()
+    setFoundTaskId(task.id)
+    if (task.status === 'completed') {
+      setExpandedCompletedPhaseIds((expanded) => {
+        const next = new Set(expanded)
+        next.add(task.phase_id)
+        return next
+      })
+    }
+    setPendingNavigationTaskId(task.id)
+  }
+
+  function handleFinderKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape') {
+      if (finderOpen) event.preventDefault()
+      setFinderOpen(false)
+      setActiveFinderIndex(-1)
+      return
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (finderResults.length === 0) return
+      event.preventDefault()
+      setFinderOpen(true)
+      setActiveFinderIndex((current) => {
+        if (current < 0) return event.key === 'ArrowDown' ? 0 : finderResults.length - 1
+        return event.key === 'ArrowDown'
+          ? (current + 1) % finderResults.length
+          : (current - 1 + finderResults.length) % finderResults.length
+      })
+      return
+    }
+    if (event.key === 'Enter' && finderOpen && activeFinderIndex >= 0) {
+      const selected = finderResults[activeFinderIndex]
+      if (selected) {
+        event.preventDefault()
+        selectFinderResult(selected)
+      }
+    }
+  }
+
   function beginAdd() {
     if (!plan) return
+    closeFinder()
     setEditingId(null)
     setDraft(emptyDraft(plan.phases[0].id))
     setDependencyQuery('')
@@ -165,6 +240,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   function beginEdit(task: RelocationTask) {
+    closeFinder()
     setEditingId(task.id)
     setDraft(draftFromTask(task))
     setDependencyQuery('')
@@ -210,11 +286,22 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   function renderTask(task: RelocationTask) {
+    const titleId = `task-title-${task.id}`
     return (
-      <article className={`task-item rounded-3 p-3 ${task.blocked ? 'is-blocked' : ''}`} key={task.id}>
+      <article
+        aria-labelledby={titleId}
+        className={`task-item rounded-3 p-3 ${task.blocked ? 'is-blocked' : ''} ${foundTaskId === task.id ? 'is-found' : ''}`}
+        id={`task-${task.id}`}
+        key={task.id}
+        ref={(element) => {
+          if (element) taskRefs.current.set(task.id, element)
+          else taskRefs.current.delete(task.id)
+        }}
+        tabIndex={-1}
+      >
         <div className="d-flex flex-wrap justify-content-between gap-3">
           <div>
-            <div className="d-flex flex-wrap align-items-center gap-2 mb-1"><h4 className="task-title mb-0">{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
+            <div className="d-flex flex-wrap align-items-center gap-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
             <p className="text-muted mb-2">{categoryLabels[task.category]}{task.assignees.length > 0 ? ` · ${task.assignees.join(', ')}` : ' · Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</p>
             {task.description && <p className="mb-2">{task.description}</p>}
             {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
@@ -243,6 +330,67 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       {loading && <div className="py-4 text-center" role="status"><Spinner size="sm" /> <span>Loading relocation plan…</span></div>}
       {error && <Alert variant="danger">{error}</Alert>}
       {notice && <Alert variant="success">{notice}</Alert>}
+
+      {plan && !draft && (
+        <Form.Group className="task-finder position-relative mb-4" controlId="task-finder">
+          <Form.Label>Find a task</Form.Label>
+          <Form.Control
+            aria-activedescendant={finderOpen && activeFinderIndex >= 0 ? `task-finder-option-${finderResults[activeFinderIndex]?.id}` : undefined}
+            aria-autocomplete="list"
+            aria-controls="task-finder-results"
+            aria-expanded={finderOpen && finderQuery.trim().length > 0}
+            autoComplete="off"
+            onBlur={() => {
+              setFinderOpen(false)
+              setActiveFinderIndex(-1)
+            }}
+            onChange={(event) => {
+              const nextQuery = event.target.value
+              setFinderQuery(nextQuery)
+              setFinderOpen(nextQuery.trim().length > 0)
+              setActiveFinderIndex(-1)
+              setFoundTaskId(null)
+            }}
+            onFocus={() => {
+              if (finderQuery.trim()) setFinderOpen(true)
+            }}
+            onKeyDown={handleFinderKeyDown}
+            placeholder="Search task titles"
+            role="combobox"
+            type="search"
+            value={finderQuery}
+          />
+          {finderOpen && finderQuery.trim() && finderResults.length > 0 && (
+            <div className="task-finder-results list-group" id="task-finder-results" role="listbox">
+              {finderResults.map((task, index) => {
+                const phase = phaseById.get(task.phase_id)
+                return (
+                  <button
+                    aria-selected={activeFinderIndex === index}
+                    className={`list-group-item list-group-item-action ${activeFinderIndex === index ? 'active' : ''}`}
+                    id={`task-finder-option-${task.id}`}
+                    key={task.id}
+                    onClick={() => selectFinderResult(task)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    role="option"
+                    tabIndex={-1}
+                    type="button"
+                  >
+                    <span className="d-flex flex-wrap align-items-center gap-2">
+                      <strong>{task.title}</strong>
+                      {task.status === 'completed' && <Badge bg="secondary">Completed</Badge>}
+                    </span>
+                    <small className="d-block mt-1">{phase?.title} · {categoryLabels[task.category]}</small>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {finderOpen && finderQuery.trim() && finderResults.length === 0 && (
+            <p className="task-finder-empty text-muted mb-0 mt-2" role="status">No matching tasks.</p>
+          )}
+        </Form.Group>
+      )}
 
       {draft && plan && (
         <div ref={editorRef}>
@@ -302,6 +450,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         const phaseTasks = plan.tasks.filter((task) => task.phase_id === phase.id)
         const activeTasks = phaseTasks.filter((task) => task.status !== 'completed')
         const completedTasks = phaseTasks.filter((task) => task.status === 'completed')
+        const completedExpanded = expandedCompletedPhaseIds.has(phase.id)
         return (
           <Card className="phase-card mb-3" key={phase.id}>
             <Card.Header as="h3">{phase.title}</Card.Header>
@@ -312,11 +461,22 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                 {activeTasks.map(renderTask)}
               </Stack>
               {completedTasks.length > 0 && (
-                <Accordion className="completed-tasks mt-3">
+                <Accordion
+                  activeKey={completedExpanded ? 'completed' : null}
+                  className="completed-tasks mt-3"
+                  onSelect={(eventKey) => {
+                    setExpandedCompletedPhaseIds((expanded) => {
+                      const next = new Set(expanded)
+                      if (eventKey === 'completed') next.add(phase.id)
+                      else next.delete(phase.id)
+                      return next
+                    })
+                  }}
+                >
                   <Accordion.Item eventKey="completed">
                     <Accordion.Header>Completed ({completedTasks.length})</Accordion.Header>
                     <Accordion.Body>
-                      <Stack gap={3}>{completedTasks.map(renderTask)}</Stack>
+                      {completedExpanded && <Stack gap={3}>{completedTasks.map(renderTask)}</Stack>}
                     </Accordion.Body>
                   </Accordion.Item>
                 </Accordion>
