@@ -2,6 +2,20 @@
 
 ## 2026-08-16 — Multi-category browser-acceptance corrections
 
+- Human browser acceptance passed for existing assignment preservation;
+  multi-category selection and canonical ordering; Uncategorized save,
+  display, filtering, reload, and new-task-default behavior; OR filtering and
+  deduplication; hidden phases and filtered completed counts; finder
+  independence plus compatible/incompatible-filter navigation; completed-task
+  reveal; dropdown persistence, dismissal, and Escape focus restoration; mobile
+  category wrapping and density; wider active/completed lists and alignment;
+  and restored desktop spacing.
+- Confirmed the verified post-migration backup exists outside Git at
+  `/home/joeshep/backups/gotime/20260817T001021Z-a32c31d-post-migration/`.
+- Closeout verification passed 39 focused frontend tests, all 60 frontend
+  tests, all 189 backend tests, and the production frontend build. The live
+  health, plan, and stored-task recommendation endpoints each returned HTTP
+  200.
 - Reused one controlled category-dropdown component for the plan filter and
   task editor, preserving internal selection/Clear all interactions while
   adding outside-click and Escape dismissal with trigger-focus restoration.

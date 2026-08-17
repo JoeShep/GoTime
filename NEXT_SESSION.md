@@ -2,8 +2,22 @@
 
 ## Multi-category browser-acceptance corrections
 
-The focused frontend follow-up is implemented and awaits final human responsive
-visual acceptance. The shared category dropdown behavior keeps checkbox and
+The multi-category enhancement and focused frontend follow-ups have passed
+human browser acceptance. Verification covered existing category preservation;
+multi-category selection and canonical ordering; Uncategorized save, display,
+filtering, and reload behavior; the new-task uncategorized default; single- and
+multi-category OR filtering; task deduplication under multiple matching
+filters; hidden empty phases and filtered completed counts; and plan-wide
+finder independence.
+
+Finder acceptance also covered automatic clearing of incompatible filters,
+preservation of compatible filters, and reveal/expansion of hidden completed
+results. Dropdown acceptance covered persistence during selection and Clear
+all, outside-click and Escape dismissal, and focus return after Escape. Mobile
+acceptance covered category wrapping, task-card density, widened task lists,
+active/completed alignment, and restoration of normal desktop spacing.
+
+The shared category dropdown behavior keeps checkbox and
 Clear all interactions open, dismisses on outside click or Escape, returns
 focus to the trigger after Escape, and preserves normal trigger toggling.
 
@@ -20,8 +34,12 @@ A second mobile-density pass reduces the outer container, main content, phase
 body, and expanded-completed-list gutters so task cards use nearly the full
 phone width. Mobile task-list and phase-heading spacing is also tighter, while
 the existing task-card interior, typography, controls, wrapping, and all
-desktop spacing remain unchanged. Final responsive visual acceptance is still
-a human browser check.
+desktop spacing remain unchanged.
+
+A verified post-migration backup remains outside the repository at
+`/home/joeshep/backups/gotime/20260817T001021Z-a32c31d-post-migration/`.
+Do not add that backup, its database or manifest contents, or family-plan data
+to Git.
 
 ## Multi-category task enhancement
 
