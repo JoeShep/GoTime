@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { Accordion, Alert, Badge, Button, Card, Col, Dropdown, Form, Row, Spinner, Stack } from 'react-bootstrap'
 import {
   changeTaskStatus,
@@ -120,6 +120,62 @@ function CategoryLabels({ categories }: { categories: TaskCategory[] }) {
   )
 }
 
+interface PersistentCategoryDropdownProps {
+  children: ReactNode
+  id: string
+  toggleAriaLabel?: string
+  toggleClassName?: string
+  toggleLabel: ReactNode
+}
+
+function PersistentCategoryDropdown({
+  children,
+  id,
+  toggleAriaLabel,
+  toggleClassName,
+  toggleLabel,
+}: PersistentCategoryDropdownProps) {
+  const [show, setShow] = useState(false)
+  const toggleRef = useRef<HTMLButtonElement>(null)
+
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key !== 'Escape' || !show) return
+    event.preventDefault()
+    event.stopPropagation()
+    setShow(false)
+    toggleRef.current?.focus()
+  }
+
+  return (
+    <Dropdown
+      autoClose="outside"
+      onKeyDown={handleKeyDown}
+      onToggle={setShow}
+      show={show}
+    >
+      <Dropdown.Toggle
+        aria-label={toggleAriaLabel}
+        className={toggleClassName}
+        id={id}
+        ref={toggleRef}
+        variant="outline-secondary"
+      >
+        {toggleLabel}
+      </Dropdown.Toggle>
+      <Dropdown.Menu className="category-menu p-3">{children}</Dropdown.Menu>
+    </Dropdown>
+  )
+}
+
+function taskMatchesCategoryFilters(
+  task: RelocationTask,
+  filters: Set<CategoryFilter>,
+) {
+  return filters.size === 0
+    || task.categories.some((category) => filters.has(category))
+    || (task.categories.length === 0 && filters.has('uncategorized'))
+}
+
 export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }) {
   const [plan, setPlan] = useState<RelocationPlanData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -183,9 +239,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     })).filter((group) => group.tasks.length > 0)
   }, [dependencyQuery, draft?.dependencies, editingId, plan])
   const categoryMatches = (task: RelocationTask) => (
-    categoryFilters.size === 0
-    || task.categories.some((category) => categoryFilters.has(category))
-    || (task.categories.length === 0 && categoryFilters.has('uncategorized'))
+    taskMatchesCategoryFilters(task, categoryFilters)
   )
 
   useEffect(() => {
@@ -210,6 +264,10 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   function selectFinderResult(task: RelocationTask) {
+    if (!taskMatchesCategoryFilters(task, categoryFilters)) {
+      setCategoryFilters(new Set())
+      setNotice('Category filter cleared to show the selected task.')
+    }
     closeFinder()
     setFoundTaskId(task.id)
     if (task.status === 'completed') {
@@ -320,11 +378,11 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         }}
         tabIndex={-1}
       >
-        <div className="d-flex flex-wrap justify-content-between gap-3">
+        <div className="task-card-layout d-flex flex-wrap justify-content-between gap-3">
           <div>
-            <div className="d-flex flex-wrap align-items-center gap-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
-            <div className="d-flex flex-wrap align-items-center gap-2 mb-2"><CategoryLabels categories={task.categories} /><span className="text-muted">{task.assignees.length > 0 ? task.assignees.join(', ') : 'Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</span></div>
-            {task.description && <p className="mb-2">{task.description}</p>}
+            <div className="task-heading-row d-flex flex-wrap align-items-center gap-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
+            <div className="task-metadata d-flex flex-wrap align-items-center gap-2 mb-2"><CategoryLabels categories={task.categories} /><span className="text-muted">{task.assignees.length > 0 ? task.assignees.join(', ') : 'Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</span></div>
+            {task.description && <p className="task-description mb-2">{task.description}</p>}
             {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
           </div>
           <div className="task-actions d-flex flex-wrap align-items-start gap-2">
@@ -432,28 +490,27 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                 <Col md={4}>
                   <Form.Group controlId="task-categories">
                     <Form.Label>Categories (optional)</Form.Label>
-                    <Dropdown autoClose={false}>
-                      <Dropdown.Toggle className="category-select-toggle text-start w-100" id="task-categories" variant="outline-secondary">
-                        {draft.categories.length > 0 ? categoryOrder.filter((category) => draft.categories.includes(category)).map((category) => categoryLabels[category]).join(', ') : 'Select categories'}
-                      </Dropdown.Toggle>
-                      <Dropdown.Menu className="category-menu p-3">
-                        {categoryOrder.map((category) => (
-                          <Form.Check
-                            checked={draft.categories.includes(category)}
-                            id={`task-category-${category}`}
-                            key={category}
-                            label={categoryLabels[category]}
-                            onChange={(event) => setDraft({
-                              ...draft,
-                              categories: event.target.checked
-                                ? categoryOrder.filter((item) => item === category || draft.categories.includes(item))
-                                : draft.categories.filter((item) => item !== category),
-                            })}
-                          />
-                        ))}
-                        {draft.categories.length > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => setDraft({ ...draft, categories: [] })}>Clear all</Button>}
-                      </Dropdown.Menu>
-                    </Dropdown>
+                    <PersistentCategoryDropdown
+                      id="task-categories"
+                      toggleClassName="category-select-toggle text-start w-100"
+                      toggleLabel={draft.categories.length > 0 ? categoryOrder.filter((category) => draft.categories.includes(category)).map((category) => categoryLabels[category]).join(', ') : 'Select categories'}
+                    >
+                      {categoryOrder.map((category) => (
+                        <Form.Check
+                          checked={draft.categories.includes(category)}
+                          id={`task-category-${category}`}
+                          key={category}
+                          label={categoryLabels[category]}
+                          onChange={(event) => setDraft({
+                            ...draft,
+                            categories: event.target.checked
+                              ? categoryOrder.filter((item) => item === category || draft.categories.includes(item))
+                              : draft.categories.filter((item) => item !== category),
+                          })}
+                        />
+                      ))}
+                      {draft.categories.length > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => setDraft({ ...draft, categories: [] })}>Clear all</Button>}
+                    </PersistentCategoryDropdown>
                   </Form.Group>
                 </Col>
                 <Col md={4}><Form.Group controlId="task-priority"><Form.Label>Priority</Form.Label><Form.Select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
@@ -495,39 +552,38 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
       {plan && !draft && (
         <div className="mb-3">
-          <Dropdown autoClose={false}>
-            <Dropdown.Toggle aria-label="Filter by categories" variant="outline-secondary">
-              Categories{categoryFilters.size > 0 ? ` (${categoryFilters.size})` : ''}
-            </Dropdown.Toggle>
-            <Dropdown.Menu className="category-menu p-3">
-              {categoryOrder.map((category) => (
-                <Form.Check
-                  checked={categoryFilters.has(category)}
-                  id={`category-filter-${category}`}
-                  key={category}
-                  label={categoryLabels[category]}
-                  onChange={(event) => setCategoryFilters((current) => {
-                    const next = new Set(current)
-                    if (event.target.checked) next.add(category)
-                    else next.delete(category)
-                    return next
-                  })}
-                />
-              ))}
+          <PersistentCategoryDropdown
+            id="category-filter"
+            toggleAriaLabel="Filter by categories"
+            toggleLabel={`Categories${categoryFilters.size > 0 ? ` (${categoryFilters.size})` : ''}`}
+          >
+            {categoryOrder.map((category) => (
               <Form.Check
-                checked={categoryFilters.has('uncategorized')}
-                id="category-filter-uncategorized"
-                label="Uncategorized"
+                checked={categoryFilters.has(category)}
+                id={`category-filter-${category}`}
+                key={category}
+                label={categoryLabels[category]}
                 onChange={(event) => setCategoryFilters((current) => {
                   const next = new Set(current)
-                  if (event.target.checked) next.add('uncategorized')
-                  else next.delete('uncategorized')
+                  if (event.target.checked) next.add(category)
+                  else next.delete(category)
                   return next
                 })}
               />
-              {categoryFilters.size > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => setCategoryFilters(new Set())}>Clear all</Button>}
-            </Dropdown.Menu>
-          </Dropdown>
+            ))}
+            <Form.Check
+              checked={categoryFilters.has('uncategorized')}
+              id="category-filter-uncategorized"
+              label="Uncategorized"
+              onChange={(event) => setCategoryFilters((current) => {
+                const next = new Set(current)
+                if (event.target.checked) next.add('uncategorized')
+                else next.delete('uncategorized')
+                return next
+              })}
+            />
+            {categoryFilters.size > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => setCategoryFilters(new Set())}>Clear all</Button>}
+          </PersistentCategoryDropdown>
         </div>
       )}
 
@@ -547,7 +603,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             <Card.Body>
               {phaseTasks.length === 0 && <p className="text-muted mb-0">No tasks in this phase yet.</p>}
               {activeTasks.length === 0 && completedTasks.length > 0 && <p className="text-muted mb-0">No active tasks in this phase.</p>}
-              <Stack gap={3}>
+              <Stack className="task-list" gap={3}>
                 {activeTasks.map(renderTask)}
               </Stack>
               {completedTasks.length > 0 && (
@@ -566,7 +622,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                   <Accordion.Item eventKey="completed">
                     <Accordion.Header>Completed ({completedTasks.length})</Accordion.Header>
                     <Accordion.Body>
-                      {completedExpanded && <Stack gap={3}>{completedTasks.map(renderTask)}</Stack>}
+                      {completedExpanded && <Stack className="task-list" gap={3}>{completedTasks.map(renderTask)}</Stack>}
                     </Accordion.Body>
                   </Accordion.Item>
                 </Accordion>

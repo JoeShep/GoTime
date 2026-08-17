@@ -1,5 +1,20 @@
 # NEXT_SESSION
 
+## Multi-category browser-acceptance corrections
+
+The focused frontend follow-up is implemented and awaits final human responsive
+visual acceptance. The shared category dropdown behavior keeps checkbox and
+Clear all interactions open, dismisses on outside click or Escape, returns
+focus to the trigger after Escape, and preserves normal trigger toggling.
+
+The plan-wide finder remains independent while searching. Selecting a task
+that is hidden by the active category filter now clears that filter, uses the
+existing success notice to explain why, reveals the phase and completed section
+when needed, and preserves the established scroll/focus highlight. Selecting a
+visible result leaves the filter intact. Mobile-only SCSS below Bootstrap's
+`sm` breakpoint tightens task-card padding, spacing, title, and supporting
+metadata while leaving desktop density, tap targets, and pill styling intact.
+
 ## Multi-category task enhancement
 
 The approved multi-category enhancement is implemented. Tasks now carry a

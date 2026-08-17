@@ -1,5 +1,21 @@
 # Session Notes
 
+## 2026-08-16 — Multi-category browser-acceptance corrections
+
+- Reused one controlled category-dropdown component for the plan filter and
+  task editor, preserving internal selection/Clear all interactions while
+  adding outside-click and Escape dismissal with trigger-focus restoration.
+- Kept finder searching plan-wide; selection now clears only an incompatible
+  category filter, announces that through the existing notice, and reveals,
+  expands, scrolls to, focuses, and highlights hidden active or completed work.
+- Added mobile-only task-card density rules below `575.98px` while preserving
+  desktop utility classes, control tap targets, and existing priority/category
+  badge styling.
+- Focused plan verification passed 39 tests. Full verification passed all 59
+  frontend tests, all 189 backend tests, and the production frontend build.
+- No browser automation is configured or installed; final responsive visual
+  acceptance remains for human browser review.
+
 ## 2026-08-16 — Relocation vocabulary cleanup
 
 - Preserved the stable `move` phase ID and changed its user-facing title from
