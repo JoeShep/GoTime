@@ -124,6 +124,20 @@ afterEach(() => {
 })
 
 describe('recommendation screen', () => {
+  it('uses responsive outer gutters without changing desktop padding', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => undefined)))
+
+    const { container } = render(<App />)
+
+    expect(container.querySelector('.app-container')).toHaveClass('py-4')
+    expect(container.querySelector('.next-step-card > .card-body')).toHaveClass(
+      'py-4',
+      'px-0',
+      'p-sm-4',
+      'p-md-5',
+    )
+  })
+
   it('shows loading while the initial unclear recommendation is pending', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => undefined)))
 

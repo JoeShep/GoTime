@@ -118,9 +118,9 @@ function App() {
 
   return (
     <main className="app-shell py-5">
-      <Container className="py-4">
+      <Container className="app-container py-4">
         <Card className="next-step-card mx-auto border-0 shadow-sm">
-          <Card.Body className="p-4 p-md-5">
+          <Card.Body className="py-4 px-0 p-sm-4 p-md-5">
             <header className="border-bottom pb-5">
               <p className="eyebrow mb-2">GoTime</p>
               <h1 className="page-title mb-0" id="page-title">

@@ -600,10 +600,10 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         return (
           <Card className="phase-card mb-3" key={phase.id}>
             <Card.Header as="h3">{phase.title}</Card.Header>
-            <Card.Body>
+            <Card.Body className="px-1 py-2 p-sm-3">
               {phaseTasks.length === 0 && <p className="text-muted mb-0">No tasks in this phase yet.</p>}
               {activeTasks.length === 0 && completedTasks.length > 0 && <p className="text-muted mb-0">No active tasks in this phase.</p>}
-              <Stack className="task-list gap-2 gap-sm-3">
+              <Stack className="task-list gap-1 gap-sm-3">
                 {activeTasks.map(renderTask)}
               </Stack>
               {completedTasks.length > 0 && (
@@ -621,8 +621,8 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                 >
                   <Accordion.Item eventKey="completed">
                     <Accordion.Header>Completed ({completedTasks.length})</Accordion.Header>
-                    <Accordion.Body>
-                      {completedExpanded && <Stack className="task-list gap-2 gap-sm-3">{completedTasks.map(renderTask)}</Stack>}
+                    <Accordion.Body className="completed-task-list-body">
+                      {completedExpanded && <Stack className="task-list gap-1 gap-sm-3">{completedTasks.map(renderTask)}</Stack>}
                     </Accordion.Body>
                   </Accordion.Item>
                 </Accordion>

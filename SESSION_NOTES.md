@@ -12,6 +12,15 @@
   `sm`, avoiding `!important`; retained mobile-only SCSS only for typography
   while preserving desktop density, control tap targets, and existing
   priority/category badge styling.
+- Followed browser review with a mobile-only outer-density pass: reduced the
+  page and main-content gutters, phase-body indentation, completed-body
+  indentation, phase-to-list spacing, and inter-card gaps while preserving the
+  accepted task-card interior and exact desktop defaults.
+- Added responsive layout assertions for the application shell, phase bodies,
+  and aligned active/completed lists. The focused 48-test frontend run, full
+  60-test frontend suite, and production build passed; emitted CSS inspection
+  confirmed the custom gutter rules remain inside the mobile media query and
+  Bootstrap's default desktop card/accordion rules remain present.
 - Focused plan verification passed 39 tests. Full verification passed all 59
   frontend tests, all 189 backend tests, and the production frontend build.
 - No browser automation is configured or installed; final responsive visual

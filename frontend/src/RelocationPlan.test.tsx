@@ -251,7 +251,12 @@ describe('persistent relocation plan', () => {
     expect(task.querySelector('.task-card-layout')).toHaveClass('gap-2', 'gap-sm-3')
     expect(task.querySelector('.task-heading-row')).toHaveClass('gap-1', 'gap-sm-2', 'mb-1')
     expect(task.querySelector('.task-metadata')).toHaveClass('gap-1', 'gap-sm-2', 'mb-2')
-    expect(task.closest('.task-list')).toHaveClass('gap-2', 'gap-sm-3')
+    expect(task.closest('.task-list')).toHaveClass('gap-1', 'gap-sm-3')
+    expect(task.closest('.phase-card')?.querySelector('.card-body')).toHaveClass(
+      'px-1',
+      'py-2',
+      'p-sm-3',
+    )
     expect(within(task).getByText('High')).toHaveClass('badge', 'bg-light', 'text-dark')
     expect(within(task).getByText('Logistics')).toHaveClass('badge', 'bg-light', 'text-dark')
   })
@@ -828,7 +833,10 @@ describe('persistent relocation plan', () => {
 
     fireEvent.click(completedToggle)
     expect(completedToggle).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('heading', { name: 'Choose a mover' })).toBeVisible()
+    const completedTask = screen.getByRole('heading', { name: 'Choose a mover' }).closest('article')!
+    expect(completedTask).toBeVisible()
+    expect(completedTask.closest('.task-list')).toHaveClass('gap-1', 'gap-sm-3')
+    expect(completedTask.closest('.completed-task-list-body')).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Status for Choose a mover'), {
       target: { value: 'not_started' },

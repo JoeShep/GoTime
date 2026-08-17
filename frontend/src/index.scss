@@ -230,6 +230,14 @@ body {
 }
 
 @media (max-width: 575.98px) {
+  .app-container {
+    padding-inline: 0.5rem;
+  }
+
+  .completed-task-list-body {
+    padding-inline: 0;
+  }
+
   .task-title {
     font-size: 0.95rem;
     line-height: 1.25;

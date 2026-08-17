@@ -16,6 +16,13 @@ the `sm` breakpoint tighten task-card padding and spacing without `!important`;
 mobile-only SCSS remains only for title and supporting-metadata typography.
 Desktop density, tap targets, and pill styling remain intact.
 
+A second mobile-density pass reduces the outer container, main content, phase
+body, and expanded-completed-list gutters so task cards use nearly the full
+phone width. Mobile task-list and phase-heading spacing is also tighter, while
+the existing task-card interior, typography, controls, wrapping, and all
+desktop spacing remain unchanged. Final responsive visual acceptance is still
+a human browser check.
+
 ## Multi-category task enhancement
 
 The approved multi-category enhancement is implemented. Tasks now carry a
