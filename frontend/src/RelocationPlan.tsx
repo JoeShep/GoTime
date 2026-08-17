@@ -369,7 +369,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     return (
       <article
         aria-labelledby={titleId}
-        className={`task-item rounded-3 p-3 ${task.blocked ? 'is-blocked' : ''} ${foundTaskId === task.id ? 'is-found' : ''}`}
+        className={`task-item rounded-3 p-2 p-sm-3 ${task.blocked ? 'is-blocked' : ''} ${foundTaskId === task.id ? 'is-found' : ''}`}
         id={`task-${task.id}`}
         key={task.id}
         ref={(element) => {
@@ -378,11 +378,11 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         }}
         tabIndex={-1}
       >
-        <div className="task-card-layout d-flex flex-wrap justify-content-between gap-3">
+        <div className="task-card-layout d-flex flex-wrap justify-content-between gap-2 gap-sm-3">
           <div>
-            <div className="task-heading-row d-flex flex-wrap align-items-center gap-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
-            <div className="task-metadata d-flex flex-wrap align-items-center gap-2 mb-2"><CategoryLabels categories={task.categories} /><span className="text-muted">{task.assignees.length > 0 ? task.assignees.join(', ') : 'Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</span></div>
-            {task.description && <p className="task-description mb-2">{task.description}</p>}
+            <div className="task-heading-row d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
+            <div className="task-metadata d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-2"><CategoryLabels categories={task.categories} /><span className="text-muted">{task.assignees.length > 0 ? task.assignees.join(', ') : 'Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</span></div>
+            {task.description && <p className="mb-2">{task.description}</p>}
             {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
           </div>
           <div className="task-actions d-flex flex-wrap align-items-start gap-2">
@@ -603,7 +603,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             <Card.Body>
               {phaseTasks.length === 0 && <p className="text-muted mb-0">No tasks in this phase yet.</p>}
               {activeTasks.length === 0 && completedTasks.length > 0 && <p className="text-muted mb-0">No active tasks in this phase.</p>}
-              <Stack className="task-list" gap={3}>
+              <Stack className="task-list gap-2 gap-sm-3">
                 {activeTasks.map(renderTask)}
               </Stack>
               {completedTasks.length > 0 && (
@@ -622,7 +622,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                   <Accordion.Item eventKey="completed">
                     <Accordion.Header>Completed ({completedTasks.length})</Accordion.Header>
                     <Accordion.Body>
-                      {completedExpanded && <Stack className="task-list" gap={3}>{completedTasks.map(renderTask)}</Stack>}
+                      {completedExpanded && <Stack className="task-list gap-2 gap-sm-3">{completedTasks.map(renderTask)}</Stack>}
                     </Accordion.Body>
                   </Accordion.Item>
                 </Accordion>

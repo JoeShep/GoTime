@@ -11,9 +11,10 @@ The plan-wide finder remains independent while searching. Selecting a task
 that is hidden by the active category filter now clears that filter, uses the
 existing success notice to explain why, reveals the phase and completed section
 when needed, and preserves the established scroll/focus highlight. Selecting a
-visible result leaves the filter intact. Mobile-only SCSS below Bootstrap's
-`sm` breakpoint tightens task-card padding, spacing, title, and supporting
-metadata while leaving desktop density, tap targets, and pill styling intact.
+visible result leaves the filter intact. Responsive Bootstrap utilities below
+the `sm` breakpoint tighten task-card padding and spacing without `!important`;
+mobile-only SCSS remains only for title and supporting-metadata typography.
+Desktop density, tap targets, and pill styling remain intact.
 
 ## Multi-category task enhancement
 

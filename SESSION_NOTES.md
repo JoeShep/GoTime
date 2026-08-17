@@ -8,9 +8,10 @@
 - Kept finder searching plan-wide; selection now clears only an incompatible
   category filter, announces that through the existing notice, and reveals,
   expands, scrolls to, focuses, and highlights hidden active or completed work.
-- Added mobile-only task-card density rules below `575.98px` while preserving
-  desktop utility classes, control tap targets, and existing priority/category
-  badge styling.
+- Used responsive Bootstrap utilities for task-card padding and spacing below
+  `sm`, avoiding `!important`; retained mobile-only SCSS only for typography
+  while preserving desktop density, control tap targets, and existing
+  priority/category badge styling.
 - Focused plan verification passed 39 tests. Full verification passed all 59
   frontend tests, all 189 backend tests, and the production frontend build.
 - No browser automation is configured or installed; final responsive visual
