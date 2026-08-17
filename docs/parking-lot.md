@@ -39,3 +39,19 @@ directly under an existing task or later reassigned from top-level to become a
 subtask. Parent/subtask hierarchy is distinct from dependency/blocking
 relationships. Do not decide yet whether parent completion automatically
 depends on subtask completion.
+
+### Relocation-plan UX observations
+
+Keep these observations separate from the selected derived-attention milestone:
+
+* Add-task actions in phase headers with phase-prefilled creation.
+* Friendlier dependency terminology.
+* General task filters beyond the existing category filter and plan-wide
+  finder.
+* Dependency visualization.
+* Alternate plan views.
+* First-class People and assignment identities.
+* Non-blocking related-task links.
+
+These remain useful candidates, but none is part of the current product-design
+objective.

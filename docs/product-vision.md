@@ -37,6 +37,58 @@ Guiding Principles
 + Support collaboration between family members.
 + Grow through thoughtful, incremental improvements instead of adding features for their own sake.
 
+## Derived Attention
+
+GoTime should determine what deserves the user's attention now rather than
+requiring the user to manually rank every task. The product should derive an
+attention state from the plan's current facts and explain why that state
+applies.
+
+The working attention states are:
+
+* **Do now**
+* **Coming soon**
+* **Later**
+* **Waiting**
+
+These are calculated states, not manually selected task priorities. Their final
+names and precise rules remain subject to validation against the real family
+plan. Potential deterministic inputs include target and due dates, start dates
+and eligibility, dependencies and blocked state, progress and momentum,
+immediate unblocking leverage, phase and sequencing context, user-specific
+constraints and consequences, and planning lead times or timing windows.
+
+The existing Critical, High, Medium, and Low task priority field is expected to
+be demoted or potentially retired from ordinary task creation and
+recommendation ranking. Preserve the field and all stored values until derived
+attention has been designed and validated.
+
+## AI-Assisted Planning Knowledge
+
+AI-assisted planning knowledge is an intentional future capability. An AI
+model may propose structured knowledge that users cannot reasonably be expected
+to supply, such as typical lead times, prerequisite patterns, likely durations,
+and recommended timing windows. Consequential knowledge must be inspectable,
+carry appropriate source, confidence, and freshness information, and allow the
+user to correct consequential assumptions.
+
+Deterministic rules—not an opaque AI response—must combine planning knowledge
+with the family's actual plan state to derive attention and recommendations.
+Routine UI interaction must not invoke AI. Reusable knowledge should be cached,
+and live research should occur only when freshness materially affects the
+result. Existing credential boundaries, cost tracking, budgets, and operational
+simplicity remain applicable.
+
+This direction does not authorize resuming the frozen moving-service experiment
+or implementing new AI infrastructure. The intended sequence is:
+
+1. Define derived attention states and deterministic inputs.
+2. Test a no-AI baseline against representative tasks in the real family plan.
+3. Identify missing facts that prevent good recommendations.
+4. Define a structured planning-knowledge contract for those facts.
+5. Revisit and adapt the existing AI API pipeline to supply that contract.
+6. Compare AI-enriched recommendations with the deterministic baseline.
+
 ## Project Goals
 
 The first milestone is to establish a solid application architecture before implementing core features.

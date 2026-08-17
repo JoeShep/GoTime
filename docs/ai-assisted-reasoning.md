@@ -61,6 +61,29 @@ research.
 Neither capability may write directly to trusted state, confirm an Assumption,
 or make a consequential choice for the user.
 
+### Intentional future capability — structured planning knowledge
+
+GoTime intends to use AI assistance to propose structured planning knowledge
+that users cannot reasonably be expected to supply, including typical lead
+times, prerequisite patterns, likely durations, and recommended timing windows.
+This is a future product capability, not authorization to resume the frozen
+moving-service experiment or build new AI infrastructure now.
+
+Each consequential item should be inspectable and carry an appropriate source,
+confidence, and freshness record. Users must be able to correct consequential
+assumptions. Deterministic rules retain ownership of combining this knowledge
+with actual plan state and producing derived attention or Recommendations.
+
+Routine UI interaction must not invoke AI. Reusable planning knowledge should
+be cached, and live research should occur only when freshness materially
+affects the result. Credential isolation, cost tracking, bounded budgets, and
+operational simplicity remain governing constraints.
+
+The product sequence is to define and test derived attention without AI first,
+identify the facts missing from that baseline, define the structured
+planning-knowledge contract for those facts, then revisit the existing AI API
+pipeline and compare AI-enriched results with the deterministic baseline.
+
 ## Running Example — Moving-Company Planning
 
 Assume a family has a target move date and known origin and destination

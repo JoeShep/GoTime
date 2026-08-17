@@ -1,5 +1,30 @@
 # Session Notes
 
+## 2026-08-16 — Derived-attention product direction
+
+- Selected derived attention as the next product-design objective: GoTime
+  should calculate what deserves attention now instead of asking users to
+  manually rank every task.
+- Recorded provisional Do now, Coming soon, Later, and Waiting states and the
+  deterministic plan inputs that may contribute to them. Names and exact rules
+  remain subject to validation against representative tasks in the real family
+  plan.
+- Agreed that the stored Critical/High/Medium/Low field should be demoted or
+  potentially retired from ordinary task creation and ranking, while preserving
+  the field and all existing data until replacement behavior is validated.
+- Established AI-assisted planning knowledge as an intentional later
+  capability for structured lead times, prerequisite patterns, durations, and
+  timing windows. Consequential knowledge remains inspectable, sourced,
+  confidence/freshness-aware, and user-correctable; deterministic rules retain
+  ownership of attention and Recommendation results.
+- Sequenced the work from a no-AI baseline, through identification and
+  contracting of missing knowledge, to later adaptation of the existing AI API
+  pipeline and comparison with the baseline. No AI experiment, infrastructure,
+  schema, API, or runtime work was authorized.
+- Replaced the accumulated historical `NEXT_SESSION.md` instructions with a
+  concise current handoff. Historical implementation detail remains preserved
+  in this file, while unrelated UX observations remain in the Parking Lot.
+
 ## 2026-08-16 — Multi-category browser-acceptance corrections
 
 - Human browser acceptance passed for existing assignment preservation;

@@ -36,6 +36,27 @@ empty plan, a fully completed plan, and a plan whose remaining work is blocked
 or scheduled for later. The legacy employment/commute reasoning remains in the
 codebase as a separate planning flow; it does not rank persisted tasks.
 
+## Planned derived-attention direction
+
+The implemented rule is a baseline, not the final model. GoTime should derive
+what deserves attention now rather than require users to manually rank every
+task. The working outputs are Do now, Coming soon, Later, and Waiting; their
+names and precise rules remain provisional.
+
+The deterministic design may use dates and eligibility, dependency and blocked
+state, momentum, immediate unblocking leverage, phase and sequencing context,
+user-specific constraints and consequences, and approved planning lead times
+or timing windows. The current four-level priority should be demoted or
+potentially retired from ordinary creation and ranking only after replacement
+behavior has been validated. Until then, preserve its schema and stored data.
+
+The first comparison must be a no-AI baseline using representative tasks from
+the real family plan. If that baseline exposes missing planning facts, define a
+structured knowledge contract before adapting any AI pipeline. An AI model may
+later propose inspectable, sourced, confidence- and freshness-aware planning
+knowledge; deterministic reasoning remains responsible for applying it to plan
+state and deriving attention and Recommendations.
+
 # GoTime Reasoning Architecture
 
 ## Version 1 — Foundational Model

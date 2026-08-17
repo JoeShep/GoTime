@@ -24,6 +24,20 @@ Completing or editing a task refreshes that recommendation without a page
 reload. Richer scheduling, personalized ranking, and generalized goal reasoning
 remain future product work.
 
+The next product-design increment replaces manual-ranking assumptions with a
+derived-attention baseline. Working states are Do now, Coming soon, Later, and
+Waiting. They are calculated from plan context rather than selected by the
+user, and their final names and rules require validation against representative
+tasks in the real family plan. The existing Critical/High/Medium/Low field and
+stored values remain intact while that replacement behavior is designed.
+
+AI-assisted planning knowledge is an intentional later capability for facts
+such as lead times, prerequisite patterns, likely durations, and timing
+windows. The MVP must first establish a deterministic no-AI baseline and
+identify which facts are actually missing. Any later AI-proposed knowledge must
+be inspectable, grounded, freshness-aware, user-correctable when consequential,
+and applied by deterministic rules rather than used as an opaque ranking.
+
 ## Goal
 
 Demonstrate that GoTime can reason about a complex goal, recommend the next decision or action, and explain its reasoning in a way the user trusts.

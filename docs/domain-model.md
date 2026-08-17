@@ -51,9 +51,52 @@ be supplied; nullable description and date values must be sent explicitly as
 `null` when the user intends to clear them. Omitted fields are rejected rather
 than silently reset to defaults.
 
-This model stores execution work but does not yet feed the existing relocation
-Recommendation engine. Frontend maintenance and deterministic task ranking are
-deferred to later product increments.
+Stored execution work now feeds the relocation Recommendation engine. The
+engine filters for incomplete, unblocked tasks whose start dates have arrived,
+then selects one task through a deterministic ordering that currently uses the
+stored four-level priority, due timing, progress status, immediate unblocking
+leverage, phase order, and stable task ID. Successful task changes refresh that
+Recommendation.
+
+## Planned derived-attention model
+
+The current Critical, High, Medium, and Low priority field is stored user input.
+It remains part of the Task model for compatibility, but it is expected to be
+demoted or potentially retired from ordinary task creation and Recommendation
+ranking after a replacement is designed and validated. Existing values must be
+preserved during that work.
+
+GoTime's next product-design objective is to calculate what deserves attention
+now. The working derived states are `do_now`, `coming_soon`, `later`, and
+`waiting`, with provisional user-facing labels Do now, Coming soon, Later, and
+Waiting. These names and their exact rules are not yet final. They are derived
+outputs, not fields a user selects on a Task.
+
+Candidate deterministic inputs are:
+
+* target and due dates;
+* start dates and eligibility;
+* dependency and blocked state;
+* progress status and momentum;
+* immediate unblocking leverage;
+* phase and sequencing context;
+* user-specific constraints and consequences; and
+* planning lead times and timing windows.
+
+The initial design must establish a no-AI baseline against representative
+Tasks in the real family plan. Only after that baseline reveals missing facts
+should the project define a structured planning-knowledge contract.
+
+Future AI-assisted planning knowledge may propose typical lead times,
+prerequisite patterns, likely durations, or recommended timing windows that a
+user cannot reasonably be expected to know. Consequential items should be
+inspectable and carry source, confidence, and freshness information, and users
+must be able to correct consequential assumptions. Deterministic rules remain
+responsible for combining that knowledge with actual plan state and producing
+attention states and Recommendations.
+
+This section defines product direction, not a finalized domain contract,
+schema, persistence model, or AI authorization.
 
 1. Inputs — goal, current state, constraints, preferences, assumptions, open decisions.
 2. Reasoning — why the location decision matters now.

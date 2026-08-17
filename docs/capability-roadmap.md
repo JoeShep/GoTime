@@ -38,6 +38,18 @@ Now it answers:
 > What should I do next?
 Notice how late this appears. That's because recommendation depends on everything before it.
 
+The next design increment refines this capability through derived attention.
+Working states are Do now, Coming soon, Later, and Waiting, calculated from
+deterministic plan context rather than selected as manual task priorities. The
+current four-level priority remains preserved while a no-AI baseline is tested
+against representative family-plan tasks.
+
+Only after that baseline identifies missing facts should GoTime define a
+structured planning-knowledge contract. AI assistance may later propose
+inspectable lead times, prerequisite patterns, durations, or timing windows,
+but deterministic rules continue to combine knowledge with trusted plan state
+and own the resulting attention and recommendation.
+
 ### Capability 5: Explain
 This is the part I don't want to compromise on. Every recommendation should be accompanied by an explanation.
 
