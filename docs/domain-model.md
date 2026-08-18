@@ -58,13 +58,13 @@ stored four-level priority, due timing, progress status, immediate unblocking
 leverage, phase order, and stable task ID. Successful task changes refresh that
 Recommendation.
 
-## Planned derived-attention model
+## Planned derived-attention behavior
 
 The current Critical, High, Medium, and Low priority field is stored user input.
-It remains part of the Task model for compatibility, but it is expected to be
-demoted or potentially retired from ordinary task creation and Recommendation
-ranking after a replacement is designed and validated. Existing values must be
-preserved during that work.
+It remains part of the Task domain concept and stored representation for
+compatibility, but it is expected to be demoted or potentially retired from
+ordinary task creation and Recommendation ranking after a replacement is
+designed and validated. Existing values must be preserved during that work.
 
 GoTime's next product-design objective is to calculate what deserves attention
 now. The working derived states are `do_now`, `coming_soon`, `later`, and
@@ -136,9 +136,34 @@ The scenario tests whether GoTime can derive this sequence: gather needed
 evidence, make a consequential Decision, activate only the work selected by
 that Decision, and coordinate it toward a Milestone window. It should surface
 the evidence-gathering action without depending on manual Task priority or an
-arbitrary start date. The immediate design work is a manual reasoning
-walkthrough to discover the smallest representation needed; schema and
-interface design remain deferred.
+arbitrary start date.
+
+The completed manual walkthrough provisionally adds these semantics:
+
+* One level of required subtasks may decompose an outcome-oriented parent Task.
+  Recommendations target actionable leaf Tasks; the parent provides purpose
+  and context.
+* Parent status is derived and reversible: Not started when no required child
+  has begun, In progress when at least one has begun but some remain
+  incomplete, and Completed when all are complete. A completed parent satisfies
+  dependencies that point to it.
+* Decision readiness is advisory. Identified evidence work may make a Decision
+  ready for consideration, but only the user can select an option.
+* Activation is independent of Task progress status. It describes whether work
+  currently belongs to the active plan; inactive work remains preserved and is
+  excluded from ordinary attention and Recommendations.
+* Conditional work is associated with Decision outcomes. Selecting an outcome
+  activates its work, while work belonging only to unselected outcomes remains
+  inactive unless the user retains or activates it.
+* Milestone achievement records a user-confirmed real-world fact. Completion of
+  supporting work may prompt that confirmation but cannot establish it.
+
+The governing authority rule is: GoTime may derive, recommend, explain, and
+warn, but the user retains final authority. These remain provisional domain
+semantics, not database entities, Pydantic schemas, API contracts, interface
+components, or AI behavior. The
+[reference scenario](reference-scenarios/home-sale-strategy.md) contains the
+canonical walkthrough and proposed smallest implementation slice.
 
 1. Inputs — goal, current state, constraints, preferences, assumptions, open decisions.
 2. Reasoning — why the location decision matters now.

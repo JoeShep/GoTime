@@ -38,10 +38,10 @@ codebase as a separate planning flow; it does not rank persisted tasks.
 
 ## Planned derived-attention direction
 
-The implemented rule is a baseline, not the final model. GoTime should derive
-what deserves attention now rather than require users to manually rank every
-task. The working outputs are Do now, Coming soon, Later, and Waiting; their
-names and precise rules remain provisional.
+The implemented rule is a baseline, not the final attention behavior. GoTime
+should derive what deserves attention now rather than require users to manually
+rank every task. The working outputs are Do now, Coming soon, Later, and
+Waiting; their names and precise rules remain provisional.
 
 The deterministic design may use dates and eligibility, dependency and blocked
 state, momentum, immediate unblocking leverage, phase and sequencing context,
@@ -81,10 +81,23 @@ This scenario requires deterministic reasoning to distinguish:
 * work required for an outcome from supporting work merely timed around its
   Milestone.
 
-The next activity is a manual reasoning walkthrough that identifies the
-smallest representation needed to produce the scenario's actionable sequence.
-Do not infer database entities, schemas, or interface controls until that
-walkthrough is reviewed.
+The completed manual walkthrough confirms that GoTime should recommend
+actionable, active leaf-level work and explain its parent context, evidence
+contribution, Decision-unlocking effect, and Milestone contribution. Required
+subtasks deterministically and reversibly derive parent status. Completion of
+identified evidence work may make a Decision advisory-ready, but only the user
+selects an option. That selection activates associated conditional work;
+inactive branches remain preserved and excluded from ordinary attention and
+Recommendations. Supporting-work completion never proves Milestone achievement,
+which remains a user-confirmed fact.
+
+> GoTime may derive, recommend, explain, and warn, but the user retains final
+> authority.
+
+The [canonical walkthrough](reference-scenarios/home-sale-strategy.md#completed-manual-reasoning-walkthrough)
+also proposes the smallest vertical slice. Review that behavior before
+inferring database entities, Pydantic schemas, API contracts, or interface
+components.
 
 # GoTime Reasoning Architecture
 

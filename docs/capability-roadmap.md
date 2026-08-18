@@ -15,7 +15,7 @@ No recommendations yet.
 Just understanding.
 
 ### Capability 2: Represent
-> Now it needs an internal model.
+> Now it needs an internal representation.
 
 For the move:
 Goal > Phases > Projects > Tasks > Dependencies
@@ -50,12 +50,14 @@ inspectable lead times, prerequisite patterns, durations, or timing windows,
 but deterministic rules continue to combine knowledge with trusted plan state
 and own the resulting attention and recommendation.
 
-The first baseline is a manual walkthrough of the
-[home-sale strategy reference scenario](reference-scenarios/home-sale-strategy.md).
-It asks what minimum representation is needed to surface actionable
-evidence-gathering, prepare a consequential Decision, activate only the work
-selected by that Decision, and coordinate it toward a Milestone window. Schema
-and interface proposals follow only after that reasoning is understood.
+The manual walkthrough of the
+[home-sale strategy reference scenario](reference-scenarios/home-sale-strategy.md)
+is complete. It proposes a narrow vertical slice: recommend active leaf-level
+work with context, derive reversible parent status and advisory Decision
+readiness, activate conditional branches only after the user's choice, preserve
+inactive work outside ordinary attention, and require explicit Milestone
+achievement. Review and approve that slice before schema, API, or interface
+design.
 
 ### Capability 5: Explain
 This is the part I don't want to compromise on. Every recommendation should be accompanied by an explanation.

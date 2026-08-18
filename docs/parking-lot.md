@@ -32,13 +32,32 @@ to create, rename, reorder, and remove categories, and GoTime may offer useful
 project-specific defaults. The current relocation categories are defaults, not
 a permanent ontology.
 
-### Subtasks / task hierarchy
+### Advanced subtasks / task hierarchy
 
-Tasks should eventually be able to contain subtasks. A task may be created
-directly under an existing task or later reassigned from top-level to become a
-subtask. Parent/subtask hierarchy is distinct from dependency/blocking
-relationships. Do not decide yet whether parent completion automatically
-depends on subtask completion.
+The home-sale walkthrough selected one level of required subtasks for its
+proposed initial slice, with reversible parent status derived from those
+subtasks. More general hierarchy remains future work: nested and optional
+subtasks, creating a subtask directly under another Task, reassigning a
+top-level Task under a parent, and the exact direct parent-status override.
+Parent/subtask hierarchy remains distinct from dependency/blocking
+relationships.
+
+### Removing incomplete work
+
+A user may decide that an incomplete Task is no longer applicable. Before
+removing it, GoTime should inspect and present its relationships, including:
+
+* incoming and outgoing dependencies;
+* parent and subtask relationships;
+* Decisions it informs;
+* conditional branches it belongs to; and
+* Milestones it supports.
+
+GoTime must not silently remove a dependency and make downstream work appear
+ready. Future design should distinguish **Remove from plan**, **No longer
+applicable**, and **Permanent deletion**. Their exact semantics, reversibility,
+history, and safety interactions remain unresolved and are not part of the
+current implementation-slice proposal.
 
 ### Relocation-plan UX observations
 

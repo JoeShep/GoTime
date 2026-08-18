@@ -1,5 +1,40 @@
 # Session Notes
 
+## 2026-08-17 — Home-sale manual reasoning walkthrough
+
+- Completed the six-state manual walkthrough from actionable realtor work,
+  through required subtasks and advisory Decision readiness, to conditional
+  branch activation, Decision revision, and explicit Milestone achievement.
+- Established that Recommendations target actionable, active leaf-level Tasks
+  and explain their parent purpose, evidence contribution, Decision-unlocking
+  effect, and Milestone contribution without manual priority or an arbitrary
+  start date.
+- Selected one level of required subtasks for the minimum provisional
+  representation. Parent status is derived automatically and reversibly;
+  completing the last required subtask completes the parent and satisfies
+  dependencies pointing to it.
+- Kept Decision readiness advisory and option selection under user authority.
+  Additional evidence work may keep a Decision in a gathering-information
+  state, but incomplete expected evidence does not prevent the user from
+  deciding.
+- Distinguished activation from Task progress status. Unselected conditional
+  work remains preserved but inactive, hidden by default, excluded from
+  ordinary counts, attention, and Recommendations, and discoverable through an
+  explicit inactive-work reveal or identified search result.
+- Recorded revision safeguards: never delete alternate branches, never
+  silently deactivate In progress work, disclose affected Tasks, preserve
+  completed history, and let users retain or reactivate work.
+- Confirmed that supporting-work completion cannot prove a real-world
+  Milestone. GoTime may prompt, but the user explicitly confirms achievement.
+- Captured the governing principle: GoTime may derive, recommend, explain, and
+  warn, but the user retains final authority.
+- Proposed a narrow end-to-end slice and made review/approval its next
+  objective. No database entity, Pydantic schema, API contract, interface,
+  application, test, runtime, AI, or persisted family-plan change was made.
+- Added a separate Parking Lot consideration for safely removing incomplete
+  work, including relationship inspection and distinctions among Remove from
+  plan, No longer applicable, and Permanent deletion.
+
 ## 2026-08-17 — Home-sale strategy reference scenario
 
 - Established the current-home sale campaign launch as GoTime's first concrete

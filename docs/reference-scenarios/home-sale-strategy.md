@@ -51,9 +51,9 @@ realtor.
 
 The existing task `Put current home on the market` should not be treated as the
 definition of this milestone without further design. A public listing is only
-one possible channel. The manual walkthrough must determine whether that task
-remains a separate executable action, is renamed, or is eventually replaced by
-a broader milestone representation.
+one possible channel. The completed walkthrough did not resolve whether that
+Task remains a separate executable action, is renamed as public-listing work,
+or is eventually replaced by the broader Milestone representation.
 
 ## Decision: select the initial home-sale strategy
 
@@ -151,11 +151,12 @@ The current actionable sequence is:
 4. Activate only the work required by the selected strategy.
 5. Coordinate the active work toward the post-New Year sale-launch milestone.
 
-`Reengage with the realtor` deserves attention now because it is actionable,
-produces evidence required for a consequential decision, and unlocks multiple
-downstream branches. That conclusion should follow from the scenario's facts,
-not from a manually assigned Critical/High/Medium/Low priority or an arbitrary
-task start date.
+`Reengage with the realtor` describes the outcome of meeting with the realtor
+and obtaining the initial assessment. Its next actionable subtask deserves
+attention now because that work is ready, produces evidence required for a
+consequential decision, and unlocks multiple downstream branches. That
+conclusion should follow from the scenario's facts, not from a manually
+assigned Critical/High/Medium/Low priority or an arbitrary task start date.
 
 This demonstrates an important derived-attention pattern:
 
@@ -172,32 +173,224 @@ windows, and prerequisite patterns. Deterministic reasoning must still combine
 that knowledge with the family's actual constraint, preferences, evidence, and
 plan state.
 
-## Unresolved product-design questions
+## Completed manual reasoning walkthrough
 
-The manual walkthrough must keep these questions explicit:
+The walkthrough confirms the behavior GoTime should eventually support. It
+does not select database entities, Pydantic schemas, API contracts, or
+interface components.
 
-* How should decision evidence and its confidence be represented?
-* How should conditional task activation work?
-* Can a decision be revised, and how should prior outcomes and rationale be
-  retained?
+### State 1: work is actionable
+
+The plan has the post-New Year sale-launch Milestone, the open home-sale
+strategy Decision, a missing realtor assessment, the parent Task `Reengage with
+the realtor`, and actionable subtasks under that parent.
+
+GoTime should recommend an actionable leaf-level subtask:
+
+> **Do now: Contact the realtor**
+>
+> Part of: Reengage with the realtor
+>
+> This work will provide market evidence needed to select a home-sale strategy
+> and determine which work should proceed toward the sale-launch milestone.
+
+The attention state and explanation are derived because the subtask is
+actionable, contributes to required evidence, helps unlock a consequential
+Decision, and advances a meaningful Milestone. Neither manual priority nor an
+arbitrary start date is required.
+
+### State 2: the parent progresses through required subtasks
+
+`Reengage with the realtor` represents the completed outcome of meeting with
+the realtor and obtaining the initial assessment, not merely scheduling the
+meeting. Possible required subtasks are:
+
+* Contact the realtor.
+* Schedule the meeting.
+* Prepare the questions and sale scenarios.
+* Gather relevant information beforehand.
+* Meet with the realtor.
+* Record the assessment and follow-up questions.
+
+The smallest provisional behavior supports one level of subtasks and treats
+every subtask as required. GoTime recommends actionable leaf-level subtasks,
+while the parent supplies their purpose and context.
+
+Parent status is derived automatically:
+
+* **Not started** when no required subtask has begun.
+* **In progress** when at least one required subtask has begun and one or more
+  remain incomplete.
+* **Completed** when every required subtask is complete.
+
+Completing the final required subtask automatically completes the parent and
+satisfies dependencies that point to the parent. This is a reversible
+convenience, not irreversible system authority. Reopening a subtask, adding
+required work, or otherwise correcting the plan recalculates the parent. The
+exact interaction for a direct parent-status override remains an implementation
+design question.
+
+### State 3: the Decision becomes ready
+
+When the required realtor work is complete, GoTime may derive that the
+home-sale strategy Decision is ready for consideration. If the meeting exposes
+another gap—for example, the realtor must research recent builder purchases—new
+evidence-producing work may be added and the Decision can remain in a
+gathering-information state.
+
+Decision readiness is advisory. GoTime may warn that expected evidence is
+incomplete, but the user may still select an option. GoTime must never select a
+Decision option automatically.
+
+> GoTime may derive, recommend, explain, and warn, but the user retains final
+> authority.
+
+### State 4: conditional work activates
+
+When the user selects a strategy:
+
+* work associated with a selected Decision outcome becomes active;
+* work associated only with unselected outcomes remains preserved but
+  inactive;
+* inactive work is hidden by default and can be revealed through Show inactive
+  work;
+* inactive work is excluded from ordinary counts, attention states, and
+  Recommendations;
+* search can still locate inactive work, identifies it as inactive, and lets
+  the user reveal its location; and
+* users may manually activate work when circumstances require it.
+
+Activation is separate from progress status. Status describes whether work is
+Not started, In progress, or Completed. Activation describes whether the work
+currently belongs to the active plan. An inactive Task is not equivalent to a
+Not started Task.
+
+Selecting builder outreach plus an as-is public listing therefore activates
+the builder-outreach and as-is public-listing branches, preserves repair-first
+work as inactive, and lets GoTime recommend actionable leaf-level work from the
+active branches.
+
+### State 5: a Decision is revised
+
+A Decision may be revised after work has begun. GoTime must:
+
+* never delete alternate-branch work merely because it is inactive;
+* never silently deactivate an In progress Task;
+* show which Tasks would be affected and ask which should remain active;
+* preserve completed work as plan history; and
+* let the user retain or reactivate Tasks when reality differs from the
+  original branch assumptions.
+
+The detailed revision workflow remains implementation-design work.
+
+### State 6: the Milestone is achieved
+
+Completing supporting Tasks does not prove that the real-world sale campaign
+has launched. When the selected sale channels are genuinely active, the user
+explicitly marks the Milestone achieved. GoTime may prompt or recommend that
+confirmation, but it must not assert the real-world outcome automatically.
+
+## Smallest provisional representation
+
+The walkthrough exposes this minimum set of domain concepts and relationships:
+
+* a Milestone with a target date or window and explicit user-confirmed
+  achievement;
+* a Decision with options and an unresolved or resolved state;
+* advisory Decision readiness;
+* one level of required subtasks;
+* automatically derived, reversible parent-Task status;
+* a relationship showing that work informs a Decision;
+* conditional work associated with Decision outcomes;
+* activation state separate from Task progress status;
+* relationships connecting Decisions and work to Milestones; and
+* user-visible reasoning explanations.
+
+For the initial slice, evidence requirements, hard constraints, and preferences
+may remain information recorded within the Decision rather than separate
+first-class domain concepts. Whether Evidence need eventually becomes its own
+domain concept remains open.
+
+This list defines required product meaning. It does not imply one database
+entity per concept, nor does it define a Pydantic schema, API shape, interface,
+or AI model. The implementation design should seek the fewest durable concepts
+that preserve these semantics.
+
+## Proposed smallest implementation slice
+
+The first vertical slice should prove the main reasoning loop in this order:
+
+1. Represent one Milestone with a target window and explicit user-confirmed
+   achievement, one user-owned Decision with options, one parent Task with one
+   level of required subtasks, and the minimum relationships that connect the
+   work to the Decision and Milestone.
+2. Derive parent status from required subtasks and recommend only actionable,
+   active leaf-level Tasks with an explanation of their parent context,
+   Decision-unlocking value, and Milestone contribution.
+3. Derive advisory Decision readiness from completion of the identified
+   evidence-producing work while still allowing the user to decide before or
+   after that point. Only the user selects an option.
+4. Activate work associated with selected outcomes; preserve other branches as
+   inactive, omit them from ordinary counts and Recommendations, and make them
+   deliberately revealable and findable.
+5. Let the user explicitly confirm Milestone achievement; never infer the
+   real-world event from completed supporting work.
+
+For this slice, users may manually record evidence requirements, constraints,
+preferences, option descriptions, and the Milestone window as ordinary
+Decision or Milestone information. Users also remain responsible for selecting
+and revising options, adding newly discovered evidence work, manually
+activating exceptions, and confirming achievement.
+
+Deterministic behavior is limited to leaf-level recommendation eligibility,
+reversible parent-status derivation, advisory readiness from identified work,
+branch activation after a user choice, inactive-work exclusion, and the
+reasoning explanation. This is sufficient to test value without automating the
+Decision itself.
+
+Defer nested or optional subtasks, detailed direct-parent overrides, structured
+evidence/confidence, first-class Constraint or Preference representation,
+calculated net proceeds, private-value controls, general Decision revision
+workflows and history, automatic Milestone-window refinement, planning-knowledge
+integration, AI assistance, and generalized cross-plan behavior.
+
+### Observable acceptance scenario
+
+Given the documented sale-launch Milestone, strategy Decision, realtor parent
+Task and required subtasks, and conditional sale-strategy branches:
+
+1. GoTime recommends `Contact the realtor` as Do now and explains its parent,
+   evidence, Decision, and Milestone context.
+2. Completing required leaf Tasks advances and finally completes the parent,
+   making the Decision advisory-ready; reopening one reverses that derivation.
+3. The user selects builder outreach plus an as-is public listing, which makes
+   those branches active while repair-first work remains preserved, inactive,
+   hidden from ordinary views and counts, excluded from Recommendations, and
+   discoverable through explicit reveal or search.
+4. GoTime recommends the next actionable leaf Task from an active branch.
+5. Completing that work does not complete the Milestone; the user confirms the
+   launch only after the selected channels are genuinely active.
+
+Review and approve this proposed slice before any schema, API, or interface
+design begins.
+
+## Remaining product-design questions
+
+The walkthrough resolved the minimum behavioral direction but leaves these
+questions open:
+
+* How should Decision evidence and confidence eventually be structured?
+* What direct parent-status override, if any, should exist?
+* Should the existing `Put current home on the market` Task remain separate,
+  become conditional public-listing work, or be replaced by the Milestone?
+* What exact review interaction should protect In progress work when a Decision
+  is revised, and how should previous outcomes and rationale be retained?
 * How should private financial constraints be stored or hidden?
-* How does a target milestone window become more precise?
+* How does a target Milestone window become more precise?
 * How should estimated net proceeds be calculated without creating false
   precision?
-* Does an evidence need require a first-class domain concept, or can it
-  initially be represented through ordinary tasks and notes?
+* Does Evidence need require a first-class domain concept, or can it continue
+  to use ordinary Tasks and Decision information?
 
-These questions are active design work, not commitments to new persistence or
-interface concepts.
-
-## Next design exercise
-
-Walk through this scenario manually and determine the smallest representation
-GoTime needs to produce and explain the five-step actionable sequence above.
-The walkthrough should identify which existing plan facts are sufficient,
-which meanings cannot be recovered from current tasks and dependencies, and
-which missing facts are essential.
-
-Stop after proposing that minimal representation for review. Do not design a
-schema or interface until the walkthrough has shown what the product actually
-needs.
+These remain product-design questions, not commitments to persistence or
+interface structures.

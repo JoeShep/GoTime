@@ -1,68 +1,48 @@
 # NEXT_SESSION
 
-## Current objective: manually reason through the home-sale scenario
+## Current objective: review the smallest implementation slice
 
-Use the
-[home-sale strategy reference scenario](docs/reference-scenarios/home-sale-strategy.md)
-to determine the smallest representation GoTime needs to derive and explain
-this sequence:
+Review and approve the proposed vertical slice in the
+[home-sale strategy reference scenario](docs/reference-scenarios/home-sale-strategy.md#proposed-smallest-implementation-slice)
+before beginning any database, Pydantic schema, API, or interface design.
 
-1. Reengage with the realtor.
-2. Gather enough market evidence to compare credible sale strategies.
-3. Select the initial home-sale strategy.
-4. Activate only the work required by the selected strategy.
-5. Coordinate that work toward the post-New Year sale-launch Milestone.
+The completed manual walkthrough confirms these provisional behaviors:
 
-This is a product-design exercise. Stop after the minimal representation and
-reasoning walkthrough are reviewed. Do not propose or implement database,
-Pydantic schema, API, interface, or persisted family-plan changes yet.
+* Recommend actionable, active leaf-level subtasks and explain their parent,
+  evidence, Decision, and Milestone context.
+* Support one level of required subtasks and derive reversible parent status.
+* Derive advisory Decision readiness, while reserving option selection for the
+  user.
+* Keep activation separate from Task progress status; preserve inactive
+  branches while excluding them from ordinary counts, attention, and
+  Recommendations.
+* Protect In progress and completed work when a Decision is revised.
+* Require the user to confirm that a real-world Milestone was achieved.
 
-## What the walkthrough must establish
+The governing principle is:
 
-* Which current facts are sufficient to make `Reengage with the realtor` a Do
-  now action without manual task priority or an arbitrary start date.
-* How the unresolved strategy Decision and its credible options control which
-  downstream work is relevant.
-* Which relationships are universal hard prerequisites, route-specific
-  conditional work, or supporting/timed work.
-* How the minimum-net-proceeds hard constraint differs from the preferences
-  used to compare viable options.
-* What evidence and confidence are sufficient for a responsible Decision
-  without demanding unavailable certainty or creating false precision.
-* Which facts are missing from the current plan and therefore require an
-  explicit representation or later planning knowledge.
+> GoTime may derive, recommend, explain, and warn, but the user retains final
+> authority.
+
+## Review boundary
+
+Decide whether the proposed slice is the smallest coherent end-to-end proof.
+Confirm what belongs in the first slice, what remains manual, and what is
+deferred. Do not turn every named domain concept into a persisted entity.
+
+Evidence requirements, hard constraints, and preferences may initially remain
+Decision information. Detailed Decision revision workflows, nested or optional
+subtasks, structured evidence/confidence, private-value controls, calculated
+net proceeds, automatic Milestone-window refinement, AI assistance, and
+generalized cross-plan behavior remain deferred.
 
 The working derived attention states remain Do now, Coming soon, Later, and
-Waiting. Their names and exact rules are provisional. Preserve the stored
-Critical/High/Medium/Low priority field and all existing values until a
-replacement has been designed and validated.
+Waiting. Preserve the stored Critical/High/Medium/Low priority field and all
+existing values until replacement behavior is validated.
 
-## Product sequence after the walkthrough
-
-1. Define derived attention states and deterministic inputs.
-2. Test the no-AI baseline against representative tasks in the real family
-   plan.
-3. Identify missing facts that prevent trustworthy recommendations.
-4. Define a structured planning-knowledge contract for those facts.
-5. Revisit and adapt the existing AI API pipeline to supply that contract.
-6. Compare AI-enriched recommendations with the deterministic baseline.
-
-AI-assisted planning knowledge remains an intentional future capability, but
-this direction does not authorize resuming the frozen moving-service
-experiment, live research, provider calls, credentials, SDKs, or new AI
-infrastructure. Deterministic reasoning remains responsible for attention and
-Recommendations.
-
-## Keep separate
-
-The Parking Lot retains phase-header Add actions, dependency terminology,
-general filters, dependency visualization, alternate views, first-class
-People, related-task links, editable phases/categories, and subtasks. Do not
-fold those observations into the home-sale walkthrough.
-
-The verified post-migration backup remains outside the repository at
-`/home/joeshep/backups/gotime/20260817T001021Z-a32c31d-post-migration/`. Never
-add that backup, database files, manifest contents, or family-plan data to Git.
-
-Historical implementation and acceptance details remain in
+Unrelated UX observations and incomplete-work removal semantics remain in the
+Parking Lot. Historical decisions and implementation detail remain in
 `SESSION_NOTES.md`.
+
+No schema, API, interface, runtime, AI, or persisted family-plan change is
+authorized until the proposed slice is approved.
