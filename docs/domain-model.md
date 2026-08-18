@@ -163,7 +163,10 @@ warn, but the user retains final authority. These remain provisional domain
 semantics, not database entities, Pydantic schemas, API contracts, interface
 components, or AI behavior. The
 [reference scenario](reference-scenarios/home-sale-strategy.md) contains the
-canonical walkthrough and proposed smallest implementation slice.
+canonical walkthrough. The
+[vertical-slice technical design](technical-design/derived-attention-vertical-slice.md)
+recommends the minimum durable concepts and derived behavior for review without
+committing a schema or contract.
 
 1. Inputs — goal, current state, constraints, preferences, assumptions, open decisions.
 2. Reasoning — why the location decision matters now.

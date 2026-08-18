@@ -68,7 +68,9 @@ is the first concrete test of this direction. It combines a milestone window,
 an unresolved decision, a hard financial constraint, comparison preferences,
 incomplete evidence, conditional work, and route-specific dependencies. It
 should explain why gathering realtor evidence deserves attention now without a
-manual priority level or arbitrary start date.
+manual priority level or arbitrary start date. Its human-facing Milestone is
+**Start selling our home**; the user confirms achievement only when the chosen
+buyer-seeking channels are genuinely active.
 
 ## AI-Assisted Planning Knowledge
 

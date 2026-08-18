@@ -61,9 +61,10 @@ state and deriving attention and Recommendations.
 
 The [home-sale strategy reference scenario](reference-scenarios/home-sale-strategy.md)
 tests derived attention against a meaningful milestone rather than an isolated
-task list. A post-New Year sale-launch window organizes the work, but an
-unresolved strategy Decision determines whether public-listing preparation,
-selected repairs, builder outreach, or parallel channels are relevant.
+task list. The post-New Year **Start selling our home** target window organizes
+the work, but an unresolved strategy Decision determines whether public-listing
+preparation, selected repairs, builder outreach, or parallel channels are
+relevant.
 
 The immediate recommendation is to reengage with the realtor. That action is
 ready now, gathers evidence needed to compare credible Decision options, and
@@ -95,8 +96,11 @@ which remains a user-confirmed fact.
 > authority.
 
 The [canonical walkthrough](reference-scenarios/home-sale-strategy.md#completed-manual-reasoning-walkthrough)
-also proposes the smallest vertical slice. Review that behavior before
-inferring database entities, Pydantic schemas, API contracts, or interface
+defines the product behavior. The
+[vertical-slice technical design](technical-design/derived-attention-vertical-slice.md)
+audits the current implementation and recommends minimum persistence,
+reasoning, migration, API, and interface boundaries. Review and approve it
+before defining database tables, Pydantic schemas, endpoint signatures, or
 components.
 
 # GoTime Reasoning Architecture

@@ -1,5 +1,44 @@
 # Session Notes
 
+## 2026-08-17 — Derived-attention vertical-slice technical design
+
+- Renamed the human-facing home-sale Milestone to **Start selling our home**,
+  achieved only when the user confirms that the selected public,
+  builder/off-market, or parallel buyer-seeking channels are genuinely active.
+- Decided that the existing `Put current home on the market` Task should
+  conceptually become this Milestone and must not remain as a duplicate action
+  Task. Applicable executable work belongs in conditional public-listing and
+  builder-outreach branches.
+- Audited the current SQLite schema/migration convention, Task validation and
+  dependencies, recommendation/explanation engine, fixed-plan routes and
+  schemas, React editor/cards/views/filter/finder/completed behavior, and the
+  backend/frontend tests that would be extended. The audit was read-only.
+- Queried the active SQLite database through an immutable, query-only
+  connection. Integrity and foreign-key checks passed. Exactly one matching
+  milestone-like Task exists with one direct prerequisite and three direct
+  dependents; no data was changed.
+- Provisionally classified the realtor relationship as work that should inform
+  the new Decision, the home-sale-contract work as genuinely dependent on
+  Milestone achievement, the farewell-party edge as timing guidance, and the
+  notice/PTO edge as unclear and requiring user review.
+- Recommended independent Milestone and Decision domain concepts, one selected
+  option including a named parallel strategy, one-level required subtasks,
+  work-informs-Decision links, derived readiness, option associations plus a
+  keep-active override, and bounded Decision/work-to-Milestone relationships.
+  Evidence, constraints, and preferences remain Decision information rather
+  than separate entities in the first slice.
+- Recommended preserving the old Task's stable ID value as the new Milestone
+  ID, translating relationships only after review, preserving all unrelated
+  data, failing closed on drift, and rehearsing a fresh verified backup and
+  isolated-volume migration before touching the active database.
+- Proposed four reviewable increments: Milestone/Decision foundation;
+  required subtasks/evidence/readiness and contextual Recommendation;
+  conditional activation/safe revision; then rehearsed family-plan conversion
+  and end-to-end acceptance.
+- No application code, schema, API contract, test, runtime, container, backup,
+  manifest, or persisted family-plan data was changed. No ADR was created
+  because the technical choices still require approval.
+
 ## 2026-08-17 — Home-sale manual reasoning walkthrough
 
 - Completed the six-state manual walkthrough from actionable realtor work,

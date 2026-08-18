@@ -35,11 +35,11 @@ vacations, and parties. For example, a venue decision can activate different
 preparation work while a wedding date window still organizes every viable
 route.
 
-## Milestone: current-home sale campaign is launched
+## Milestone: Start selling our home
 
-The milestone is the broader moment when the sale campaign for the current
-home is launched. It is achieved when the marketing channels selected by the
-family become active. Those channels could include:
+The human-facing Milestone is **Start selling our home**. It is achieved when
+the buyer-seeking channels selected by the family are genuinely active. Those
+channels could include:
 
 * a public listing;
 * builder or other off-market outreach; or
@@ -49,11 +49,11 @@ The current target is a post-New Year window. This is not yet a precise,
 committed date and may become more specific after consultation with the
 realtor.
 
-The existing task `Put current home on the market` should not be treated as the
-definition of this milestone without further design. A public listing is only
-one possible channel. The completed walkthrough did not resolve whether that
-Task remains a separate executable action, is renamed as public-listing work,
-or is eventually replaced by the broader Milestone representation.
+The existing Task `Put current home on the market` should conceptually become
+this Milestone and should not remain as a duplicate action Task. A public
+listing is only one possible channel. The actual work needed to achieve the
+Milestone belongs in the applicable public-listing and/or builder-outreach
+branches.
 
 ## Decision: select the initial home-sale strategy
 
@@ -149,7 +149,8 @@ The current actionable sequence is:
 2. Obtain enough market evidence to compare credible sale strategies.
 3. Decide the initial home-sale strategy.
 4. Activate only the work required by the selected strategy.
-5. Coordinate the active work toward the post-New Year sale-launch milestone.
+5. Coordinate the active work toward the post-New Year **Start selling our
+   home** Milestone.
 
 `Reengage with the realtor` describes the outcome of meeting with the realtor
 and obtaining the initial assessment. Its next actionable subtask deserves
@@ -181,9 +182,9 @@ interface components.
 
 ### State 1: work is actionable
 
-The plan has the post-New Year sale-launch Milestone, the open home-sale
-strategy Decision, a missing realtor assessment, the parent Task `Reengage with
-the realtor`, and actionable subtasks under that parent.
+The plan has the post-New Year **Start selling our home** Milestone, the open
+home-sale strategy Decision, a missing realtor assessment, the parent Task
+`Reengage with the realtor`, and actionable subtasks under that parent.
 
 GoTime should recommend an actionable leaf-level subtask:
 
@@ -192,7 +193,7 @@ GoTime should recommend an actionable leaf-level subtask:
 > Part of: Reengage with the realtor
 >
 > This work will provide market evidence needed to select a home-sale strategy
-> and determine which work should proceed toward the sale-launch milestone.
+> and determine which work should proceed toward Start selling our home.
 
 The attention state and explanation are derived because the subtask is
 actionable, contributes to required evidence, helps unlock a consequential
@@ -285,10 +286,11 @@ The detailed revision workflow remains implementation-design work.
 
 ### State 6: the Milestone is achieved
 
-Completing supporting Tasks does not prove that the real-world sale campaign
-has launched. When the selected sale channels are genuinely active, the user
-explicitly marks the Milestone achieved. GoTime may prompt or recommend that
-confirmation, but it must not assert the real-world outcome automatically.
+Completing supporting Tasks does not prove that the family has started selling
+the home. When the selected buyer-seeking channels are genuinely active, the
+user explicitly marks **Start selling our home** achieved. GoTime may prompt or
+recommend that confirmation, but it must not assert the real-world outcome
+automatically.
 
 ## Smallest provisional representation
 
@@ -317,6 +319,12 @@ or AI model. The implementation design should seek the fewest durable concepts
 that preserve these semantics.
 
 ## Proposed smallest implementation slice
+
+The focused
+[technical design](../technical-design/derived-attention-vertical-slice.md)
+compares implementation-neutral alternatives, audits the current application
+and family-plan relationships, and divides this behavior into reviewable
+increments. The product sequence below remains the behavioral boundary.
 
 The first vertical slice should prove the main reasoning loop in this order:
 
@@ -356,8 +364,8 @@ integration, AI assistance, and generalized cross-plan behavior.
 
 ### Observable acceptance scenario
 
-Given the documented sale-launch Milestone, strategy Decision, realtor parent
-Task and required subtasks, and conditional sale-strategy branches:
+Given the **Start selling our home** Milestone, strategy Decision, realtor
+parent Task and required subtasks, and conditional sale-strategy branches:
 
 1. GoTime recommends `Contact the realtor` as Do now and explains its parent,
    evidence, Decision, and Milestone context.
@@ -381,8 +389,6 @@ questions open:
 
 * How should Decision evidence and confidence eventually be structured?
 * What direct parent-status override, if any, should exist?
-* Should the existing `Put current home on the market` Task remain separate,
-  become conditional public-listing work, or be replaced by the Milestone?
 * What exact review interaction should protect In progress work when a Decision
   is revised, and how should previous outcomes and rationale be retained?
 * How should private financial constraints be stored or hidden?

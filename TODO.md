@@ -12,9 +12,11 @@
 - [x] Manually walk through the home-sale strategy reference scenario and
   identify the smallest representation needed to recommend gathering realtor
   evidence, prepare the strategy Decision, activate conditional work, and
-  coordinate it toward the sale-launch Milestone.
-- [ ] Review and approve the proposed smallest implementation slice before
-  beginning schema, API, or interface design.
+  coordinate it toward the **Start selling our home** Milestone.
+- [x] Audit the current implementation and prepare an implementation-neutral
+  technical design for the smallest vertical slice.
+- [ ] Review and approve the technical design, consequential choices, and
+  implementation increments before beginning schema, API, or interface work.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting
   states as deterministic outputs rather than user-selected priorities.
 - [ ] Specify which existing plan facts contribute to each state without

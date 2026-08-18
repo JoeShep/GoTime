@@ -52,12 +52,13 @@ and own the resulting attention and recommendation.
 
 The manual walkthrough of the
 [home-sale strategy reference scenario](reference-scenarios/home-sale-strategy.md)
-is complete. It proposes a narrow vertical slice: recommend active leaf-level
-work with context, derive reversible parent status and advisory Decision
-readiness, activate conditional branches only after the user's choice, preserve
-inactive work outside ordinary attention, and require explicit Milestone
-achievement. Review and approve that slice before schema, API, or interface
-design.
+is complete. The resulting
+[technical design](technical-design/derived-attention-vertical-slice.md)
+proposes a narrow vertical slice: recommend active leaf-level work with
+context, derive reversible parent status and advisory Decision readiness,
+activate conditional branches only after the user's choice, preserve inactive
+work outside ordinary attention, and require explicit Milestone achievement.
+Review and approve the design and increment sequence before implementation.
 
 ### Capability 5: Explain
 This is the part I don't want to compromise on. Every recommendation should be accompanied by an explanation.
