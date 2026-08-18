@@ -57,6 +57,35 @@ later propose inspectable, sourced, confidence- and freshness-aware planning
 knowledge; deterministic reasoning remains responsible for applying it to plan
 state and deriving attention and Recommendations.
 
+## First reference scenario: home-sale strategy
+
+The [home-sale strategy reference scenario](reference-scenarios/home-sale-strategy.md)
+tests derived attention against a meaningful milestone rather than an isolated
+task list. A post-New Year sale-launch window organizes the work, but an
+unresolved strategy Decision determines whether public-listing preparation,
+selected repairs, builder outreach, or parallel channels are relevant.
+
+The immediate recommendation is to reengage with the realtor. That action is
+ready now, gathers evidence needed to compare credible Decision options, and
+unlocks several consequential downstream branches. The reasoning engine should
+reach and explain that result without relying on a manually assigned priority
+or arbitrary start date.
+
+This scenario requires deterministic reasoning to distinguish:
+
+* a hard net-proceeds constraint from preferences used to compare viable
+  options;
+* evidence sufficient for responsible Decision readiness from unavailable
+  certainty;
+* universal hard prerequisites from route-specific conditional work; and
+* work required for an outcome from supporting work merely timed around its
+  Milestone.
+
+The next activity is a manual reasoning walkthrough that identifies the
+smallest representation needed to produce the scenario's actionable sequence.
+Do not infer database entities, schemas, or interface controls until that
+walkthrough is reviewed.
+
 # GoTime Reasoning Architecture
 
 ## Version 1 — Foundational Model

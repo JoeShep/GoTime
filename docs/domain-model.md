@@ -98,6 +98,48 @@ attention states and Recommendations.
 This section defines product direction, not a finalized domain contract,
 schema, persistence model, or AI authorization.
 
+## Provisional milestone-driven planning concepts
+
+The [home-sale strategy reference scenario](reference-scenarios/home-sale-strategy.md)
+introduces the first concrete vocabulary for testing derived attention:
+
+* A **Milestone** is a meaningful outcome or state that organizes related work
+  around a target date or window.
+* A **Decision** is an unresolved choice whose outcome can change which work is
+  relevant.
+* A **Decision option** is one credible outcome under consideration.
+* A **Hard constraint** is a condition an option must satisfy to remain viable.
+* A **Preference** compares viable options rather than automatically rejecting
+  one.
+* An **Evidence need** is information required to make a responsible decision,
+  possibly as a range or confidence-qualified estimate.
+* **Conditional work** becomes relevant only if a particular Decision option
+  is selected.
+* A **Hard prerequisite** is work without which an outcome cannot occur.
+* **Supporting or timed work** is coordinated with a Milestone but is not
+  required for every route to it.
+
+These are provisional domain concepts, not committed database entities or
+Pydantic schemas. In particular, a Milestone is not merely a renamed Task, a
+Decision is not an action checkbox, and a stored dependency does not by itself
+say whether work is a universal prerequisite, route-specific conditional work,
+or supporting work.
+
+Within derived-attention reasoning, **Decision** refers to the unresolved
+choice that currently controls relevance. The broader Decision lifecycle below
+may retain a resolved choice as history; that does not make a resolved choice
+an open Decision. A **Hard constraint** corresponds to a non-negotiable
+acceptance boundary, while a negotiable tradeoff belongs in Preference
+reasoning for this scenario.
+
+The scenario tests whether GoTime can derive this sequence: gather needed
+evidence, make a consequential Decision, activate only the work selected by
+that Decision, and coordinate it toward a Milestone window. It should surface
+the evidence-gathering action without depending on manual Task priority or an
+arbitrary start date. The immediate design work is a manual reasoning
+walkthrough to discover the smallest representation needed; schema and
+interface design remain deferred.
+
 1. Inputs — goal, current state, constraints, preferences, assumptions, open decisions.
 2. Reasoning — why the location decision matters now.
 3. Dependencies — what information is required before the decision is ready.
@@ -619,7 +661,8 @@ Examples:
 * Housing must not exceed the established budget.
 * The family must remain within 1.5 hours of relatives in the San Mateo area.
 * Homes with HOA fees will not be considered.
-* The current home must not be sold below the minimum acceptable price.
+* The current-home sale must retain at least the minimum acceptable net
+  proceeds.
 * The family should not live apart for more than two months.
 * Candidate locations must not expose the household to unacceptable sea-level-rise risk.
 
@@ -838,12 +881,12 @@ These relationships mean:
 
 #### Constraint 4
 
-* **Description:** Do not accept less than the minimum approved sale price for the current home.
+* **Description:** Retain at least the minimum acceptable net proceeds from the current-home sale.
 * **Type:** Financial.
 * **Severity:** Non-negotiable.
 * **Status:** Active.
 * **Threshold:** To be defined by the user.
-* **Evaluation method:** Compare an offer's net proceeds against the minimum acceptable amount.
+* **Evaluation method:** Compare each option's estimated net-proceeds range against the minimum acceptable amount, including its scenario-specific costs and uncertainty.
 
 #### Constraint 5
 
@@ -1371,6 +1414,11 @@ For the MVP, Preference can remain a lightweight concept with:
 ### What is it?
 
 A **Decision** represents a choice that must be made, is being considered, or has already been resolved.
+
+For current attention, an open Decision is an unresolved choice whose outcome
+can change which work is relevant. A Decision option is one credible outcome
+under consideration. If the choice is later resolved, the historical Decision
+record may still explain what was selected and which work became relevant.
 
 Decisions are central to GoTime because many important forms of progress are not tasks. They are choices that determine which actions, projects, and timelines become valid.
 

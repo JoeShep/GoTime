@@ -9,6 +9,10 @@
 
 ## Derived attention
 
+- [ ] Manually walk through the home-sale strategy reference scenario and
+  identify the smallest representation needed to recommend gathering realtor
+  evidence, prepare the strategy Decision, activate conditional work, and
+  coordinate it toward the sale-launch Milestone.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting
   states as deterministic outputs rather than user-selected priorities.
 - [ ] Specify which existing plan facts contribute to each state without
@@ -17,3 +21,16 @@
   plan and record which missing facts prevent trustworthy recommendations.
 - [ ] Define a structured planning-knowledge contract only after the baseline
   demonstrates which additional facts are necessary.
+
+## Milestone-driven planning questions
+
+- [ ] Determine how Decision evidence and confidence need to be represented.
+- [ ] Determine the minimum behavior for activating work conditionally from a
+  selected Decision option.
+- [ ] Determine how revisable Decisions retain previous outcomes and rationale.
+- [ ] Determine how private constraints can participate in reasoning without
+  unnecessary disclosure.
+- [ ] Determine how approximate Milestone windows become more precise and how
+  range-based financial estimates avoid false precision.
+- [ ] Decide whether an Evidence need must be a first-class domain concept or
+  can initially use ordinary Tasks and notes.

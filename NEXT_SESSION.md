@@ -1,123 +1,68 @@
 # NEXT_SESSION
 
-## Current objective: design derived attention
+## Current objective: manually reason through the home-sale scenario
 
-Define the smallest deterministic model that lets GoTime determine what
-deserves the user's attention now without requiring manual ranking of every
-task. This is a product-design milestone. Do not change application code,
-schemas, APIs, persistence, or runtime configuration until the design and
-representative baseline cases are reviewed and approved.
+Use the
+[home-sale strategy reference scenario](docs/reference-scenarios/home-sale-strategy.md)
+to determine the smallest representation GoTime needs to derive and explain
+this sequence:
 
-The working derived attention states are:
+1. Reengage with the realtor.
+2. Gather enough market evidence to compare credible sale strategies.
+3. Select the initial home-sale strategy.
+4. Activate only the work required by the selected strategy.
+5. Coordinate that work toward the post-New Year sale-launch Milestone.
 
-* **Do now**
-* **Coming soon**
-* **Later**
-* **Waiting**
+This is a product-design exercise. Stop after the minimal representation and
+reasoning walkthrough are reviewed. Do not propose or implement database,
+Pydantic schema, API, interface, or persisted family-plan changes yet.
 
-These are calculated states, not manually selected priorities. Their names and
-precise rules remain provisional and must be validated against the real family
-plan.
+## What the walkthrough must establish
 
-Potential deterministic inputs include:
+* Which current facts are sufficient to make `Reengage with the realtor` a Do
+  now action without manual task priority or an arbitrary start date.
+* How the unresolved strategy Decision and its credible options control which
+  downstream work is relevant.
+* Which relationships are universal hard prerequisites, route-specific
+  conditional work, or supporting/timed work.
+* How the minimum-net-proceeds hard constraint differs from the preferences
+  used to compare viable options.
+* What evidence and confidence are sufficient for a responsible Decision
+  without demanding unavailable certainty or creating false precision.
+* Which facts are missing from the current plan and therefore require an
+  explicit representation or later planning knowledge.
 
-* target and due dates;
-* start dates and eligibility;
-* dependencies and blocked state;
-* progress status and momentum;
-* immediate unblocking leverage;
-* phase and sequencing context;
-* user-specific constraints and consequences; and
-* planning lead times and timing windows.
+The working derived attention states remain Do now, Coming soon, Later, and
+Waiting. Their names and exact rules are provisional. Preserve the stored
+Critical/High/Medium/Low priority field and all existing values until a
+replacement has been designed and validated.
 
-The existing Critical, High, Medium, and Low task priority field is expected to
-be demoted or potentially retired from ordinary task creation and
-Recommendation ranking. Preserve the field, its API and schema behavior, and
-all stored values until replacement behavior is designed and validated.
-
-## Required sequence
+## Product sequence after the walkthrough
 
 1. Define derived attention states and deterministic inputs.
-2. Test a no-AI baseline against representative tasks in the real family plan.
-3. Identify missing facts that prevent good recommendations.
+2. Test the no-AI baseline against representative tasks in the real family
+   plan.
+3. Identify missing facts that prevent trustworthy recommendations.
 4. Define a structured planning-knowledge contract for those facts.
 5. Revisit and adapt the existing AI API pipeline to supply that contract.
 6. Compare AI-enriched recommendations with the deterministic baseline.
 
-The immediate session should stop after the design and no-AI baseline are
-specified and reviewed. Do not jump ahead to the knowledge contract or AI
-pipeline merely because likely missing facts can already be imagined.
+AI-assisted planning knowledge remains an intentional future capability, but
+this direction does not authorize resuming the frozen moving-service
+experiment, live research, provider calls, credentials, SDKs, or new AI
+infrastructure. Deterministic reasoning remains responsible for attention and
+Recommendations.
 
-## Future AI-assisted planning knowledge
+## Keep separate
 
-AI-assisted planning knowledge is an intentional future capability, not an
-optional polish item. An AI model may eventually propose structured knowledge
-that users cannot reasonably be expected to provide, including typical lead
-times, prerequisite patterns, likely durations, and recommended timing windows.
+The Parking Lot retains phase-header Add actions, dependency terminology,
+general filters, dependency visualization, alternate views, first-class
+People, related-task links, editable phases/categories, and subtasks. Do not
+fold those observations into the home-sale walkthrough.
 
-Each consequential knowledge item should be inspectable and carry appropriate
-source, confidence, and freshness information. Users must be able to correct
-consequential assumptions. Deterministic rules—not an opaque AI response—must
-combine planning knowledge with actual family-plan state to produce attention
-states and Recommendations.
+The verified post-migration backup remains outside the repository at
+`/home/joeshep/backups/gotime/20260817T001021Z-a32c31d-post-migration/`. Never
+add that backup, database files, manifest contents, or family-plan data to Git.
 
-Routine UI interaction must not invoke AI. Reusable knowledge should be cached,
-and live research should occur only when freshness materially matters. Existing
-credential boundaries, cost tracking, budgets, and operational-simplicity
-principles remain applicable.
-
-This direction does not authorize resuming the frozen moving-service experiment,
-adding an AI model call, installing an SDK, accessing credentials, performing
-live research, or implementing new AI infrastructure.
-
-## Current implementation baseline
-
-GoTime persists one singleton family relocation plan in SQLite. It supports
-four ordered phases and tasks with status, zero or more configured categories,
-assignee names, optional dates, stored four-level priority, and direct
-dependencies. Blocking is derived. Completed tasks remain in collapsed
-per-phase history sections and cannot be introduced as new dependencies.
-
-The React experience supports task creation and full editing, narrow status
-changes, dependency selection, a plan-wide finder, multi-category presentation,
-and local OR category filtering including derived Uncategorized. Human browser
-acceptance has passed for the multi-category and related responsive behavior.
-
-The current stored-task Recommendation is deterministic. It considers only
-incomplete, unblocked tasks whose start dates have arrived and orders eligible
-tasks by stored priority, due state/date, in-progress status, immediate
-unblocking leverage, phase order, and stable task ID. This is the baseline to
-evaluate, not the assumed final attention model.
-
-The earlier employment/commute reasoning remains a separate in-memory flow.
-The moving-service AI experiment remains frozen with no new execution or
-infrastructure authorized.
-
-## Separate parked observations
-
-Do not fold unrelated UX work into derived-attention design. The Parking Lot
-retains phase-header Add actions and phase-prefilled creation, dependency
-terminology, general task filters, dependency visualization, alternate views,
-first-class People, related-task links, editable phases/categories, and
-subtasks. Authentication, notifications, multiple goals, and generalized
-project infrastructure also remain outside the current increment.
-
-## Data safety and verification context
-
-The verified post-migration backup remains outside the repository at:
-
-`/home/joeshep/backups/gotime/20260817T001021Z-a32c31d-post-migration/`
-
-Do not add that backup, database files, manifest contents, or family-plan data
-to Git.
-
-The multi-category implementation and browser refinements are complete in:
-
-* `a32c31d` — multi-category support
-* `bc1ba5a` — category interaction refinements
-* `9242254` — responsive Bootstrap spacing utilities
-* `da1d65e` — wider mobile task lists
-* `120b6e8` — browser-acceptance closeout
-
-Historical milestone detail remains in `SESSION_NOTES.md`; do not restore old
-“next milestone” instructions to this handoff.
+Historical implementation and acceptance details remain in
+`SESSION_NOTES.md`.

@@ -1,5 +1,36 @@
 # Session Notes
 
+## 2026-08-17 — Home-sale strategy reference scenario
+
+- Established the current-home sale campaign launch as GoTime's first concrete
+  reference scenario for milestone-driven planning and derived attention. The
+  Milestone is reached when the family's selected public, builder/off-market,
+  or parallel marketing channels become active in a currently approximate
+  post-New Year window.
+- Recorded `Select the initial home-sale strategy` as a revisable Decision with
+  credible as-is public, repair-first public, builder/off-market, parallel, and
+  market-feedback options.
+- Distinguished the minimum acceptable net proceeds hard constraint from gross
+  sale price, scenario-specific costs, estimated net proceeds, and the
+  preferences used to compare otherwise viable options. The private threshold
+  was intentionally omitted from the public scenario.
+- Recorded the ballpark realtor evidence needed to compare options, including
+  ranges, confidence, timing, costs, and risk, without treating unavailable
+  certainty or false precision as a requirement.
+- Defined provisional Milestone, Decision option, Evidence need, Conditional
+  work, Hard prerequisite, and Supporting or timed work language, and refined
+  the existing Decision, Hard constraint, and Preference distinctions. These
+  remain domain concepts rather than committed database entities, Pydantic
+  schemas, APIs, or interface controls.
+- Documented why `Reengage with the realtor` deserves attention now: it is
+  actionable, supplies required evidence, and unlocks a consequential Decision
+  controlling multiple downstream branches. This reasoning does not depend on
+  manual task priority or an arbitrary start date.
+- Set the next product-design activity to a manual walkthrough of the scenario
+  to identify the smallest representation needed before proposing schema or
+  interface changes. No application, persisted data, runtime, test, schema,
+  API, or ADR change was made.
+
 ## 2026-08-16 — Derived-attention product direction
 
 - Selected derived attention as the next product-design objective: GoTime

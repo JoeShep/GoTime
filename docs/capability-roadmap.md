@@ -50,6 +50,13 @@ inspectable lead times, prerequisite patterns, durations, or timing windows,
 but deterministic rules continue to combine knowledge with trusted plan state
 and own the resulting attention and recommendation.
 
+The first baseline is a manual walkthrough of the
+[home-sale strategy reference scenario](reference-scenarios/home-sale-strategy.md).
+It asks what minimum representation is needed to surface actionable
+evidence-gathering, prepare a consequential Decision, activate only the work
+selected by that Decision, and coordinate it toward a Milestone window. Schema
+and interface proposals follow only after that reasoning is understood.
+
 ### Capability 5: Explain
 This is the part I don't want to compromise on. Every recommendation should be accompanied by an explanation.
 

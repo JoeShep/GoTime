@@ -63,6 +63,13 @@ be demoted or potentially retired from ordinary task creation and
 recommendation ranking. Preserve the field and all stored values until derived
 attention has been designed and validated.
 
+The [home-sale strategy reference scenario](reference-scenarios/home-sale-strategy.md)
+is the first concrete test of this direction. It combines a milestone window,
+an unresolved decision, a hard financial constraint, comparison preferences,
+incomplete evidence, conditional work, and route-specific dependencies. It
+should explain why gathering realtor evidence deserves attention now without a
+manual priority level or arbitrary start date.
+
 ## AI-Assisted Planning Knowledge
 
 AI-assisted planning knowledge is an intentional future capability. An AI

@@ -38,6 +38,13 @@ identify which facts are actually missing. Any later AI-proposed knowledge must
 be inspectable, grounded, freshness-aware, user-correctable when consequential,
 and applied by deterministic rules rather than used as an opaque ranking.
 
+The first representative baseline is the
+[home-sale strategy scenario](reference-scenarios/home-sale-strategy.md). It
+tests whether a milestone, unresolved Decision, hard constraint, preferences,
+incomplete evidence, conditional work, and dependencies are enough to explain
+why evidence-gathering deserves attention now without manual task priority or
+an arbitrary start date.
+
 ## Goal
 
 Demonstrate that GoTime can reason about a complex goal, recommend the next decision or action, and explain its reasoning in a way the user trusts.
