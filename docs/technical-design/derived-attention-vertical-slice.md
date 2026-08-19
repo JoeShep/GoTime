@@ -778,6 +778,8 @@ Increment 1 implements only the Milestone and Decision foundation. It adds the
 three empty additive tables, explicit API schemas and mutations, and compact
 plan controls without changing Task or Recommendation behavior or converting
 family-plan records. Its automated and isolated restored-volume migration
-verification passed on 2026-08-18. Applying that migration to the active
-family database and restarting the normal stack still require explicit user
-approval. Later increments also require separate approval.
+verification passed on 2026-08-18. The additive active migration, isolated
+browser acceptance, accepted frontend deployment, and disposable-environment
+teardown were completed safely by 2026-08-19. The active family plan remains
+unconverted and contains no Milestones, Decisions, or Decision options.
+Increment 2 has not begun and requires separate planning review and approval.

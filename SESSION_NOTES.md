@@ -1,5 +1,24 @@
 # Session Notes
 
+## 2026-08-19 — Increment 1 acceptance and closeout
+
+- Human browser acceptance passed for the existing plan and Recommendation,
+  Milestone and Decision workflows, explicit user authority, narrow mutation
+  stability, readable dates and badges, and the responsive layout refinements.
+- Formally rebuilt and recreated only the normal frontend from accepted commit
+  `23c9f3c`. Health, plan, Recommendation, frontend, and frontend-proxy checks
+  passed; the healthy normal backend was not rebuilt or restarted.
+- Confirmed the active database remained byte-for-byte and logically unchanged
+  during frontend deployment. It still contains no Milestones, Decisions, or
+  Decision options, and no family-plan Task or relationship was converted.
+- Verified the acceptance containers, network, and database volume belonged
+  only to the isolated `gotime_increment1_acceptance` project, then removed
+  those disposable resources and their temporary Compose directory. Normal
+  Docker resources and the verified pre-Increment-1 backup were preserved.
+- Increment 1 is closed. Increment 2 has not begun; its required subtasks,
+  work-informs-Decision relationships, advisory readiness, and contextual
+  Recommendations require review and execution planning first.
+
 ## 2026-08-19 — Balanced mobile page insets
 
 - Applied one responsive intro wrapper to align GoTime branding, the main

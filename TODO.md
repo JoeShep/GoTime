@@ -18,8 +18,11 @@
 - [x] Review and approve the technical design and Increment 1 architecture.
 - [x] Implement and verify Increment 1: the Milestone and Decision foundation
   on test databases and an isolated restored volume.
-- [ ] Complete human reacceptance of the focused Increment-1 frontend
-  refinements, then approve updating the normal stack before Increment 2.
+- [x] Complete human acceptance of Increment 1, deploy the accepted frontend
+  to the normal stack, and remove the isolated acceptance environment safely.
+- [ ] Review and approve execution planning for Increment 2: required
+  subtasks, work-informs-Decision relationships, advisory Decision readiness,
+  and contextual Recommendations.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting
   states as deterministic outputs rather than user-selected priorities.
 - [ ] Specify which existing plan facts contribute to each state without
