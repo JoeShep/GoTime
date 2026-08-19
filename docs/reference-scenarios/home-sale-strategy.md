@@ -55,6 +55,11 @@ listing is only one possible channel. The actual work needed to achieve the
 Milestone belongs in the applicable public-listing and/or builder-outreach
 branches.
 
+A second real-world Milestone is **Our home is under contract**. The eventual
+`Give 30-day employment notice / arrange PTO` work depends on achievement of
+that Milestone, not on **Start selling our home**. The farewell-party Decision
+has no hard dependency on starting the sale.
+
 ## Decision: select the initial home-sale strategy
 
 The unresolved decision is **Select the initial home-sale strategy**. Current

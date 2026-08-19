@@ -1,41 +1,24 @@
 # NEXT_SESSION
 
-## Current objective: approve the derived-attention technical design
+## Current objective: complete Increment 1 safely
 
-Review the
-[vertical-slice technical design](docs/technical-design/derived-attention-vertical-slice.md)
-and approve or revise its domain, persistence, migration, reasoning, API,
-interface, and implementation-increment choices before any implementation.
+Implement only the approved Milestone and Decision foundation in
+[ADR-0008](docs/adr/ADR-0008-derived-attention-foundation.md) and the
+[technical design](docs/technical-design/derived-attention-vertical-slice.md).
 
-The reference Milestone is **Start selling our home**. The existing `Put
-current home on the market` Task should become that Milestone without leaving a
-duplicate action Task. Public-listing and builder-outreach actions belong in
-conditional branches.
+The active database is protected by the verified pre-Increment-1 backup at
+`/home/joeshep/backups/gotime/20260819T015944Z-10a7ead-pre-increment-1/`.
+The normal backend is stopped and must remain stopped; candidate migration may
+run only on test databases and isolated restored volumes.
 
-## Decisions requiring approval
+Increment 1 adds empty Milestone, Decision, and ordered-option persistence to
+existing databases; explicit schemas and focused APIs; compact create/edit and
+state controls; and tests. It does not create real family-plan records or
+convert `Put current home on the market`.
 
-* Use an independent Milestone domain concept and preserve the old Task's
-  stable ID value during conversion.
-* Resolve the home-sale Decision with one selected option, including a named
-  parallel option, rather than multiple simultaneous selections.
-* Derive activation from option associations plus a user keep-active override.
-* Let derived Do now work outrank the legacy priority-first fallback while
-  preserving existing priority data.
-* Use a human-readable target window initially; defer structured date bounds
-  until meaningful precision exists.
-* Keep inactive Completed work outside ordinary counts/views but available
-  through Show inactive work and finder/history.
-* Review the farewell-party and notice/PTO relationship meanings before any
-  family-data migration; the latter remains unclear.
-
-The proposed sequence has four separately approved increments: Milestone and
-Decision foundation; required subtasks/evidence/readiness; conditional
-activation and safe revision; then rehearsed family-plan conversion and full
-acceptance.
-
-Do not define tables, Pydantic schemas, endpoint signatures, or components—and
-do not change code, tests, runtime, or family data—until this design is
-approved. A technical ADR may be appropriate after approval.
+Do not begin hierarchy, evidence links/readiness, activation, inactive-work
+views, Decision impact handling, derived Recommendations, family-data
+conversion, AI, financial calculations, or removal behavior.
 
 The governing principle remains:
 

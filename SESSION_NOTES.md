@@ -1,5 +1,27 @@
 # Session Notes
 
+## 2026-08-18 — Increment 1 architecture approval and safety gate
+
+- Approved the independent Milestone and Decision foundation and recorded it
+  in ADR-0008, including optional earliest/latest target dates, explicit
+  achievement, ordered singular Decision selection, and the user-authority
+  principle.
+- Added **Our home is under contract** as the second real-world Milestone.
+  Employment notice/PTO will eventually depend on that Milestone; the
+  farewell-party Decision will not depend on starting the sale.
+- Confirmed that future derived Do now selection ignores stored legacy priority
+  while preserving priority data and transitional display.
+- Created a fresh SQLite-online backup outside Git and successfully restored it
+  into an isolated Docker volume using the deployed image's normal root runtime
+  identity. The verification container was unprivileged, used `network=none`,
+  published no ports, and mounted no active volume.
+- Verified exact schema and row equality, all 49 unique Task IDs, aggregate
+  counts, integrity, foreign keys, and health/plan/Recommendation endpoints.
+  Removed only the temporary verification resources afterward.
+- Stopped the normal backend before schema-bearing edits. The active
+  `gotime_gotime_data` volume remains preserved and must not be mounted by
+  candidate code.
+
 ## 2026-08-17 — Derived-attention vertical-slice technical design
 
 - Renamed the human-facing home-sale Milestone to **Start selling our home**,

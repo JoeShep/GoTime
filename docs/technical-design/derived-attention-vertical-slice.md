@@ -2,15 +2,15 @@
 
 ## Status and boundary
 
-This document proposes an implementation-neutral technical design for the
+This document records the approved technical design for the
 smallest end-to-end slice demonstrated by the
 [home-sale strategy reference scenario](../reference-scenarios/home-sale-strategy.md).
-It is ready for product and technical review, not implementation.
+ADR-0008 approves the Milestone and Decision foundation for Increment 1.
 
-The design deliberately stops before database table definitions, Pydantic
-schemas, endpoint signatures, component designs, or migration code. Its named
-items are domain concepts and relationships unless explicitly described as an
-existing table, request schema, or response schema.
+Detailed database tables, Pydantic schemas, endpoint signatures, components,
+and migration code remain implementation concerns bounded by this design. Its
+named items are domain concepts and relationships unless explicitly described
+otherwise.
 
 The governing principle is:
 
@@ -20,6 +20,9 @@ The governing principle is:
 The human-facing reference Milestone is **Start selling our home**. It is
 achieved only when the buyer-seeking channels selected by the family—a public
 listing, builder or off-market outreach, or both—are genuinely active.
+**Our home is under contract** is a second real-world Milestone. The eventual
+employment-notice/PTO work depends on that second Milestone, while the
+farewell-party Decision has no hard dependency on starting the sale.
 
 ## Current implementation audit
 
@@ -231,12 +234,12 @@ Recommend option 3. The first slice requires:
 * reviewed relationships to work that supports, is timed around, or truly
   depends on the Milestone.
 
-For this slice, store the target as a bounded human-readable window such as
-“Post–New Year 2027.” Do not require an exact date or invent boundaries solely
-for machine ranking. A later design may add structured earliest/latest dates
-when the realtor consultation supplies meaningful precision. A separate
-committed timing field is unnecessary now; the target/committed distinction is
-preserved by explicitly marking this value as a target.
+For this slice, Milestone timing uses optional earliest and latest target dates.
+Equal dates are exact, different dates are a bounded window, earliest only is
+open-ended timing such as after New Year, and neither means timing is unknown.
+A latest-only or reversed window is invalid. These dates are planning guidance,
+not Task start dates or hard deadlines. A separate committed-timing field is
+unnecessary now.
 
 Achievement is a user-recorded real-world fact, not a consequence of Task
 status. GoTime may recommend confirmation when selected channels appear ready,
@@ -496,8 +499,8 @@ Add compact Milestone and Decision cards above the phase list, near the current
 Recommendation and plan heading. Reuse the existing card, form, notice, and
 narrow-action patterns rather than introducing separate administration screens.
 
-The Milestone card shows **Start selling our home**, its “Post–New Year 2027”
-target window, Pending/Achieved state, related Decision, and an explicit
+The Milestone card shows **Start selling our home**, its open-ended target
+window, Pending/Achieved state, related Decision, and an explicit
 achievement action with confirmation. The Decision card shows its prompt, options,
 Gathering information/Ready for consideration advisory state, incomplete linked
 work, selected option, and select/revise action. A warning does not disable the
@@ -680,7 +683,7 @@ reviewable state.
 
 The fixture contains:
 
-* Milestone: **Start selling our home**, target window Post–New Year 2027,
+* Milestone: **Start selling our home**, open-ended post-New Year target,
   Pending.
 * Decision: **Select the initial home-sale strategy**, Unresolved.
 * Parent Task: **Reengage with the realtor**.
@@ -745,25 +748,24 @@ the buyer-seeking channels are genuinely active does the user mark **Start
 selling our home** Achieved. The user can correct that fact by returning it to
 Pending.
 
-## Risks and approval questions
+## Approved choices and remaining risks
 
-The design recommends answers for the minimum slice, but implementation must
-wait for user approval of these consequential choices:
+The following consequential choices are approved:
 
-1. Approve an independent Milestone domain concept instead of a specialized
+1. Use an independent Milestone domain concept instead of a specialized
    Task, while preserving the old Task's stable ID value during conversion.
-2. Approve one selected Decision option with a named parallel option instead of
+2. Use one selected Decision option with a named parallel option instead of
    multi-select options.
-3. Approve derived activation from option associations plus a persisted
+3. Use derived activation from option associations plus a persisted
    keep-active override, rather than a mutable active boolean.
-4. Approve the bounded precedence rule: a derived Do now candidate outranks
-   legacy priority-first fallback candidates.
-5. Confirm the semantics of the notice/PTO and farewell-party relationships
-   immediately before migration.
-6. Approve a human-readable target window for this slice, with structured date
-   bounds deferred until real precision exists.
-7. Confirm that inactive Completed work may be absent from ordinary counts and
-   views but remains available through Show inactive work and finder/history.
+4. Ignore legacy priority in future derived Do now selection while preserving
+   its data and transitional display.
+5. Make employment notice/PTO depend on **Our home is under contract**, and do
+   not make the farewell-party Decision depend on starting the sale.
+6. Use optional earliest/latest target dates with the approved exact, bounded,
+   open-ended, and unknown meanings.
+7. Keep inactive Completed work absent from ordinary counts and views but
+   available through Show inactive work and finder/history.
 
 Additional risks are parent reopening after downstream progress, active work
 depending on inactive prerequisites, stale Decision-revision previews,
@@ -771,6 +773,5 @@ partially migrated databases, and older-application incompatibility after
 family-data conversion. Each requires explicit validation and fail-closed
 behavior, not inference.
 
-Do not begin schema, API, interface, migration, or test implementation until
-this design and increment sequence are reviewed and approved. An ADR may then
-record the accepted persistence and contract decisions.
+Increment 1 may now implement only the Milestone and Decision foundation.
+Later increments still require separate approval.

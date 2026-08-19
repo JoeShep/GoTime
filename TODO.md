@@ -15,8 +15,8 @@
   coordinate it toward the **Start selling our home** Milestone.
 - [x] Audit the current implementation and prepare an implementation-neutral
   technical design for the smallest vertical slice.
-- [ ] Review and approve the technical design, consequential choices, and
-  implementation increments before beginning schema, API, or interface work.
+- [x] Review and approve the technical design and Increment 1 architecture.
+- [ ] Implement and verify Increment 1: the Milestone and Decision foundation.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting
   states as deterministic outputs rather than user-selected priorities.
 - [ ] Specify which existing plan facts contribute to each state without
