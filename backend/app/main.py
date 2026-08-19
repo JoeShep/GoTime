@@ -16,15 +16,25 @@ from app.moving_service_questions import (
 )
 from app.reasoning import UnsupportedReasoningStateError, recommend_next_step
 from app.relocation_plan_models import (
+    DecisionCreate,
+    DecisionSelectionUpdate,
+    DecisionUpdate,
+    MilestoneAchievementUpdate,
+    MilestoneCreate,
+    MilestoneUpdate,
     RelocationPlan,
     TaskCreate,
     TaskStatusUpdate,
     TaskUpdate,
 )
 from app.relocation_plan_repository import (
+    DecisionNotFoundError,
     DependencyCycleError,
     InvalidDependencyError,
     InvalidPhaseError,
+    InvalidDecisionError,
+    MilestoneNotFoundError,
+    PlanItemAlreadyExistsError,
     SQLiteRelocationPlanRepository,
     TaskAlreadyExistsError,
     TaskNotFoundError,
@@ -58,11 +68,11 @@ def get_plan_repository(request: Request) -> SQLiteRelocationPlanRepository:
 
 
 def plan_error(error: ValueError) -> HTTPException:
-    if isinstance(error, TaskNotFoundError):
+    if isinstance(error, (TaskNotFoundError, MilestoneNotFoundError, DecisionNotFoundError)):
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
-    if isinstance(error, TaskAlreadyExistsError):
+    if isinstance(error, (TaskAlreadyExistsError, PlanItemAlreadyExistsError)):
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error))
-    if isinstance(error, (InvalidPhaseError, InvalidDependencyError, DependencyCycleError)):
+    if isinstance(error, (InvalidPhaseError, InvalidDependencyError, DependencyCycleError, InvalidDecisionError)):
         return HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)
         )
@@ -119,6 +129,84 @@ async def update_relocation_task_status(
 ) -> RelocationPlan:
     try:
         return get_plan_repository(request).update_task_status(task_id, update.status)
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.post(
+    "/api/relocation-plan/milestones",
+    response_model=RelocationPlan,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_milestone(request: Request, milestone: MilestoneCreate) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).create_milestone(milestone)
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.put(
+    "/api/relocation-plan/milestones/{milestone_id}", response_model=RelocationPlan
+)
+async def update_milestone(
+    request: Request, milestone_id: str, milestone: MilestoneUpdate
+) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).update_milestone(milestone_id, milestone)
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.patch(
+    "/api/relocation-plan/milestones/{milestone_id}/achievement",
+    response_model=RelocationPlan,
+)
+async def set_milestone_achievement(
+    request: Request, milestone_id: str, update: MilestoneAchievementUpdate
+) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).set_milestone_achievement(
+            milestone_id, update.achieved
+        )
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.post(
+    "/api/relocation-plan/decisions",
+    response_model=RelocationPlan,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_decision(request: Request, decision: DecisionCreate) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).create_decision(decision)
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.put(
+    "/api/relocation-plan/decisions/{decision_id}", response_model=RelocationPlan
+)
+async def update_decision(
+    request: Request, decision_id: str, decision: DecisionUpdate
+) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).update_decision(decision_id, decision)
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.patch(
+    "/api/relocation-plan/decisions/{decision_id}/selection",
+    response_model=RelocationPlan,
+)
+async def select_decision_option(
+    request: Request, decision_id: str, update: DecisionSelectionUpdate
+) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).select_decision_option(
+            decision_id, update.selected_option_id
+        )
     except ValueError as error:
         raise plan_error(error) from error
 

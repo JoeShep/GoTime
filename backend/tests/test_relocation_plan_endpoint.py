@@ -46,6 +46,8 @@ def test_get_returns_the_persisted_singleton_plan(tmp_path) -> None:
             {"id": "settle", "title": "Settle in", "position": 40},
         ],
         "tasks": [],
+        "milestones": [],
+        "decisions": [],
     }
 
 

@@ -1,5 +1,30 @@
 # Session Notes
 
+## 2026-08-18 — Increment 1 Milestone and Decision foundation
+
+- Added additive, transactional, idempotent persistence for Milestones,
+  Decisions, and ordered Decision options. Existing databases receive empty
+  new structures; no family-plan record is converted automatically.
+- Added explicit request/response schemas and focused create/edit, Milestone
+  achievement/reversal, and Decision selection/revision/unresolve actions.
+- Added compact React-Bootstrap plan controls for Milestone target guidance,
+  explicit achievement, ordered options, and user-controlled selection. Task
+  and Recommendation behavior remains unchanged.
+- Added migration, constraint, CRUD, API, and frontend behavior coverage.
+  Backend compilation and all 195 backend tests passed; all 63 frontend tests
+  and the production frontend build passed.
+- Restored the verified pre-Increment-1 backup with SQLite's backup API into a
+  uniquely named temporary volume, then started only the candidate image with
+  `network=none`, no ports, and no active-volume mount. Every original-table
+  row hash and count matched; 49 Task IDs remained unique; the three new tables
+  were empty; integrity, foreign keys, health, plan, and Recommendation passed.
+- A second candidate startup against that temporary volume proved migration
+  idempotence. Only the temporary container and volume were removed afterward.
+- The active `gotime_gotime_data` database remains unchanged and unmigrated.
+  The normal backend remains stopped pending explicit approval to migrate and
+  restart it. No real family-plan Milestone, Decision, Task, or relationship
+  was changed.
+
 ## 2026-08-18 — Increment 1 architecture approval and safety gate
 
 - Approved the independent Milestone and Decision foundation and recorded it

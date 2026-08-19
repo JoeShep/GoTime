@@ -12,6 +12,7 @@ import {
   type TaskStatus,
   type TaskWrite,
 } from './api/relocationPlan'
+import { MilestoneDecisionFoundation } from './MilestoneDecisionFoundation'
 
 const statusLabels: Record<TaskStatus, string> = {
   not_started: 'Not started',
@@ -196,10 +197,14 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const titleInputRef = useRef<HTMLInputElement>(null)
   const taskRefs = useRef(new Map<string, HTMLElement>())
 
+  function acceptPlan(updated: RelocationPlanData) {
+    setPlan({ ...updated, milestones: updated.milestones ?? [], decisions: updated.decisions ?? [] })
+  }
+
   useEffect(() => {
     const controller = new AbortController()
     fetchRelocationPlan(controller.signal)
-      .then(setPlan)
+      .then(acceptPlan)
       .catch((requestError: unknown) => {
         if (!controller.signal.aborted) {
           setError(requestError instanceof Error ? requestError.message : 'Unable to load the relocation plan.')
@@ -337,7 +342,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       const updated = editingId
         ? await replaceTask(editingId, write)
         : await createTask(generateTaskId(write.title), write)
-      setPlan(updated)
+      acceptPlan(updated)
       onPlanChanged?.()
       setDraft(null)
       setEditingId(null)
@@ -354,7 +359,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setError(null)
     setNotice(null)
     try {
-      setPlan(await changeTaskStatus(task.id, status))
+      acceptPlan(await changeTaskStatus(task.id, status))
       onPlanChanged?.()
       setNotice(`Status updated for ${task.title}.`)
     } catch (requestError) {
@@ -409,6 +414,8 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       {loading && <div className="py-4 text-center" role="status"><Spinner size="sm" /> <span>Loading relocation plan…</span></div>}
       {error && <Alert variant="danger">{error}</Alert>}
       {notice && <Alert variant="success">{notice}</Alert>}
+
+      {plan && !draft && <MilestoneDecisionFoundation plan={plan} onPlanUpdated={(updated) => { acceptPlan(updated); onPlanChanged?.() }} />}
 
       {plan && !draft && (
         <Form.Group className="task-finder position-relative mb-4" controlId="task-finder">

@@ -14,6 +14,8 @@ const plan: RelocationPlanData = {
   id: 'family-relocation-plan',
   title: 'Relocate the family to Northern California',
   phases,
+  milestones: [],
+  decisions: [],
   tasks: [
     {
       id: 'choose-mover',

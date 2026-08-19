@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -35,11 +35,32 @@ class TaskPriority(StrEnum):
     CRITICAL = "critical"
 
 
+class MilestoneStatus(StrEnum):
+    PENDING = "pending"
+    ACHIEVED = "achieved"
+
+
+class DecisionStatus(StrEnum):
+    UNRESOLVED = "unresolved"
+    RESOLVED = "resolved"
+
+
 def _trimmed(value: str, field_name: str) -> str:
     stripped = value.strip()
     if not stripped:
         raise ValueError(f"{field_name} must not be blank.")
     return stripped
+
+
+def _validate_milestone_target_window(
+    earliest: date | None, latest: date | None
+) -> None:
+    if latest is not None and earliest is None:
+        raise ValueError("Milestone latest target date requires an earliest date.")
+    if earliest is not None and latest is not None and latest < earliest:
+        raise ValueError(
+            "Milestone latest target date cannot precede its earliest date."
+        )
 
 
 class Phase(PlanModel):
@@ -165,8 +186,127 @@ class Task(TaskFields):
     blocked: bool
 
 
+class MilestoneFields(PlanModel):
+    title: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2_000)
+    target_earliest_date: date | None = None
+    target_latest_date: date | None = None
+
+    _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
+    _validate_description = field_validator("description")(
+        TaskFields.validate_description.__func__
+    )
+
+    @model_validator(mode="after")
+    def validate_target_window(self) -> "MilestoneFields":
+        _validate_milestone_target_window(
+            self.target_earliest_date, self.target_latest_date
+        )
+        return self
+
+
+class MilestoneCreate(MilestoneFields):
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$")
+
+
+class MilestoneUpdate(PlanModel):
+    title: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(max_length=2_000)
+    target_earliest_date: date | None
+    target_latest_date: date | None
+
+    _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
+    _validate_description = field_validator("description")(
+        TaskFields.validate_description.__func__
+    )
+
+    @model_validator(mode="after")
+    def validate_target_window(self) -> "MilestoneUpdate":
+        _validate_milestone_target_window(
+            self.target_earliest_date, self.target_latest_date
+        )
+        return self
+
+
+class MilestoneAchievementUpdate(PlanModel):
+    achieved: bool
+
+
+class Milestone(MilestoneFields):
+    id: str
+    status: MilestoneStatus
+    achieved_at: datetime | None
+
+
+class DecisionOptionFields(PlanModel):
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    title: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2_000)
+
+    _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
+    _validate_description = field_validator("description")(
+        TaskFields.validate_description.__func__
+    )
+
+
+class DecisionFields(PlanModel):
+    title: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2_000)
+    milestone_id: str = Field(min_length=1, max_length=64)
+    options: tuple[DecisionOptionFields, ...] = Field(min_length=2, max_length=20)
+
+    _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
+    _validate_description = field_validator("description")(
+        TaskFields.validate_description.__func__
+    )
+
+    @field_validator("options")
+    @classmethod
+    def validate_options(
+        cls, values: tuple[DecisionOptionFields, ...]
+    ) -> tuple[DecisionOptionFields, ...]:
+        ids = [value.id for value in values]
+        titles = [value.title.casefold() for value in values]
+        if len(set(ids)) != len(ids):
+            raise ValueError("Decision option IDs must be unique.")
+        if len(set(titles)) != len(titles):
+            raise ValueError("Decision option titles must be unique.")
+        return values
+
+
+class DecisionCreate(DecisionFields):
+    id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$")
+
+
+class DecisionUpdate(PlanModel):
+    title: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(max_length=2_000)
+    milestone_id: str = Field(min_length=1, max_length=64)
+    options: tuple[DecisionOptionFields, ...] = Field(min_length=2, max_length=20)
+
+    _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
+    _validate_description = field_validator("description")(
+        TaskFields.validate_description.__func__
+    )
+    _validate_options = field_validator("options")(
+        DecisionFields.validate_options.__func__
+    )
+
+
+class DecisionSelectionUpdate(PlanModel):
+    selected_option_id: str | None
+
+
+class Decision(DecisionFields):
+    id: str
+    status: DecisionStatus
+    selected_option_id: str | None
+
+
 class RelocationPlan(PlanModel):
     id: str
     title: str
     phases: tuple[Phase, ...]
     tasks: tuple[Task, ...]
+    milestones: tuple[Milestone, ...] = ()
+    decisions: tuple[Decision, ...] = ()

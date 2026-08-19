@@ -599,8 +599,8 @@ reviewable state.
 ### Increment 1: Milestone and Decision foundation
 
 * **User-visible outcome:** The plan can show, create, and edit a Milestone and
-  one Decision with ordered options; the user can select an option despite an
-  advisory warning and explicitly confirm Milestone achievement.
+  one Decision with ordered options; the user can select, revise, or clear an
+  option and explicitly confirm or reverse Milestone achievement.
 * **Backend/frontend areas:** Add bounded domain behavior, additive persistence,
   plan projection, focused mutations, compact cards, forms, and state actions.
 * **Migration implications:** Additive schema only; do not convert the real
@@ -608,9 +608,10 @@ reviewable state.
 * **Reasoning added:** None beyond displaying unresolved/resolved and
   Pending/Achieved facts; the engine never chooses an option or achievement.
 * **Tests:** Persistence/reload, bounded options, full edits, state actions,
-  warning override, explicit achievement, API errors, and card/form behavior.
-* **Browser acceptance:** Create/edit both cards, choose/revise an option with a
-  warning, and confirm/reopen a Milestone without changing Tasks.
+  explicit achievement, API errors, and card/form behavior. Advisory readiness
+  and its warning override begin in Increment 2.
+* **Browser acceptance:** Create/edit both cards, choose/revise/clear an option,
+  and confirm/reopen a Milestone without changing Tasks.
 * **Rollback boundary:** Revert application code while additive tables remain
   unused, or restore the increment backup if records were created.
 
@@ -773,5 +774,10 @@ partially migrated databases, and older-application incompatibility after
 family-data conversion. Each requires explicit validation and fail-closed
 behavior, not inference.
 
-Increment 1 may now implement only the Milestone and Decision foundation.
-Later increments still require separate approval.
+Increment 1 implements only the Milestone and Decision foundation. It adds the
+three empty additive tables, explicit API schemas and mutations, and compact
+plan controls without changing Task or Recommendation behavior or converting
+family-plan records. Its automated and isolated restored-volume migration
+verification passed on 2026-08-18. Applying that migration to the active
+family database and restarting the normal stack still require explicit user
+approval. Later increments also require separate approval.

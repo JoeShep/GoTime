@@ -1,20 +1,21 @@
 # NEXT_SESSION
 
-## Current objective: complete Increment 1 safely
+## Current objective: review Increment 1 before active migration
 
-Implement only the approved Milestone and Decision foundation in
+Review the implemented Milestone and Decision foundation in
 [ADR-0008](docs/adr/ADR-0008-derived-attention-foundation.md) and the
 [technical design](docs/technical-design/derived-attention-vertical-slice.md).
 
 The active database is protected by the verified pre-Increment-1 backup at
 `/home/joeshep/backups/gotime/20260819T015944Z-10a7ead-pre-increment-1/`.
-The normal backend is stopped and must remain stopped; candidate migration may
-run only on test databases and isolated restored volumes.
+The normal backend is stopped and the active database remains unmigrated.
+Automated suites, the production frontend build, and a twice-started isolated
+candidate migration rehearsal passed without changing any original row.
 
-Increment 1 adds empty Milestone, Decision, and ordered-option persistence to
-existing databases; explicit schemas and focused APIs; compact create/edit and
-state controls; and tests. It does not create real family-plan records or
-convert `Put current home on the market`.
+The next approval is permission to run this reviewed additive migration against
+the active database and restart the normal stack. Then perform human browser
+acceptance. Do not create real Milestones or Decisions or convert `Put current
+home on the market` as part of that operational step.
 
 Do not begin hierarchy, evidence links/readiness, activation, inactive-work
 views, Decision impact handling, derived Recommendations, family-data

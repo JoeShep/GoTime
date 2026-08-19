@@ -2,10 +2,20 @@ from __future__ import annotations
 
 import sqlite3
 from collections.abc import Iterable
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.relocation_plan_models import (
     CATEGORY_ORDER,
+    Decision,
+    DecisionCreate,
+    DecisionOptionFields,
+    DecisionStatus,
+    DecisionUpdate,
+    Milestone,
+    MilestoneCreate,
+    MilestoneStatus,
+    MilestoneUpdate,
     Phase,
     RelocationPlan,
     Task,
@@ -47,6 +57,22 @@ class InvalidDependencyError(RelocationPlanError):
 
 
 class DependencyCycleError(RelocationPlanError):
+    pass
+
+
+class PlanItemAlreadyExistsError(RelocationPlanError):
+    pass
+
+
+class MilestoneNotFoundError(RelocationPlanError):
+    pass
+
+
+class DecisionNotFoundError(RelocationPlanError):
+    pass
+
+
+class InvalidDecisionError(RelocationPlanError):
     pass
 
 
@@ -123,6 +149,7 @@ class SQLiteRelocationPlanRepository:
                 """
             )
             self._migrate_task_categories(connection)
+            self._migrate_milestone_decision_foundation(connection)
             connection.execute(
                 "INSERT OR IGNORE INTO relocation_plans (id, title) VALUES (?, ?)",
                 (RELOCATION_PLAN_ID, RELOCATION_PLAN_TITLE),
@@ -144,6 +171,125 @@ class SQLiteRelocationPlanRepository:
                     for phase in DEFAULT_PHASES
                 ),
             )
+
+    @staticmethod
+    def _migrate_milestone_decision_foundation(
+        connection: sqlite3.Connection,
+    ) -> None:
+        expected_tables = {"milestones", "decisions", "decision_options"}
+        present_tables = {
+            row["name"]
+            for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            )
+            if row["name"] in expected_tables
+        }
+        if present_tables and present_tables != expected_tables:
+            missing = ", ".join(sorted(expected_tables - present_tables))
+            raise RelocationPlanError(
+                f"Incomplete Milestone/Decision schema; missing: {missing}."
+            )
+        if present_tables == expected_tables:
+            expected_columns = {
+                "milestones": {
+                    "id", "plan_id", "title", "description",
+                    "target_earliest_date", "target_latest_date", "achieved_at",
+                },
+                "decisions": {
+                    "id", "plan_id", "milestone_id", "title", "description",
+                    "selected_option_id",
+                },
+                "decision_options": {
+                    "id", "decision_id", "title", "description", "position",
+                },
+            }
+            for table, columns in expected_columns.items():
+                actual = {
+                    row["name"]
+                    for row in connection.execute(f"PRAGMA table_info({table})")
+                }
+                if actual != columns:
+                    raise RelocationPlanError(
+                        f"Unexpected columns in Increment-1 table '{table}'."
+                    )
+            expected_indexes = {
+                "idx_milestones_plan_id",
+                "idx_decisions_plan_id",
+                "idx_decisions_milestone_id",
+            }
+            actual_indexes = {
+                row["name"]
+                for row in connection.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'index'"
+                )
+            }
+            missing_indexes = expected_indexes - actual_indexes
+            if missing_indexes:
+                raise RelocationPlanError(
+                    "Incomplete Increment-1 indexes: "
+                    + ", ".join(sorted(missing_indexes))
+                    + "."
+                )
+            return
+
+        connection.executescript(
+            """
+            BEGIN IMMEDIATE;
+            CREATE TABLE milestones (
+                id TEXT PRIMARY KEY,
+                plan_id TEXT NOT NULL REFERENCES relocation_plans(id),
+                title TEXT NOT NULL,
+                description TEXT,
+                target_earliest_date TEXT CHECK (
+                    target_earliest_date IS NULL OR (
+                        date(target_earliest_date) IS NOT NULL
+                        AND date(target_earliest_date) = target_earliest_date
+                    )
+                ),
+                target_latest_date TEXT CHECK (
+                    target_latest_date IS NULL OR (
+                        date(target_latest_date) IS NOT NULL
+                        AND date(target_latest_date) = target_latest_date
+                    )
+                ),
+                achieved_at TEXT,
+                CHECK (
+                    target_latest_date IS NULL OR target_earliest_date IS NOT NULL
+                ),
+                CHECK (
+                    target_latest_date IS NULL
+                    OR target_latest_date >= target_earliest_date
+                )
+            );
+            CREATE INDEX idx_milestones_plan_id ON milestones(plan_id);
+
+            CREATE TABLE decisions (
+                id TEXT PRIMARY KEY,
+                plan_id TEXT NOT NULL REFERENCES relocation_plans(id),
+                milestone_id TEXT NOT NULL REFERENCES milestones(id),
+                title TEXT NOT NULL,
+                description TEXT,
+                selected_option_id TEXT,
+                FOREIGN KEY (selected_option_id, id)
+                    REFERENCES decision_options(id, decision_id)
+                    DEFERRABLE INITIALLY DEFERRED
+            );
+            CREATE INDEX idx_decisions_plan_id ON decisions(plan_id);
+            CREATE INDEX idx_decisions_milestone_id ON decisions(milestone_id);
+
+            CREATE TABLE decision_options (
+                id TEXT PRIMARY KEY,
+                decision_id TEXT NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
+                title TEXT NOT NULL COLLATE NOCASE,
+                description TEXT,
+                position INTEGER NOT NULL CHECK (position >= 0),
+                UNIQUE (id, decision_id),
+                UNIQUE (decision_id, position),
+                UNIQUE (decision_id, title)
+            );
+            COMMIT;
+            """
+        )
 
     @staticmethod
     def _migrate_task_categories(connection: sqlite3.Connection) -> None:
@@ -279,6 +425,27 @@ class SQLiteRelocationPlanRepository:
                     """
                 ).fetchall()
             )
+            milestone_rows = connection.execute(
+                """
+                SELECT id, title, description, target_earliest_date,
+                    target_latest_date, achieved_at
+                FROM milestones WHERE plan_id = ? ORDER BY id
+                """,
+                (RELOCATION_PLAN_ID,),
+            ).fetchall()
+            decision_rows = connection.execute(
+                """
+                SELECT id, milestone_id, title, description, selected_option_id
+                FROM decisions WHERE plan_id = ? ORDER BY id
+                """,
+                (RELOCATION_PLAN_ID,),
+            ).fetchall()
+            option_rows = connection.execute(
+                """
+                SELECT id, decision_id, title, description
+                FROM decision_options ORDER BY decision_id, position
+                """
+            ).fetchall()
 
         if plan_row is None:
             raise RelocationPlanError("The singleton relocation plan is missing.")
@@ -307,11 +474,54 @@ class SQLiteRelocationPlanRepository:
             )
             for row in task_rows
         )
+        milestones = tuple(
+            Milestone(
+                id=row["id"],
+                title=row["title"],
+                description=row["description"],
+                target_earliest_date=row["target_earliest_date"],
+                target_latest_date=row["target_latest_date"],
+                status=(
+                    MilestoneStatus.ACHIEVED
+                    if row["achieved_at"] is not None
+                    else MilestoneStatus.PENDING
+                ),
+                achieved_at=row["achieved_at"],
+            )
+            for row in milestone_rows
+        )
+        options_by_decision: dict[str, list[DecisionOptionFields]] = {}
+        for row in option_rows:
+            options_by_decision.setdefault(row["decision_id"], []).append(
+                DecisionOptionFields(
+                    id=row["id"],
+                    title=row["title"],
+                    description=row["description"],
+                )
+            )
+        decisions = tuple(
+            Decision(
+                id=row["id"],
+                title=row["title"],
+                description=row["description"],
+                milestone_id=row["milestone_id"],
+                options=tuple(options_by_decision.get(row["id"], ())),
+                status=(
+                    DecisionStatus.RESOLVED
+                    if row["selected_option_id"] is not None
+                    else DecisionStatus.UNRESOLVED
+                ),
+                selected_option_id=row["selected_option_id"],
+            )
+            for row in decision_rows
+        )
         return RelocationPlan(
             id=plan_row["id"],
             title=plan_row["title"],
             phases=tuple(Phase(**dict(row)) for row in phase_rows),
             tasks=tasks,
+            milestones=milestones,
+            decisions=decisions,
         )
 
     @staticmethod
@@ -385,6 +595,239 @@ class SQLiteRelocationPlanRepository:
                 "UPDATE tasks SET status = ? WHERE id = ?", (status.value, task_id)
             )
         return self.get_plan()
+
+    def create_milestone(self, milestone: MilestoneCreate) -> RelocationPlan:
+        with self._connect() as connection:
+            if self._plan_item_id_exists(connection, milestone.id):
+                raise PlanItemAlreadyExistsError(
+                    f"Plan item '{milestone.id}' already exists."
+                )
+            connection.execute(
+                """
+                INSERT INTO milestones (
+                    id, plan_id, title, description,
+                    target_earliest_date, target_latest_date, achieved_at
+                ) VALUES (?, ?, ?, ?, ?, ?, NULL)
+                """,
+                (
+                    milestone.id,
+                    RELOCATION_PLAN_ID,
+                    milestone.title,
+                    milestone.description,
+                    milestone.target_earliest_date.isoformat()
+                    if milestone.target_earliest_date else None,
+                    milestone.target_latest_date.isoformat()
+                    if milestone.target_latest_date else None,
+                ),
+            )
+        return self.get_plan()
+
+    def update_milestone(
+        self, milestone_id: str, milestone: MilestoneUpdate
+    ) -> RelocationPlan:
+        with self._connect() as connection:
+            if not self._milestone_exists(connection, milestone_id):
+                raise MilestoneNotFoundError(
+                    f"Milestone '{milestone_id}' does not exist."
+                )
+            connection.execute(
+                """
+                UPDATE milestones SET title = ?, description = ?,
+                    target_earliest_date = ?, target_latest_date = ?
+                WHERE id = ?
+                """,
+                (
+                    milestone.title,
+                    milestone.description,
+                    milestone.target_earliest_date.isoformat()
+                    if milestone.target_earliest_date else None,
+                    milestone.target_latest_date.isoformat()
+                    if milestone.target_latest_date else None,
+                    milestone_id,
+                ),
+            )
+        return self.get_plan()
+
+    def set_milestone_achievement(
+        self, milestone_id: str, achieved: bool
+    ) -> RelocationPlan:
+        with self._connect() as connection:
+            if not self._milestone_exists(connection, milestone_id):
+                raise MilestoneNotFoundError(
+                    f"Milestone '{milestone_id}' does not exist."
+                )
+            achieved_at = (
+                datetime.now(timezone.utc).isoformat() if achieved else None
+            )
+            connection.execute(
+                "UPDATE milestones SET achieved_at = ? WHERE id = ?",
+                (achieved_at, milestone_id),
+            )
+        return self.get_plan()
+
+    def create_decision(self, decision: DecisionCreate) -> RelocationPlan:
+        with self._connect() as connection:
+            if self._plan_item_id_exists(connection, decision.id):
+                raise PlanItemAlreadyExistsError(
+                    f"Plan item '{decision.id}' already exists."
+                )
+            self._validate_milestone(connection, decision.milestone_id)
+            self._validate_option_ids_available(connection, decision.options)
+            connection.execute(
+                """
+                INSERT INTO decisions (
+                    id, plan_id, milestone_id, title, description, selected_option_id
+                ) VALUES (?, ?, ?, ?, ?, NULL)
+                """,
+                (
+                    decision.id,
+                    RELOCATION_PLAN_ID,
+                    decision.milestone_id,
+                    decision.title,
+                    decision.description,
+                ),
+            )
+            self._insert_decision_options(connection, decision.id, decision.options)
+        return self.get_plan()
+
+    def update_decision(
+        self, decision_id: str, decision: DecisionUpdate
+    ) -> RelocationPlan:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT selected_option_id FROM decisions WHERE id = ?",
+                (decision_id,),
+            ).fetchone()
+            if row is None:
+                raise DecisionNotFoundError(
+                    f"Decision '{decision_id}' does not exist."
+                )
+            self._validate_milestone(connection, decision.milestone_id)
+            selected_option_id = row["selected_option_id"]
+            option_ids = {option.id for option in decision.options}
+            if selected_option_id is not None and selected_option_id not in option_ids:
+                raise InvalidDecisionError(
+                    "A selected Decision option cannot be removed during editing. "
+                    "Change or clear the selection first."
+                )
+            self._validate_option_ids_available(
+                connection, decision.options, decision_id=decision_id
+            )
+            connection.execute(
+                """
+                UPDATE decisions SET milestone_id = ?, title = ?, description = ?
+                WHERE id = ?
+                """,
+                (
+                    decision.milestone_id,
+                    decision.title,
+                    decision.description,
+                    decision_id,
+                ),
+            )
+            connection.execute(
+                "DELETE FROM decision_options WHERE decision_id = ?", (decision_id,)
+            )
+            self._insert_decision_options(connection, decision_id, decision.options)
+        return self.get_plan()
+
+    def select_decision_option(
+        self, decision_id: str, selected_option_id: str | None
+    ) -> RelocationPlan:
+        with self._connect() as connection:
+            if not self._decision_exists(connection, decision_id):
+                raise DecisionNotFoundError(
+                    f"Decision '{decision_id}' does not exist."
+                )
+            if selected_option_id is not None:
+                option = connection.execute(
+                    """
+                    SELECT 1 FROM decision_options
+                    WHERE id = ? AND decision_id = ?
+                    """,
+                    (selected_option_id, decision_id),
+                ).fetchone()
+                if option is None:
+                    raise InvalidDecisionError(
+                        f"Option '{selected_option_id}' does not belong to "
+                        f"Decision '{decision_id}'."
+                    )
+            connection.execute(
+                "UPDATE decisions SET selected_option_id = ? WHERE id = ?",
+                (selected_option_id, decision_id),
+            )
+        return self.get_plan()
+
+    @staticmethod
+    def _plan_item_id_exists(connection: sqlite3.Connection, item_id: str) -> bool:
+        return any(
+            connection.execute(
+                f"SELECT 1 FROM {table} WHERE id = ?", (item_id,)
+            ).fetchone()
+            is not None
+            for table in ("tasks", "milestones", "decisions", "decision_options")
+        )
+
+    @staticmethod
+    def _milestone_exists(connection: sqlite3.Connection, milestone_id: str) -> bool:
+        return connection.execute(
+            "SELECT 1 FROM milestones WHERE id = ?", (milestone_id,)
+        ).fetchone() is not None
+
+    @staticmethod
+    def _decision_exists(connection: sqlite3.Connection, decision_id: str) -> bool:
+        return connection.execute(
+            "SELECT 1 FROM decisions WHERE id = ?", (decision_id,)
+        ).fetchone() is not None
+
+    def _validate_milestone(
+        self, connection: sqlite3.Connection, milestone_id: str
+    ) -> None:
+        if not self._milestone_exists(connection, milestone_id):
+            raise InvalidDecisionError(
+                f"Milestone '{milestone_id}' does not exist in the relocation plan."
+            )
+
+    @staticmethod
+    def _validate_option_ids_available(
+        connection: sqlite3.Connection,
+        options: tuple[DecisionOptionFields, ...],
+        *,
+        decision_id: str | None = None,
+    ) -> None:
+        for option in options:
+            row = connection.execute(
+                "SELECT decision_id FROM decision_options WHERE id = ?", (option.id,)
+            ).fetchone()
+            if row is not None and row["decision_id"] != decision_id:
+                raise PlanItemAlreadyExistsError(
+                    f"Plan item '{option.id}' already exists."
+                )
+            for table in ("tasks", "milestones", "decisions"):
+                if connection.execute(
+                    f"SELECT 1 FROM {table} WHERE id = ?", (option.id,)
+                ).fetchone() is not None:
+                    raise PlanItemAlreadyExistsError(
+                        f"Plan item '{option.id}' already exists."
+                    )
+
+    @staticmethod
+    def _insert_decision_options(
+        connection: sqlite3.Connection,
+        decision_id: str,
+        options: tuple[DecisionOptionFields, ...],
+    ) -> None:
+        connection.executemany(
+            """
+            INSERT INTO decision_options (
+                id, decision_id, title, description, position
+            ) VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                (option.id, decision_id, option.title, option.description, position)
+                for position, option in enumerate(options)
+            ),
+        )
 
     @staticmethod
     def _task_exists(connection: sqlite3.Connection, task_id: str) -> bool:

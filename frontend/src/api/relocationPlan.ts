@@ -29,12 +29,43 @@ export interface RelocationTask {
   blocked: boolean
 }
 
+export interface Milestone {
+  id: string
+  title: string
+  description: string | null
+  target_earliest_date: string | null
+  target_latest_date: string | null
+  status: 'pending' | 'achieved'
+  achieved_at: string | null
+}
+
+export interface DecisionOption {
+  id: string
+  title: string
+  description: string | null
+}
+
+export interface Decision {
+  id: string
+  title: string
+  description: string | null
+  milestone_id: string
+  options: DecisionOption[]
+  status: 'unresolved' | 'resolved'
+  selected_option_id: string | null
+}
+
 export interface RelocationPlan {
   id: string
   title: string
   phases: Phase[]
   tasks: RelocationTask[]
+  milestones: Milestone[]
+  decisions: Decision[]
 }
+
+export type MilestoneWrite = Omit<Milestone, 'id' | 'status' | 'achieved_at'>
+export type DecisionWrite = Omit<Decision, 'id' | 'status' | 'selected_option_id'>
 
 export interface TaskWrite {
   title: string
@@ -131,4 +162,46 @@ export function changeTaskStatus(
       body: JSON.stringify({ status }),
     },
   )
+}
+
+export function createMilestone(id: string, milestone: MilestoneWrite) {
+  return planRequest('/api/relocation-plan/milestones', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...milestone }),
+  })
+}
+
+export function replaceMilestone(id: string, milestone: MilestoneWrite) {
+  return planRequest(`/api/relocation-plan/milestones/${encodeURIComponent(id)}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(milestone),
+  })
+}
+
+export function changeMilestoneAchievement(id: string, achieved: boolean) {
+  return planRequest(`/api/relocation-plan/milestones/${encodeURIComponent(id)}/achievement`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ achieved }),
+  })
+}
+
+export function createDecision(id: string, decision: DecisionWrite) {
+  return planRequest('/api/relocation-plan/decisions', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, ...decision }),
+  })
+}
+
+export function replaceDecision(id: string, decision: DecisionWrite) {
+  return planRequest(`/api/relocation-plan/decisions/${encodeURIComponent(id)}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(decision),
+  })
+}
+
+export function changeDecisionSelection(id: string, selectedOptionId: string | null) {
+  return planRequest(`/api/relocation-plan/decisions/${encodeURIComponent(id)}/selection`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ selected_option_id: selectedOptionId }),
+  })
 }
