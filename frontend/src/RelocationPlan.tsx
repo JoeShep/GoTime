@@ -418,7 +418,8 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       {plan && !draft && <MilestoneDecisionFoundation plan={plan} onPlanUpdated={acceptPlan} />}
 
       {plan && !draft && (
-        <Form.Group className="task-finder position-relative mb-4" controlId="task-finder">
+        <div className="task-discovery px-2 px-sm-0 mb-3">
+        <Form.Group className="task-finder position-relative mb-2 mb-sm-4" controlId="task-finder">
           <Form.Label>Find a task</Form.Label>
           <Form.Control
             aria-activedescendant={finderOpen && activeFinderIndex >= 0 ? `task-finder-option-${finderResults[activeFinderIndex]?.id}` : undefined}
@@ -476,6 +477,39 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             <p className="task-finder-empty text-muted mb-0 mt-2" role="status">No matching tasks.</p>
           )}
         </Form.Group>
+        <PersistentCategoryDropdown
+          id="category-filter"
+          toggleAriaLabel="Filter by categories"
+          toggleLabel={`Categories${categoryFilters.size > 0 ? ` (${categoryFilters.size})` : ''}`}
+        >
+          {categoryOrder.map((category) => (
+            <Form.Check
+              checked={categoryFilters.has(category)}
+              id={`category-filter-${category}`}
+              key={category}
+              label={categoryLabels[category]}
+              onChange={(event) => setCategoryFilters((current) => {
+                const next = new Set(current)
+                if (event.target.checked) next.add(category)
+                else next.delete(category)
+                return next
+              })}
+            />
+          ))}
+          <Form.Check
+            checked={categoryFilters.has('uncategorized')}
+            id="category-filter-uncategorized"
+            label="Uncategorized"
+            onChange={(event) => setCategoryFilters((current) => {
+              const next = new Set(current)
+              if (event.target.checked) next.add('uncategorized')
+              else next.delete('uncategorized')
+              return next
+            })}
+          />
+          {categoryFilters.size > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => setCategoryFilters(new Set())}>Clear all</Button>}
+        </PersistentCategoryDropdown>
+        </div>
       )}
 
       {draft && plan && (
@@ -554,43 +588,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
               </Form>
             </Card.Body>
           </Card>
-        </div>
-      )}
-
-      {plan && !draft && (
-        <div className="mb-3">
-          <PersistentCategoryDropdown
-            id="category-filter"
-            toggleAriaLabel="Filter by categories"
-            toggleLabel={`Categories${categoryFilters.size > 0 ? ` (${categoryFilters.size})` : ''}`}
-          >
-            {categoryOrder.map((category) => (
-              <Form.Check
-                checked={categoryFilters.has(category)}
-                id={`category-filter-${category}`}
-                key={category}
-                label={categoryLabels[category]}
-                onChange={(event) => setCategoryFilters((current) => {
-                  const next = new Set(current)
-                  if (event.target.checked) next.add(category)
-                  else next.delete(category)
-                  return next
-                })}
-              />
-            ))}
-            <Form.Check
-              checked={categoryFilters.has('uncategorized')}
-              id="category-filter-uncategorized"
-              label="Uncategorized"
-              onChange={(event) => setCategoryFilters((current) => {
-                const next = new Set(current)
-                if (event.target.checked) next.add('uncategorized')
-                else next.delete('uncategorized')
-                return next
-              })}
-            />
-            {categoryFilters.size > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => setCategoryFilters(new Set())}>Clear all</Button>}
-          </PersistentCategoryDropdown>
         </div>
       )}
 

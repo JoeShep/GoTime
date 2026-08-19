@@ -1,5 +1,16 @@
 # Session Notes
 
+## 2026-08-19 — Mobile finder spacing follow-up
+
+- Grouped the task finder and category filter in one responsive wrapper so the
+  label, input, and filter button share an 8-pixel mobile inset while retaining
+  their existing desktop alignment.
+- Reduced only the mobile gap between the search input and category button;
+  input and button sizing, the wider mobile Task cards, and Milestone/Decision
+  styling remain unchanged.
+- Added focused responsive-class coverage. Final human mobile acceptance in
+  the preserved isolated environment remains pending.
+
 ## 2026-08-18 — Increment 1 browser-acceptance refinements
 
 - Preserved the isolated acceptance database containing one test Milestone,

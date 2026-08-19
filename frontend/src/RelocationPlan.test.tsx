@@ -263,6 +263,19 @@ describe('persistent relocation plan', () => {
     expect(within(task).getByText('Logistics')).toHaveClass('badge', 'bg-light', 'text-dark')
   })
 
+  it('groups finder controls with a mobile inset and tighter responsive spacing', async () => {
+    mockPlanRequests()
+    render(<RelocationPlan />)
+
+    const finder = await screen.findByRole('combobox', { name: 'Find a task' })
+    const group = finder.closest('.task-discovery')!
+    expect(group).toHaveClass('px-2', 'px-sm-0', 'mb-3')
+    expect(finder.closest('.task-finder')).toHaveClass('mb-2', 'mb-sm-4')
+    expect(within(group as HTMLElement).getByRole('button', { name: 'Filter by categories' }))
+      .toBeVisible()
+    expect(group.closest('.relocation-plan')).toBeInTheDocument()
+  })
+
   it('shows a loading state while retrieving the plan', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => undefined)))
     render(<RelocationPlan />)
