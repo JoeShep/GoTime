@@ -1,16 +1,15 @@
 # NEXT_SESSION
 
-## Current objective: prepare the presentation boundary
+## Current objective: accept the first presentation increment
 
-Review the recorded
-[Now, Plan, and Experiments design](docs/technical-design/now-plan-experiments.md),
-select the routing approach, and prepare the first structural implementation
-increment without beginning derived-attention Increment 2.
+Complete human route and experiment-boundary acceptance in the isolated
+environment documented in the latest `SESSION_NOTES.md` entry.
 
-Record the routing dependency and state-ownership decision in an ADR before
-implementation. Keep experiments default-off, preserve their code and tests,
-and keep the active family plan unchanged.
+Verify `/now`, `/plan`, navigation, direct refresh, unchanged Plan behavior,
+and default-off Experiments. Do not deploy the candidate to the normal stack,
+begin phase collapsing, or begin derived-attention Increment 2 before acceptance
+is reported.
 
-Increment 1 remains complete and accepted. The verified pre-Increment-1 backup
-remains at
-`/home/joeshep/backups/gotime/20260819T015944Z-10a7ead-pre-increment-1/`.
+The normal frontend remains stopped to prevent its source bind mount from
+serving candidate code. The normal backend and active family database remain
+unchanged.

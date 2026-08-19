@@ -3,9 +3,10 @@
 ## Status and scope
 
 This document records the approved product direction following the read-only
-audit of the Increment-1 interface. It is a presentation and navigation design,
-not an implementation decision. The routing dependency and exact architecture
-must be selected and recorded before implementation.
+audit of the Increment-1 interface. ADR-0009 selects React Router 7.13.0 in
+Declarative Mode for the first structural increment. That increment establishes
+the route and Experiments boundaries while leaving later workspace behavior
+deferred.
 
 This work must remain separate from derived-attention Increment 2. It changes
 where existing capabilities appear; it does not add required subtasks,
@@ -79,9 +80,10 @@ navigation. Mobile uses persistent Now, Plan, and Find navigation. Find opens a
 focused search panel and navigates its result into Plan rather than embedding
 the complete Plan in the search experience.
 
-An established routing library is preferred over hand-written History API
-routing. The exact dependency, route-shell architecture, and state ownership
-remain the next technical choice and require an ADR before implementation.
+ADR-0009 selects the established `react-router` package rather than hand-written
+History API routing. The router owns URLs, active navigation, redirects, and
+Back/Forward behavior. Future Plan expansion and scroll state remain transient
+browser-session workspace state rather than router server state or SQLite data.
 
 ## Experiments boundary
 
@@ -149,3 +151,17 @@ simplify navigation.
 Each structural increment should remain independently reviewable. Do not begin
 derived-attention Increment 2 as part of this redesign.
 
+## First structural increment status
+
+The first increment implements `/` → `/now`, canonical `/now` and `/plan`,
+accessible active navigation, normal not-found behavior, and the conditional
+`/experiments` route. Now contains only the persisted plan title and current
+persisted-task Recommendation. Plan retains the accepted management interface
+with expanded phases, separate Add controls, finder, filters, and completed
+sections.
+
+The extracted Experiments page has no Plan dependency and is absent unless
+`VITE_ENABLE_EXPERIMENTS` is exactly `true`. Its two deterministic backend
+routes return 404 unless `GOTIME_ENABLE_EXPERIMENTS` is exactly `true`.
+Human route and boundary acceptance remains required before the normal frontend
+or backend is updated.

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse
 
 from app.models import (
     LIKELY_WORKPLACE_AREA_MAX_LENGTH,
@@ -52,9 +53,32 @@ DEFAULT_DATABASE_PATH = Path(os.environ.get("GOTIME_DATABASE_PATH", "data/gotime
 router = APIRouter()
 
 
+def experiments_enabled() -> bool:
+    """Experiments are available only through an explicit, exact opt-in."""
+    return os.environ.get("GOTIME_ENABLE_EXPERIMENTS") == "true"
+
+
+def require_experiments_enabled() -> None:
+    if not experiments_enabled():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+
 def create_app(database_path: str | Path = DEFAULT_DATABASE_PATH) -> FastAPI:
     application = FastAPI(title="GoTime API")
     application.state.database_path = Path(database_path)
+
+    @application.middleware("http")
+    async def gate_experiment_routes(request: Request, call_next):
+        if request.url.path in {
+            "/api/recommendations/primary",
+            "/api/experiments/moving-service-question",
+        } and not experiments_enabled():
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND,
+                content={"detail": "Not Found"},
+            )
+        return await call_next(request)
+
     application.include_router(router)
     return application
 
@@ -220,6 +244,7 @@ async def moving_service_question_experiment(
     scenario: ExperimentFixture,
 ) -> MovingServiceQuestionExperimentResult:
     """Temporary fixture-only endpoint for the fake-adapter experiment."""
+    require_experiments_enabled()
     unexpected_parameters = set(request.query_params) - {"scenario"}
     if unexpected_parameters:
         names = ", ".join(sorted(unexpected_parameters))
@@ -240,6 +265,7 @@ async def primary_recommendation(
     ),
     travel_mode: CommuteTravelMode | None = None,
 ) -> Recommendation:
+    require_experiments_enabled()
     unexpected_parameters = set(request.query_params) - {
         "work_arrangement",
         "acceptable_commute_minutes",

@@ -1,5 +1,33 @@
 # Session Notes
 
+## 2026-08-19 — First Now/Plan/Experiments structural increment
+
+- Selected `react-router` 7.13.0 in Declarative Mode and recorded ADR-0009.
+  Current React Router 8.3.0 requires React 19.2.7, while GoTime remains on
+  React 19.1; the selected maintained v7 release fits the existing React,
+  TypeScript, Vite, ESM, and Node 24 baselines without platform upgrades.
+- Added `/` to `/now` replacement, canonical `/now` and `/plan`, accessible
+  active navigation, and normal not-found behavior. Now shows the persisted
+  plan title as **Our goal** and the persisted Task Recommendation; Plan retains
+  the accepted management interface and expanded phases.
+- Extracted the employment and moving-service prototypes into a self-contained
+  Experiments page. The frontend route and both deterministic backend endpoints
+  require separate exact `true` flags and remain absent by default; enabling
+  them grants no AI, research, credential, or spending authority.
+- Kept Task, Milestone, Decision, finder, category-filter, completed-section,
+  editor, and Recommendation behavior covered without changing persistence or
+  beginning Increment 2.
+- Stopped only the bind-mounted normal frontend before source edits. The normal
+  backend remained healthy on the unchanged active database. Automated suites
+  passed, including default-off and enabled experiment modes.
+- Restored the verified backup with SQLite's backup API into the isolated
+  `gotime_now_plan_acceptance_data_db02bce` volume. The candidate runs at
+  `http://localhost:16173` in project `gotime_now_plan_acceptance`, using only
+  `gotime_now_plan_acceptance_net_db02bce` and alternate backend port 18000.
+  Integrity, foreign keys, all original counts, normal endpoints, direct route
+  serving, and default-off experimental endpoints passed. Human acceptance
+  remains pending; the isolated environment is intentionally still running.
+
 ## 2026-08-19 — Now, Plan, and Experiments direction
 
 - Audited the rendered interface and confirmed that it combines the persisted

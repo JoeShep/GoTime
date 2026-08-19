@@ -68,13 +68,15 @@ an explicit deterministic order. The earlier employment-planning inputs remain
 in browser/request memory as a separate recommendation flow. There is no
 authentication or generalized multi-goal infrastructure.
 
-The current interface also includes an optional, explicitly triggered
-fake-adapter experiment for suggesting one moving-service question. It uses
-narrow experiment fixtures, validates the complete structured response, and
-falls back to a deterministic planning-guide question when the fake response
-is unavailable or invalid. Answers remain local to the demonstration and do
-not change the trusted Goal or trigger re-reasoning. No real AI provider, live
-research, persistence, or external telemetry is involved.
+The codebase also preserves an optional, explicitly triggered fake-adapter
+experiment for suggesting one moving-service question. It is excluded from the
+ordinary interface by default and is available only through the explicit
+Experiments boundary described below. It uses narrow fixtures, validates the
+complete structured response, and falls back to a deterministic planning-guide
+question when the fake response is unavailable or invalid. Answers remain
+local to the demonstration and do not change trusted state or trigger
+re-reasoning. No real AI provider, live research, persistence, or external
+telemetry is involved.
 
 ## Run locally
 
@@ -86,6 +88,13 @@ docker compose up --build
 
 Open http://localhost:5173 to see the GoTime recommendation experience. The
 backend health endpoint remains available at `GET /api/health`.
+
+The suspended deterministic prototypes are excluded by default. For isolated
+development only, set `VITE_ENABLE_EXPERIMENTS=true` for the frontend and
+`GOTIME_ENABLE_EXPERIMENTS=true` for the backend to make `/experiments` and its
+two supporting endpoints available. Both values require the exact lowercase
+string `true`. Enabling them does not authorize an AI provider, live research,
+credentials, or spending, and Experiments never appears in family navigation.
 
 ## Documentation
 

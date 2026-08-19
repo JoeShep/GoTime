@@ -36,10 +36,12 @@
 
 - [x] Audit the current rendered interface and approve the Now/Plan navigation
   and default-off Experiments boundary.
-- [ ] Select an established routing dependency and record the architecture in
+- [x] Select an established routing dependency and record the architecture in
   an ADR.
-- [ ] Prepare the first structural implementation increment: extract and gate
+- [x] Prepare the first structural implementation increment: extract and gate
   Experiments without beginning derived-attention Increment 2.
+- [ ] Complete isolated human acceptance of the first routing and Experiments
+  boundary increment before updating the normal frontend or backend.
 - [ ] Introduce the Now/Plan/Find shell, collapsed phases, browser-session Plan
   state, cross-route reveal behavior, and one Add menu in the approved order.
 

@@ -6,6 +6,11 @@ from httpx import ASGITransport, AsyncClient, Response
 from app.main import app
 
 
+@pytest.fixture(autouse=True)
+def enable_experiments(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GOTIME_ENABLE_EXPERIMENTS", "true")
+
+
 async def get_experiment(query: str) -> Response:
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://testserver"
@@ -13,6 +18,16 @@ async def get_experiment(query: str) -> Response:
         return await client.get(
             f"/api/experiments/moving-service-question{query}"
         )
+
+
+def test_experiment_endpoint_is_not_available_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GOTIME_ENABLE_EXPERIMENTS", raising=False)
+
+    response = asyncio.run(get_experiment("?scenario=storage_unknown"))
+
+    assert response.status_code == 404
 
 
 @pytest.mark.parametrize(

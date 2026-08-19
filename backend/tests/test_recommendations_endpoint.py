@@ -7,11 +7,26 @@ from app.main import app
 from app.scenarios import build_relocation_scenario
 
 
+@pytest.fixture(autouse=True)
+def enable_experiments(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GOTIME_ENABLE_EXPERIMENTS", "true")
+
+
 async def get_primary_recommendation(query: str = "") -> Response:
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://testserver"
     ) as client:
         return await client.get(f"/api/recommendations/primary{query}")
+
+
+def test_primary_recommendation_is_not_available_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("GOTIME_ENABLE_EXPERIMENTS", raising=False)
+
+    response = asyncio.run(get_primary_recommendation())
+
+    assert response.status_code == 404
 
 
 def test_primary_recommendation_endpoint() -> None:
