@@ -13,16 +13,15 @@ Experiments location, accessible active navigation, direct loading, and normal
 browser Back and Forward behavior.
 
 Hand-written History API routing would duplicate established URL matching,
-navigation, redirect, and accessibility behavior. The current frontend uses
-React 19.1, React DOM 19.1, Vite 6.3, TypeScript 5.8, ESM, and Node 24. React
-Router 8.3.0 requires React and React DOM 19.2.7, so adopting that current major
-would require an unrelated platform upgrade. React Router 7.13.0 is the latest
-maintained compatible release: it supports React and React DOM 18 or newer and
-Node 20 or newer.
+navigation, redirect, and accessibility behavior. The current lockfile resolves
+React 19.2.7, React DOM 19.2.7, Vite 6.4.3, and TypeScript 5.8.3. Development
+uses Node 24.18.0, while builds and the frontend image use Node 24.18.1. React
+Router 8.3.0 requires React and React DOM 19.2.7 and Node 22.22 or newer, so the
+current stable release fits every existing baseline without an upgrade.
 
 ## Decision
 
-Use `react-router` 7.13.0 in Declarative Mode. Wrap the application in
+Use `react-router` 8.3.0 in Declarative Mode. Wrap the application in
 `BrowserRouter` and declare routes with `Routes`, `Route`, and `Navigate`.
 Do not add `react-router-dom`; React Router 7 documents `react-router` as the
 primary package for Declarative Mode.
@@ -62,8 +61,8 @@ Positive:
 Negative:
 
 * The frontend gains one runtime dependency.
-* React Router 7.13.0 is selected instead of the current v8 major until GoTime
-  independently upgrades React and React DOM.
+* Router compatibility now depends on the existing React 19.2.7 and Node 24
+  baselines recorded in the lockfile and container image.
 * Direct route loading requires the frontend host to retain its existing SPA
   fallback behavior.
 

@@ -2,10 +2,11 @@
 
 ## 2026-08-19 — First Now/Plan/Experiments structural increment
 
-- Selected `react-router` 7.13.0 in Declarative Mode and recorded ADR-0009.
-  Current React Router 8.3.0 requires React 19.2.7, while GoTime remains on
-  React 19.1; the selected maintained v7 release fits the existing React,
-  TypeScript, Vite, ESM, and Node 24 baselines without platform upgrades.
+- Selected stable `react-router` 8.3.0 in Declarative Mode and recorded
+  ADR-0009. The existing lockfile already resolves React and React DOM 19.2.7,
+  and development/build/container Node 24 satisfies the router's Node 22.22
+  minimum; no React, Vite, TypeScript, Node, or build-architecture upgrade was
+  required.
 - Added `/` to `/now` replacement, canonical `/now` and `/plan`, accessible
   active navigation, and normal not-found behavior. Now shows the persisted
   plan title as **Our goal** and the persisted Task Recommendation; Plan retains

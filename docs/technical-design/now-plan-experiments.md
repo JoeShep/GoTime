@@ -3,7 +3,7 @@
 ## Status and scope
 
 This document records the approved product direction following the read-only
-audit of the Increment-1 interface. ADR-0009 selects React Router 7.13.0 in
+audit of the Increment-1 interface. ADR-0009 selects React Router 8.3.0 in
 Declarative Mode for the first structural increment. That increment establishes
 the route and Experiments boundaries while leaving later workspace behavior
 deferred.
