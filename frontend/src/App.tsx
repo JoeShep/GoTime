@@ -121,19 +121,21 @@ function App() {
       <Container className="app-container py-4">
         <Card className="next-step-card mx-auto border-0 shadow-sm">
           <Card.Body className="py-4 px-0 p-sm-4 p-md-5">
-            <header className="border-bottom pb-5">
-              <p className="eyebrow mb-2">GoTime</p>
-              <h1 className="page-title mb-0" id="page-title">
-                What should I do next?
-              </h1>
-            </header>
+            <div className="page-intro px-2 px-sm-0">
+              <header className="border-bottom pb-5">
+                <p className="eyebrow mb-2">GoTime</p>
+                <h1 className="page-title mb-0" id="page-title">
+                  What should I do next?
+                </h1>
+              </header>
 
-            <section className="pt-5" aria-labelledby="goal-heading">
-              <p className="section-label mb-2" id="goal-heading">
-                Today's goal
-              </p>
-              <p className="goal-name mb-0">Relocate to Northern California</p>
-            </section>
+              <section className="pt-5" aria-labelledby="goal-heading">
+                <p className="section-label mb-2" id="goal-heading">
+                  Today's goal
+                </p>
+                <p className="goal-name mb-0">Relocate to Northern California</p>
+              </section>
+            </div>
 
             <RelocationPlanExperience />
 

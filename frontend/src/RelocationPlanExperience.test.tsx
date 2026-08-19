@@ -99,9 +99,10 @@ describe('relocation-plan recommendation experience', () => {
       return Promise.resolve(response(initialPlan))
     }))
 
-    render(<RelocationPlanExperience />)
+    const { container } = render(<RelocationPlanExperience />)
 
     expect(await screen.findByText('Primary recommendation')).toBeVisible()
+    expect(container.querySelector('.primary-recommendation')).toHaveClass('mx-2', 'mx-sm-0')
     expect(screen.getAllByRole('heading', { name: 'Choose a mover' })).toHaveLength(2)
     expect(screen.getByText('Its user priority is high.')).toBeVisible()
     expect(screen.getByText(/Why now:/).closest('p')).toHaveTextContent(

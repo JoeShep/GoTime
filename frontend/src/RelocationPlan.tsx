@@ -401,7 +401,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
   return (
     <section className="relocation-plan mt-5" aria-labelledby="relocation-plan-heading">
-      <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+      <div className="plan-heading d-flex flex-wrap align-items-center justify-content-between gap-3 px-2 px-sm-0 mb-3">
         <div>
           <p className="section-label mb-1">Persistent plan</p>
           <h2 className="detail-heading mb-0" id="relocation-plan-heading">

@@ -17,8 +17,10 @@ Retest the preserved acceptance records at `http://localhost:15173` in the
 isolated `gotime_increment1_acceptance` project. Confirm compact badges,
 human-readable dates, date-picker bounds and inline validation, stable in-place
 state changes, mobile typography, and the aligned compact mobile finder/filter
-group. Do not mark Increment 1 accepted, update the normal stack, create real
-plan records, or begin Increment 2 until the user reports the retest result.
+group. Also confirm that the page introduction and plan-section controls now
+share that mobile inset while Task, Milestone, and Decision cards remain wide.
+Do not mark Increment 1 accepted, update the normal stack, create real plan
+records, or begin Increment 2 until the user reports the retest result.
 
 Do not begin hierarchy, evidence links/readiness, activation, inactive-work
 views, Decision impact handling, derived Recommendations, family-data

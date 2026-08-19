@@ -130,6 +130,7 @@ describe('recommendation screen', () => {
     const { container } = render(<App />)
 
     expect(container.querySelector('.app-container')).toHaveClass('py-4')
+    expect(container.querySelector('.page-intro')).toHaveClass('px-2', 'px-sm-0')
     expect(container.querySelector('.next-step-card > .card-body')).toHaveClass(
       'py-4',
       'px-0',

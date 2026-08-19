@@ -130,7 +130,7 @@ export function MilestoneDecisionFoundation({ plan, onPlanUpdated }: Props) {
 
   return (
     <section className="plan-foundation mb-4" aria-labelledby="plan-foundation-heading">
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+      <div className="plan-foundation-heading d-flex flex-wrap justify-content-between align-items-center gap-2 px-2 px-sm-0 mb-3">
         <h4 className="h4 mb-0" id="plan-foundation-heading">Milestones and decisions</h4>
         <Stack direction="horizontal" gap={2}>
           <Button size="sm" variant="outline-primary" onClick={() => { setMilestoneId(null); setMilestoneDraft(emptyMilestone()) }}>Add milestone</Button>

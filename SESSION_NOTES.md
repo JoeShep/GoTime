@@ -1,5 +1,16 @@
 # Session Notes
 
+## 2026-08-19 — Balanced mobile page insets
+
+- Applied one responsive intro wrapper to align GoTime branding, the main
+  question, and Today's Goal with the established 16-pixel mobile inset.
+- Applied the same responsive alignment to the Primary Recommendation panel,
+  Persistent Plan header/actions, and Milestones/Decisions header/actions.
+- Left Task, Milestone, Decision, phase, and completed-section cards outside
+  those wrappers so the accepted wider mobile content remains unchanged.
+- Added responsive-class coverage. Final human visual acceptance in the
+  preserved isolated environment remains pending.
+
 ## 2026-08-19 — Mobile finder spacing follow-up
 
 - Grouped the task finder and category filter in one responsive wrapper so the

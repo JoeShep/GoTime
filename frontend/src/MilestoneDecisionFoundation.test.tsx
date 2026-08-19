@@ -135,6 +135,7 @@ describe('Milestone and Decision foundation', () => {
       <MilestoneDecisionFoundation plan={withDecision} onPlanUpdated={vi.fn()} />,
     )
     expect(container.querySelector('.plan-foundation-title')).toBeInTheDocument()
+    expect(container.querySelector('.plan-foundation-heading')).toHaveClass('px-2', 'px-sm-0')
     expect(container.querySelector('.decision-title')).toBeInTheDocument()
     expect(container.querySelector('.plan-foundation-metadata')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Edit decision' }))

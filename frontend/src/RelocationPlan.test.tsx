@@ -270,6 +270,8 @@ describe('persistent relocation plan', () => {
     const finder = await screen.findByRole('combobox', { name: 'Find a task' })
     const group = finder.closest('.task-discovery')!
     expect(group).toHaveClass('px-2', 'px-sm-0', 'mb-3')
+    expect(group.closest('.relocation-plan')?.querySelector('.plan-heading'))
+      .toHaveClass('px-2', 'px-sm-0')
     expect(finder.closest('.task-finder')).toHaveClass('mb-2', 'mb-sm-4')
     expect(within(group as HTMLElement).getByRole('button', { name: 'Filter by categories' }))
       .toBeVisible()

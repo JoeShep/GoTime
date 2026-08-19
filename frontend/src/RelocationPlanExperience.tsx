@@ -41,7 +41,7 @@ function NextTaskRecommendation({ refreshKey }: { refreshKey: number }) {
 
   return (
     <section
-      className="next-step mt-5 p-4 rounded-4"
+      className="next-step primary-recommendation mx-2 mx-sm-0 mt-5 p-4 rounded-4"
       aria-labelledby="stored-next-task-heading"
     >
       <p className="section-label mb-2">Primary recommendation</p>
