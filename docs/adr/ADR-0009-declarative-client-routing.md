@@ -1,0 +1,77 @@
+# ADR-0009: Use React Router for declarative client routing
+
+## Status
+
+Accepted for the first Now/Plan/Experiments structural increment.
+
+## Context
+
+GoTime's single React page currently combines the persisted Recommendation,
+the complete editable Plan, and suspended experiments. The approved
+presentation direction requires canonical Now and Plan locations, an optional
+Experiments location, accessible active navigation, direct loading, and normal
+browser Back and Forward behavior.
+
+Hand-written History API routing would duplicate established URL matching,
+navigation, redirect, and accessibility behavior. The current frontend uses
+React 19.1, React DOM 19.1, Vite 6.3, TypeScript 5.8, ESM, and Node 24. React
+Router 8.3.0 requires React and React DOM 19.2.7, so adopting that current major
+would require an unrelated platform upgrade. React Router 7.13.0 is the latest
+maintained compatible release: it supports React and React DOM 18 or newer and
+Node 20 or newer.
+
+## Decision
+
+Use `react-router` 7.13.0 in Declarative Mode. Wrap the application in
+`BrowserRouter` and declare routes with `Routes`, `Route`, and `Navigate`.
+Do not add `react-router-dom`; React Router 7 documents `react-router` as the
+primary package for Declarative Mode.
+
+The router owns:
+
+* URL matching and active navigation state;
+* a replace redirect from `/` to `/now`;
+* canonical `/now` and `/plan` routes;
+* the default-off conditional `/experiments` route;
+* normal not-found behavior; and
+* browser Back, Forward, direct-load, and refresh behavior.
+
+The Experiments route exists only when `VITE_ENABLE_EXPERIMENTS` is exactly
+`true`. It is absent from ordinary family navigation even when enabled.
+
+Future Plan expansion and scroll position belong to browser-session workspace
+state, not the router and not SQLite. A small provider plus `sessionStorage`,
+keyed by persisted plan ID, may own that transient state. Later Finder and
+Recommendation navigation will use an understandable task-target URL through
+Plan so the destination can be expanded, scrolled to, focused, and highlighted.
+
+This increment does not adopt data loaders, route actions, Framework Mode,
+server-side rendering, or router-owned server-state management. Existing API
+clients and component state continue to own data retrieval and mutation.
+
+## Consequences
+
+Positive:
+
+* Now, Plan, and optional Experiments receive stable, linkable locations.
+* Established routing behavior replaces bespoke History API code.
+* Normal routes do not initialize the suspended experiment state machine.
+* Future task-target navigation and browser-session Plan restoration have a
+  clear boundary without changing persisted family data.
+
+Negative:
+
+* The frontend gains one runtime dependency.
+* React Router 7.13.0 is selected instead of the current v8 major until GoTime
+  independently upgrades React and React DOM.
+* Direct route loading requires the frontend host to retain its existing SPA
+  fallback behavior.
+
+Deferred:
+
+* phase collapsing and browser-session Plan restoration;
+* cross-route Finder and Recommendation targets and their exact URL shape;
+* persistent mobile Find navigation;
+* the unified Add menu;
+* secondary Now attention; and
+* derived-attention Increment 2.
