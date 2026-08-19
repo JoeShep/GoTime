@@ -1,5 +1,31 @@
 # Session Notes
 
+## 2026-08-19 — Now, Plan, and Experiments direction
+
+- Audited the rendered interface and confirmed that it combines the persisted
+  Recommendation and Task plan, the Milestone/Decision foundation, and
+  suspended employment-planning and moving-service experiments.
+- Identified the 47 active Task cards in four permanently expanded phases as
+  the dominant scrolling cause. Moving experiments removes substantial
+  clutter; separating Now from Plan and collapsing phases provides the larger
+  reduction.
+- Approved `/now` as the default attention experience and `/plan` as the
+  complete editing experience, with desktop Now/Plan navigation and persistent
+  mobile Now/Plan/Find navigation. The persisted plan title becomes **Our
+  goal**; legacy priority cannot supply secondary Now items.
+- Approved browser-session Plan expansion/scroll preservation, cross-route
+  reveal behavior, compact linked Milestone/Decision sections, and one Add
+  menu that does not remember its prior type.
+- Preserved suspended prototype code, endpoints, tests, and documentation
+  behind a future default-off frontend/backend Experiments boundary. Enabling
+  it will not authorize AI, research, credentials, or spending.
+- Kept explanation, timing, dependency, downstream-work, and assumption
+  concepts for later derived-attention redesign rather than copying their
+  experimental implementations into Now.
+- Deferred an ADR until an established routing dependency and state-ownership
+  approach are selected. No navigation work or Increment 2 implementation has
+  begun.
+
 ## 2026-08-19 — Increment 1 acceptance and closeout
 
 - Human browser acceptance passed for the existing plan and Recommendation,

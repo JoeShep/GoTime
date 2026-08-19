@@ -63,6 +63,22 @@ be demoted or potentially retired from ordinary task creation and
 recommendation ranking. Preserve the field and all stored values until derived
 attention has been designed and validated.
 
+## Now and Plan
+
+GoTime's ordinary family experience should separate attention from plan
+management. **Now** answers the product's central question with one primary
+Recommendation, its concise explanation, and only Decisions or Milestones that
+currently require attention or provide necessary context. **Plan** provides the
+complete editable structure through compact Milestone and Decision sections,
+search and filtering, and initially collapsed Task phases.
+
+The persisted plan title is the user's **Our goal** on Now; a separate static
+goal label should not compete with it. Additional Now items must wait for valid
+derived-attention signals and must not be inferred from legacy priority alone.
+Suspended experiments are not part of ordinary family navigation. The approved
+presentation direction is detailed in the
+[Now, Plan, and Experiments design](technical-design/now-plan-experiments.md).
+
 The [home-sale strategy reference scenario](reference-scenarios/home-sale-strategy.md)
 is the first concrete test of this direction. It combines a milestone window,
 an unresolved decision, a hard financial constraint, comparison preferences,

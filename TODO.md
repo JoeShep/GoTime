@@ -32,6 +32,17 @@
 - [ ] Define a structured planning-knowledge contract only after the baseline
   demonstrates which additional facts are necessary.
 
+## Now, Plan, and Experiments
+
+- [x] Audit the current rendered interface and approve the Now/Plan navigation
+  and default-off Experiments boundary.
+- [ ] Select an established routing dependency and record the architecture in
+  an ADR.
+- [ ] Prepare the first structural implementation increment: extract and gate
+  Experiments without beginning derived-attention Increment 2.
+- [ ] Introduce the Now/Plan/Find shell, collapsed phases, browser-session Plan
+  state, cross-route reveal behavior, and one Add menu in the approved order.
+
 ## Milestone-driven planning questions
 
 - [ ] Determine how Decision evidence and confidence need to be represented.

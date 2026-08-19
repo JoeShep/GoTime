@@ -60,6 +60,14 @@ activate conditional branches only after the user's choice, preserve inactive
 work outside ordinary attention, and require explicit Milestone achievement.
 Review and approve the design and increment sequence before implementation.
 
+Before Increment 2 changes reasoning behavior, establish the approved
+[Now, Plan, and Experiments presentation boundary](technical-design/now-plan-experiments.md).
+This separates the primary Recommendation from complete plan management,
+introduces progressive disclosure for the four Task phases, and removes
+suspended experiments from the ordinary family interface without deleting
+their code or evidence. Secondary Now attention remains empty until genuine
+derived signals exist.
+
 ### Capability 5: Explain
 This is the part I don't want to compromise on. Every recommendation should be accompanied by an explanation.
 
