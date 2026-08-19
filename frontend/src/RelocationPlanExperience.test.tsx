@@ -145,6 +145,50 @@ describe('relocation-plan recommendation experience', () => {
     expect(screen.getByLabelText('Status for Choose a mover')).toHaveValue('completed')
   })
 
+  it('does not refresh the task recommendation for Milestone-only changes', async () => {
+    const planWithMilestone: RelocationPlan = {
+      ...initialPlan,
+      milestones: [{
+        id: 'start-selling-home',
+        title: 'Start selling our home',
+        description: null,
+        target_earliest_date: '2027-01-01',
+        target_latest_date: null,
+        status: 'pending',
+        achieved_at: null,
+      }],
+    }
+    const achievedPlan: RelocationPlan = {
+      ...planWithMilestone,
+      milestones: [{
+        ...planWithMilestone.milestones[0],
+        status: 'achieved',
+        achieved_at: '2026-08-19T03:00:00Z',
+      }],
+    }
+    let recommendationRequests = 0
+    vi.stubGlobal('fetch', vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan/recommendation') {
+        recommendationRequests += 1
+        return Promise.resolve(response(recommendation('choose-mover', 'Choose a mover')))
+      }
+      if (path.endsWith('/achievement') && init?.method === 'PATCH') {
+        return Promise.resolve(response(achievedPlan))
+      }
+      return Promise.resolve(response(planWithMilestone))
+    }))
+
+    render(<RelocationPlanExperience />)
+    await screen.findByRole('button', { name: 'Mark achieved' })
+    expect(recommendationRequests).toBe(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Mark achieved' }))
+
+    expect(screen.getByRole('heading', { name: 'Start selling our home' })).toBeVisible()
+    await screen.findByRole('button', { name: 'Return to pending' })
+    expect(recommendationRequests).toBe(1)
+    expect(screen.queryByText('Loading next task…')).not.toBeInTheDocument()
+  })
+
   it('does not let an obsolete recommendation overwrite the latest plan revision', async () => {
     let resolveObsolete: ((value: Response) => void) | undefined
     const obsoleteRequest = new Promise<Response>((resolve) => {

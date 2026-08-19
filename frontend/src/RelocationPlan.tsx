@@ -415,7 +415,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       {error && <Alert variant="danger">{error}</Alert>}
       {notice && <Alert variant="success">{notice}</Alert>}
 
-      {plan && !draft && <MilestoneDecisionFoundation plan={plan} onPlanUpdated={(updated) => { acceptPlan(updated); onPlanChanged?.() }} />}
+      {plan && !draft && <MilestoneDecisionFoundation plan={plan} onPlanUpdated={acceptPlan} />}
 
       {plan && !draft && (
         <Form.Group className="task-finder position-relative mb-4" controlId="task-finder">

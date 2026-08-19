@@ -367,7 +367,7 @@ function App() {
                   <p className="mb-0">{recommendation.why_now}</p>
                 </section>
 
-                <Row className="g-4 pt-5">
+                <Row className="next-step-options g-4 pt-5">
                   <Col md={6}>
                     <section aria-labelledby="dependencies-heading">
                       <h2 className="detail-heading mb-3" id="dependencies-heading">

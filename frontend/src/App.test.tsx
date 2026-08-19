@@ -153,9 +153,10 @@ describe('recommendation screen', () => {
   it('renders the unclear recommendation and its explanation', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(responseWith(unclearRecommendation)))
 
-    render(<App />)
+    const { container } = render(<App />)
 
     expect(await screen.findByRole('heading', { name: unclearRecommendation.what })).toBeVisible()
+    expect(container.querySelector('.next-step-options')).toHaveClass('g-4', 'pt-5')
     expect(screen.getByText(unclearRecommendation.why[0])).toBeVisible()
     expect(screen.getByText(unclearRecommendation.why_now)).toBeVisible()
     expect(screen.getByText('Expected employment income')).toBeVisible()

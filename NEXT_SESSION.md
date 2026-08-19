@@ -1,21 +1,24 @@
 # NEXT_SESSION
 
-## Current objective: review Increment 1 before active migration
+## Current objective: complete Increment 1 browser reacceptance
 
-Review the implemented Milestone and Decision foundation in
+Review the focused browser-acceptance refinements to the Milestone and Decision
+foundation in
 [ADR-0008](docs/adr/ADR-0008-derived-attention-foundation.md) and the
 [technical design](docs/technical-design/derived-attention-vertical-slice.md).
 
 The active database is protected by the verified pre-Increment-1 backup at
 `/home/joeshep/backups/gotime/20260819T015944Z-10a7ead-pre-increment-1/`.
-The normal backend is stopped and the active database remains unmigrated.
-Automated suites, the production frontend build, and a twice-started isolated
-candidate migration rehearsal passed without changing any original row.
+The active database has the approved additive Increment-1 schema and remains
+free of real Milestones, Decisions, and options. The normal stack remains on
+commit `f5cf778` until the refinements receive human approval.
 
-The next approval is permission to run this reviewed additive migration against
-the active database and restart the normal stack. Then perform human browser
-acceptance. Do not create real Milestones or Decisions or convert `Put current
-home on the market` as part of that operational step.
+Retest the preserved acceptance records at `http://localhost:15173` in the
+isolated `gotime_increment1_acceptance` project. Confirm compact badges,
+human-readable dates, date-picker bounds and inline validation, stable in-place
+state changes, and mobile typography. Do not mark Increment 1 accepted, update
+the normal stack, create real plan records, or begin Increment 2 until the user
+reports the retest result.
 
 Do not begin hierarchy, evidence links/readiness, activation, inactive-work
 views, Decision impact handling, derived Recommendations, family-data

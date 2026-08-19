@@ -229,6 +229,11 @@ body {
   font-size: 0.9rem;
 }
 
+.decision-option-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
 @media (max-width: 575.98px) {
   .app-container {
     padding-inline: 0.5rem;
@@ -236,6 +241,10 @@ body {
 
   .completed-task-list-body {
     padding-inline: 0;
+  }
+
+  .next-step-options {
+    margin-inline: 0;
   }
 
   .task-title {
@@ -249,5 +258,19 @@ body {
 
   .dependency-context {
     font-size: 0.825rem;
+  }
+
+  .plan-foundation-title {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  .decision-title {
+    font-size: 0.925rem;
+    line-height: 1.25;
+  }
+
+  .plan-foundation-metadata {
+    font-size: 0.85rem;
   }
 }

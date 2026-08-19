@@ -1,5 +1,27 @@
 # Session Notes
 
+## 2026-08-18 — Increment 1 browser-acceptance refinements
+
+- Preserved the isolated acceptance database containing one test Milestone,
+  one test Decision, and four options while refining only the frontend.
+- Made status badges compact, rendered date-only targets with abbreviated
+  month names, constrained the latest-date picker to the earliest target, and
+  added inline invalid-window feedback without discarding entered values.
+- Removed the Milestone/Decision mutation callback that unnecessarily refreshed
+  the unchanged task Recommendation and replaced the shared saving flag with
+  per-action pending state. Narrow mutations now update cards in place without
+  changing page height or disabling unrelated controls.
+- Added mobile-only Milestone/Decision title and metadata typography plus
+  wrapping and minimum-width behavior for Decision option rows. No global
+  overflow suppression or `!important` override was added.
+- Headless Chrome at a 390-pixel viewport measured a 394-pixel document width.
+  The cause was an existing Bootstrap Row's negative gutters inside a
+  zero-horizontal-padding Recommendation card body, not a Milestone or
+  Decision card. A mobile-only margin correction was applied to that row.
+- Focused and complete frontend tests and the production build passed. Final
+  human reacceptance in the preserved isolated environment remains pending;
+  the normal stack must not be updated to this refinement until approval.
+
 ## 2026-08-18 — Increment 1 Milestone and Decision foundation
 
 - Added additive, transactional, idempotent persistence for Milestones,
