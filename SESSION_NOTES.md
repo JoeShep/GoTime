@@ -14,6 +14,14 @@
 - Focused and complete frontend tests and the production build passed. The
   isolated acceptance frontend was updated without touching its preserved
   database; final human navigation acceptance remains pending.
+- A follow-up mobile spacing review found stacked top padding from the shared
+  shell, container, card body, and navigation, plus Plan's route-specific top
+  padding. Mobile now uses reduced shared top padding and one shared gap below
+  navigation; Plan removes its redundant mobile top padding while retaining it
+  from the desktop breakpoint upward.
+- Responsive spacing-class coverage, all 76 frontend tests, and the production
+  build passed. No horizontal inset, card, typography, or navigation-style rule
+  changed; one final 390×844 visual check remains pending.
 
 ## 2026-08-19 — First Now/Plan/Experiments structural increment
 

@@ -14,8 +14,30 @@ function renderAt(path: string) {
 
 describe('application routes', () => {
   it('redirects the root to Now and marks its navigation active', async () => {
-    renderAt('/')
+    const { container } = renderAt('/')
     expect(await screen.findByRole('heading', { name: 'Now content' })).toBeVisible()
+    expect(container.querySelector('.app-shell')).toHaveClass(
+      'pt-2',
+      'pb-5',
+      'py-sm-5',
+    )
+    expect(container.querySelector('.app-container')).toHaveClass(
+      'pt-0',
+      'pb-4',
+      'py-sm-4',
+    )
+    expect(container.querySelector('.next-step-card > .card-body')).toHaveClass(
+      'pt-2',
+      'pb-4',
+      'p-sm-4',
+      'p-md-5',
+    )
+    expect(container.querySelector('.family-navigation-wrap')).toHaveClass(
+      'pt-0',
+      'pt-sm-3',
+      'mb-3',
+      'mb-sm-0',
+    )
     expect(screen.getByRole('navigation', { name: 'Primary' })).toHaveClass(
       'family-navigation',
     )

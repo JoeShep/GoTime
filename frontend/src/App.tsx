@@ -12,7 +12,7 @@ const ExperimentsPage = experimentsEnabled
 
 function FamilyNavigation() {
   return (
-    <div className="family-navigation-wrap d-flex justify-content-end px-2 px-sm-0 pt-3">
+    <div className="family-navigation-wrap d-flex justify-content-end px-2 px-sm-0 pt-0 pt-sm-3 mb-3 mb-sm-0">
       <Nav aria-label="Primary" as="nav" className="family-navigation">
         <Nav.Link as={NavLink} end to="/now">Now</Nav.Link>
         <Nav.Link as={NavLink} to="/plan">Plan</Nav.Link>
@@ -23,10 +23,10 @@ function FamilyNavigation() {
 
 function PageFrame({ children }: { children: ReactNode }) {
   return (
-    <main className="app-shell py-5">
-      <Container className="app-container py-4">
+    <main className="app-shell pt-2 pb-5 py-sm-5">
+      <Container className="app-container pt-0 pb-4 py-sm-4">
         <Card className="next-step-card mx-auto border-0 shadow-sm">
-          <Card.Body className="py-4 px-0 p-sm-4 p-md-5">
+          <Card.Body className="pt-2 pb-4 px-0 p-sm-4 p-md-5">
             <FamilyNavigation />
             {children}
           </Card.Body>
