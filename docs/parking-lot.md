@@ -65,6 +65,9 @@ Keep these observations separate from the selected derived-attention milestone:
 
 * Add-task actions in phase headers with phase-prefilled creation.
 * Friendlier dependency terminology.
+* Minor mobile page-shell spacing inconsistencies remaining after the accepted
+  Now/Plan navigation work; revisit as visual polish after the functional
+  navigation sequence is complete.
 * General task filters beyond the existing category filter and plan-wide
   finder.
 * Dependency visualization.

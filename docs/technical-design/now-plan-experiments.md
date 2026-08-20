@@ -163,5 +163,11 @@ sections.
 The extracted Experiments page has no Plan dependency and is absent unless
 `VITE_ENABLE_EXPERIMENTS` is exactly `true`. Its two deterministic backend
 routes return 404 unless `GOTIME_ENABLE_EXPERIMENTS` is exactly `true`.
-Human route and boundary acceptance remains required before the normal frontend
-or backend is updated.
+
+Human browser acceptance passed for the route boundaries, default-off
+Experiments behavior, shared segmented navigation, and responsive page-shell
+spacing. The accepted frontend and backend were deployed to the normal stack
+with both flags disabled. The isolated acceptance project and its disposable
+database were then removed without touching the normal data volume. The first
+structural increment is complete; implementation order resumes at collapsible
+phases and browser-session Plan state.

@@ -40,10 +40,16 @@
   an ADR.
 - [x] Prepare the first structural implementation increment: extract and gate
   Experiments without beginning derived-attention Increment 2.
-- [ ] Complete isolated human acceptance of the first routing and Experiments
-  boundary increment before updating the normal frontend or backend.
-- [ ] Introduce the Now/Plan/Find shell, collapsed phases, browser-session Plan
-  state, cross-route reveal behavior, and one Add menu in the approved order.
+- [x] Complete isolated human acceptance of the first routing and Experiments
+  boundary increment, deploy it to the normal stack, and remove the disposable
+  acceptance environment safely.
+- [x] Introduce the initial Now/Plan shell, separate persisted Recommendation
+  and Plan content, and default-off the suspended Experiments boundary.
+- [ ] Add collapsible phases and browser-session Plan expansion and scroll
+  state.
+- [ ] Add cross-route Finder and Recommendation reveal behavior, including the
+  planned mobile Find navigation.
+- [ ] Consolidate Task, Milestone, and Decision creation into one Plan Add menu.
 
 ## Milestone-driven planning questions
 

@@ -2059,3 +2059,27 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Automated runtime verification confirmed backend health, the complete
   persisted-plan response, and frontend availability. Interactive browser
   verification remains to be performed by a human reviewer.
+
+# 2026-08-20 — Now/Plan/Experiments structural increment closeout
+
+- Human browser acceptance passed for the persisted Now and Plan separation,
+  canonical routing and redirects, Back/Forward behavior, normal not-found
+  handling, default-off Experiments boundary, shared segmented navigation, and
+  responsive page-shell presentation.
+- Accepted the remaining unrelated mobile-spacing inconsistencies as deferred
+  visual polish so they do not delay the functional navigation sequence.
+- Built and deployed the normal frontend and backend from accepted commit
+  `3c525aac2519b9d62332ff48bfa73c98ceaa5a5f` with both Experiments flags
+  disabled. Health, frontend routing and proxying, Plan, and Recommendation
+  checks passed; both experimental API routes remained unavailable.
+- Verified the active database before and after deployment. Integrity and
+  foreign keys passed, every table count and stable row-content hash matched,
+  and Milestones, Decisions, and Decision options remained empty. SQLite file
+  metadata changed during normal backend startup, but logical content did not.
+- Removed only the isolated `gotime_now_plan_acceptance` containers, network,
+  disposable database volume, and temporary Compose directory after confirming
+  their project labels and mounts were separate from normal GoTime resources.
+  The verified pre-migration backup and `gotime_gotime_data` were untouched.
+- The first structural increment is complete. Phase collapsing, Plan session
+  state, cross-route reveal, the unified Add menu, mobile Find navigation,
+  secondary attention items, and derived-attention Increment 2 have not begun.
