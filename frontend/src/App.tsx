@@ -12,10 +12,12 @@ const ExperimentsPage = experimentsEnabled
 
 function FamilyNavigation() {
   return (
-    <Nav aria-label="Primary" className="family-navigation gap-2 px-2 px-sm-0 pt-3">
-      <Nav.Link as={NavLink} end to="/now">Now</Nav.Link>
-      <Nav.Link as={NavLink} to="/plan">Plan</Nav.Link>
-    </Nav>
+    <div className="family-navigation-wrap d-flex justify-content-end px-2 px-sm-0 pt-3">
+      <Nav aria-label="Primary" as="nav" className="family-navigation">
+        <Nav.Link as={NavLink} end to="/now">Now</Nav.Link>
+        <Nav.Link as={NavLink} to="/plan">Plan</Nav.Link>
+      </Nav>
+    </div>
   )
 }
 

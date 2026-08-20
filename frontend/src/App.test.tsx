@@ -16,16 +16,34 @@ describe('application routes', () => {
   it('redirects the root to Now and marks its navigation active', async () => {
     renderAt('/')
     expect(await screen.findByRole('heading', { name: 'Now content' })).toBeVisible()
+    expect(screen.getByRole('navigation', { name: 'Primary' })).toHaveClass(
+      'family-navigation',
+    )
     expect(screen.getByRole('link', { name: 'Now' })).toHaveClass('active')
+    expect(screen.getByRole('link', { name: 'Now' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
     expect(screen.getByRole('link', { name: 'Plan' })).not.toHaveClass('active')
+    expect(screen.getByRole('link', { name: 'Plan' })).not.toHaveAttribute(
+      'aria-current',
+    )
   })
 
   it('renders Plan directly and supports normal link navigation', () => {
     renderAt('/plan')
     expect(screen.getByRole('heading', { name: 'Plan content' })).toBeVisible()
     expect(screen.getByRole('link', { name: 'Plan' })).toHaveClass('active')
+    expect(screen.getByRole('link', { name: 'Plan' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
     fireEvent.click(screen.getByRole('link', { name: 'Now' }))
     expect(screen.getByRole('heading', { name: 'Now content' })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Now' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
   it('uses normal not-found behavior for unknown and disabled experiment routes', () => {

@@ -1,5 +1,20 @@
 # Session Notes
 
+## 2026-08-20 — Segmented Now/Plan navigation refinement
+
+- Replaced the visually plain Now/Plan links with one cohesive segmented
+  navigation control while retaining link semantics and React Router behavior.
+- Added an immediately visible dark-green active state, bordered light inactive
+  state, hover/pressed treatment, and a keyboard focus ring. React Router's
+  `aria-current="page"` continues to identify the active location.
+- Positioned the control at the upper right on desktop and made its two links
+  equal-width, full-available-width tap targets at the existing mobile
+  breakpoint. No absolute/fixed positioning, `!important`, or overflow masking
+  was added.
+- Focused and complete frontend tests and the production build passed. The
+  isolated acceptance frontend was updated without touching its preserved
+  database; final human navigation acceptance remains pending.
+
 ## 2026-08-19 — First Now/Plan/Experiments structural increment
 
 - Selected stable `react-router` 8.3.0 in Declarative Mode and recorded

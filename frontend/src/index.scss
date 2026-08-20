@@ -17,6 +17,54 @@ body {
   box-shadow: 0 1.5rem 4rem rgb(42 61 52 / 8%) !important;
 }
 
+.family-navigation {
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid rgb(23 61 48 / 25%);
+  border-radius: 0.75rem;
+  background: #f3f6f3;
+
+  .nav-link {
+    min-width: 5.5rem;
+    padding: 0.65rem 1rem;
+    border: 1px solid rgb(23 61 48 / 30%);
+    border-radius: 0.5rem;
+    color: variables.$forest;
+    background: variables.$card;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
+
+    &:hover {
+      border-color: variables.$accent;
+      color: variables.$forest;
+      background: #e8efe9;
+    }
+
+    &:focus-visible {
+      outline: 0.2rem solid variables.$accent;
+      outline-offset: 0.15rem;
+    }
+
+    &:active {
+      color: variables.$forest;
+      background: #dbe7de;
+    }
+
+    &.active {
+      border-color: variables.$forest;
+      color: #fff;
+      background: variables.$forest;
+
+      &:hover,
+      &:active {
+        color: #fff;
+        background: #0f2f25;
+      }
+    }
+  }
+}
+
 .eyebrow,
 .section-label {
   color: variables.$muted-ink;
@@ -237,6 +285,16 @@ body {
 @media (max-width: 575.98px) {
   .app-container {
     padding-inline: 0.5rem;
+  }
+
+  .family-navigation-wrap,
+  .family-navigation {
+    width: 100%;
+  }
+
+  .family-navigation .nav-link {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   .completed-task-list-body {
