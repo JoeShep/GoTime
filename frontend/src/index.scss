@@ -174,8 +174,47 @@ body {
   .card-header {
     color: variables.$forest;
     background: #eef1eb;
-    font-size: 1rem;
-    font-weight: 700;
+  }
+}
+
+.phase-toggle {
+  color: variables.$forest;
+  background: transparent;
+
+  &:hover {
+    background: rgb(74 111 83 / 8%);
+  }
+
+  &:focus-visible {
+    outline: 0.2rem solid variables.$accent;
+    outline-offset: -0.2rem;
+  }
+}
+
+.phase-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.phase-counts {
+  color: variables.$muted-ink;
+  font-size: 0.85rem;
+}
+
+.phase-chevron {
+  font-size: 1.75rem;
+  line-height: 1;
+  transform: rotate(0deg);
+  transition: transform 120ms ease-in-out;
+
+  &.is-expanded {
+    transform: rotate(90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase-chevron {
+    transition: none;
   }
 }
 

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { generateTaskId, RelocationPlan } from './RelocationPlan'
 import type { RelocationPlan as RelocationPlanData } from './api/relocationPlan'
 
@@ -65,12 +65,127 @@ function mockPlanRequests(mutationPlan = plan) {
   return fetchMock
 }
 
+const expansionStorageKey = 'gotime:plan:family-relocation-plan:expansion'
+
+function storeExpansionState(expandedPhaseIds: string[], expandedCompletedPhaseIds: string[] = []) {
+  sessionStorage.setItem(expansionStorageKey, JSON.stringify({
+    version: 1,
+    expandedPhaseIds,
+    expandedCompletedPhaseIds,
+  }))
+}
+
+beforeEach(() => {
+  storeExpansionState(phases.map((phase) => phase.id))
+})
+
 afterEach(() => {
+  sessionStorage.clear()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
 
 describe('persistent relocation plan', () => {
+  it('starts a new tab session with collapsed accessible phase headers and current counts', async () => {
+    sessionStorage.clear()
+    mockPlanRequests()
+    render(<RelocationPlan />)
+
+    const prepare = await screen.findByRole('button', {
+      name: /Prepare for the move 2 remaining · 0 completed/,
+    })
+    expect(prepare.tagName).toBe('BUTTON')
+    expect(prepare).toHaveAttribute('aria-expanded', 'false')
+    expect(prepare).toHaveAttribute('aria-controls', 'phase-body-prepare')
+    expect(screen.queryByRole('article', { name: 'Choose a mover' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Decide where and how to move 0 remaining · 0 completed/ })).toBeVisible()
+  })
+
+  it('expands multiple phases independently without changing the page position', async () => {
+    sessionStorage.clear()
+    const scrollTo = vi.fn()
+    vi.stubGlobal('scrollTo', scrollTo)
+    const planWithDecideTask = {
+      ...plan,
+      tasks: [{ ...plan.tasks[0], id: 'choose-region', title: 'Choose a region', phase_id: 'decide' }, ...plan.tasks],
+    }
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(planWithDecideTask))))
+    render(<RelocationPlan />)
+
+    const decide = await screen.findByRole('button', { name: /Decide where and how to move 1 remaining/ })
+    const prepare = screen.getByRole('button', { name: /Prepare for the move 2 remaining/ })
+    decide.focus()
+    fireEvent.keyDown(decide, { key: 'Enter' })
+    fireEvent.keyDown(prepare, { key: ' ' })
+
+    expect(decide).toHaveAttribute('aria-expanded', 'true')
+    expect(prepare).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('article', { name: 'Choose a region' })).toBeVisible()
+    expect(screen.getByRole('article', { name: 'Choose a mover' })).toBeVisible()
+    expect(scrollTo).not.toHaveBeenCalled()
+  })
+
+  it('expands and collapses all visible phases with mobile-safe compact controls', async () => {
+    sessionStorage.clear()
+    mockPlanRequests()
+    const { container } = render(<RelocationPlan />)
+    await screen.findByRole('button', { name: /Prepare for the move/ })
+
+    const controls = screen.getByLabelText('Phase display controls')
+    expect(controls).toHaveClass('d-flex', 'flex-wrap', 'gap-2')
+    expect(screen.getByRole('button', { name: 'Expand all' })).toHaveClass('phase-display-control', 'btn-sm')
+    fireEvent.click(screen.getByRole('button', { name: 'Expand all' }))
+    expect(container.querySelectorAll('.phase-toggle[aria-expanded="true"]')).toHaveLength(4)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }))
+    expect(container.querySelectorAll('.phase-toggle[aria-expanded="false"]')).toHaveLength(4)
+    expect(screen.queryByRole('article', { name: 'Choose a mover' })).not.toBeInTheDocument()
+  })
+
+  it('restores valid session state and ignores malformed or stale phase identifiers', async () => {
+    storeExpansionState(['prepare', 'removed-phase'], ['prepare', 'removed-phase'])
+    const completedPlan = {
+      ...plan,
+      tasks: plan.tasks.map((task) => task.id === 'choose-mover' ? { ...task, status: 'completed' } : task),
+    } as RelocationPlanData
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(completedPlan))))
+    const first = render(<RelocationPlan />)
+    const prepare = await screen.findByRole('button', { name: /Prepare for the move/ })
+    expect(prepare).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Completed (1)' })).toHaveAttribute('aria-expanded', 'true')
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem(expansionStorageKey) ?? '{}')).toEqual({
+      version: 1,
+      expandedPhaseIds: ['prepare'],
+      expandedCompletedPhaseIds: ['prepare'],
+    }))
+    first.unmount()
+
+    sessionStorage.setItem(expansionStorageKey, '{bad json')
+    render(<RelocationPlan />)
+    expect(await screen.findByRole('button', { name: /Prepare for the move/ })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('opens filtered phases, shows filtered counts, and restores the one pre-filter snapshot', async () => {
+    sessionStorage.clear()
+    mockPlanRequests()
+    render(<RelocationPlan />)
+    const prepare = await screen.findByRole('button', { name: /Prepare for the move 2 remaining/ })
+    fireEvent.click(prepare)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filter by categories' }))
+    fireEvent.click(screen.getByLabelText('Logistics'))
+    expect(screen.getByRole('button', { name: /Prepare for the move 1 remaining · 0 completed/ })).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByRole('button', { name: /Prepare for the move/ }))
+    expect(screen.getByRole('button', { name: /Prepare for the move/ })).toHaveAttribute('aria-expanded', 'false')
+
+    fireEvent.click(screen.getByLabelText('Financial'))
+    expect(screen.getByRole('button', { name: /Prepare for the move 2 remaining/ })).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByLabelText('Logistics'))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+    expect(screen.getByRole('button', { name: /Prepare for the move 2 remaining/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: /Decide where and how to move/ })).toHaveAttribute('aria-expanded', 'false')
+  })
+
   it('shows the current phase and category vocabulary', async () => {
     mockPlanRequests()
     render(<RelocationPlan />)
@@ -368,7 +483,7 @@ describe('persistent relocation plan', () => {
     render(<RelocationPlan />)
 
     expect(await screen.findByRole('heading', { name: 'Choose a mover' })).toBeVisible()
-    const phaseHeadings = screen.getAllByRole('heading', { level: 3 })
+    const phaseHeadings = [...document.querySelectorAll('.phase-title')]
     expect(phaseHeadings.map((heading) => heading.textContent)).toEqual(phases.map((phase) => phase.title))
     expect(screen.getByText('Blocked')).toBeVisible()
     expect(screen.getByText(/Depends on:/).closest('p')).toHaveTextContent('Choose a mover')
@@ -726,15 +841,24 @@ describe('persistent relocation plan', () => {
   })
 
   it('changes task status through the narrow status endpoint', async () => {
-    const fetchMock = mockPlanRequests()
+    const completedPlan: RelocationPlanData = {
+      ...plan,
+      tasks: plan.tasks.map((task) => task.id === 'choose-mover'
+        ? { ...task, status: 'completed' }
+        : task),
+    }
+    const fetchMock = mockPlanRequests(completedPlan)
     render(<RelocationPlan />)
     await screen.findByRole('heading', { name: 'Choose a mover' })
+    const prepare = screen.getByRole('button', { name: /Prepare for the move 2 remaining · 0 completed/ })
 
     fireEvent.change(screen.getByLabelText('Status for Choose a mover'), { target: { value: 'completed' } })
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     expect(fetchMock.mock.calls[1][0]).toBe('/api/relocation-plan/tasks/choose-mover/status')
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual({ status: 'completed' })
+    expect(screen.getByRole('button', { name: /Prepare for the move 1 remaining · 1 completed/ })).toBe(prepare)
+    expect(prepare).toHaveAttribute('aria-expanded', 'true')
   })
 
   it('visibly unblocks a dependent from the returned status-update plan', async () => {

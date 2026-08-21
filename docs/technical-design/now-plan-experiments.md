@@ -171,3 +171,30 @@ with both flags disabled. The isolated acceptance project and its disposable
 database were then removed without touching the normal data volume. The first
 structural increment is complete; implementation order resumes at collapsible
 phases and browser-session Plan state.
+
+## Collapsible-phase increment status
+
+The next bounded increment makes every Task phase an independently controlled,
+initially collapsed section. Its full header is a native button containing the
+phase title, filtered or unfiltered remaining/completed counts, and a directional
+chevron. Compact Expand all and Collapse all controls operate on visible phases;
+Collapse all also closes every completed subsection.
+
+Expansion is transient browser-tab state. A versioned record at
+`gotime:plan:<plan-id>:expansion` in `sessionStorage` contains only expanded
+phase IDs and expanded completed-subsection phase IDs. It is never sent to the
+API or SQLite. Unknown IDs are discarded and malformed or incompatible records
+fall back to all-collapsed state. Plan scroll-position preservation remains a
+later structural increment.
+
+Entering category filtering snapshots the current phase expansion once and
+opens every matching phase. Filter changes do not replace that snapshot, users
+may still toggle visible phases, and clearing restores the snapshot. Temporary
+filter-driven expansion is not persisted as the ordinary no-filter session
+state. Finder selection opens only the destination phase and, for completed
+Tasks, its completed subsection while retaining the established filter-clear,
+focus, scroll, and highlight behavior.
+
+Automated frontend verification passes, and the candidate is running only in
+an isolated acceptance project. Human acceptance is pending; the normal
+frontend has not been updated.

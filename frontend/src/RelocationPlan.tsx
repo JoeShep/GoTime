@@ -39,6 +39,41 @@ const categoryLabels: Record<TaskCategory, string> = {
 const categoryOrder = Object.keys(categoryLabels) as TaskCategory[]
 type CategoryFilter = TaskCategory | 'uncategorized'
 
+const planExpansionStateVersion = 1
+
+interface StoredPlanExpansionState {
+  version: number
+  expandedPhaseIds: string[]
+  expandedCompletedPhaseIds: string[]
+}
+
+function expansionStorageKey(planId: string) {
+  return `gotime:plan:${planId}:expansion`
+}
+
+function readExpansionState(planId: string, validPhaseIds: Set<string>) {
+  try {
+    const value = sessionStorage.getItem(expansionStorageKey(planId))
+    if (!value) return { phases: new Set<string>(), completed: new Set<string>() }
+    const parsed = JSON.parse(value) as Partial<StoredPlanExpansionState>
+    if (
+      parsed.version !== planExpansionStateVersion
+      || !Array.isArray(parsed.expandedPhaseIds)
+      || !Array.isArray(parsed.expandedCompletedPhaseIds)
+      || !parsed.expandedPhaseIds.every((id) => typeof id === 'string')
+      || !parsed.expandedCompletedPhaseIds.every((id) => typeof id === 'string')
+    ) {
+      return { phases: new Set<string>(), completed: new Set<string>() }
+    }
+    return {
+      phases: new Set(parsed.expandedPhaseIds.filter((id) => validPhaseIds.has(id))),
+      completed: new Set(parsed.expandedCompletedPhaseIds.filter((id) => validPhaseIds.has(id))),
+    }
+  } catch {
+    return { phases: new Set<string>(), completed: new Set<string>() }
+  }
+}
+
 interface TaskDraft {
   title: string
   description: string
@@ -189,13 +224,17 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [finderQuery, setFinderQuery] = useState('')
   const [finderOpen, setFinderOpen] = useState(false)
   const [activeFinderIndex, setActiveFinderIndex] = useState(-1)
+  const [expandedPhaseIds, setExpandedPhaseIds] = useState<Set<string>>(new Set())
   const [expandedCompletedPhaseIds, setExpandedCompletedPhaseIds] = useState<Set<string>>(new Set())
+  const [expansionStateReady, setExpansionStateReady] = useState(false)
   const [pendingNavigationTaskId, setPendingNavigationTaskId] = useState<string | null>(null)
   const [foundTaskId, setFoundTaskId] = useState<string | null>(null)
   const [categoryFilters, setCategoryFilters] = useState<Set<CategoryFilter>>(new Set())
   const editorRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const taskRefs = useRef(new Map<string, HTMLElement>())
+  const initializedPlanIdRef = useRef<string | null>(null)
+  const preFilterExpandedPhaseIdsRef = useRef<Set<string> | null>(null)
 
   function acceptPlan(updated: RelocationPlanData) {
     setPlan({ ...updated, milestones: updated.milestones ?? [], decisions: updated.decisions ?? [] })
@@ -248,6 +287,34 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   )
 
   useEffect(() => {
+    if (!plan || initializedPlanIdRef.current === plan.id) return
+    const validPhaseIds = new Set(plan.phases.map((phase) => phase.id))
+    const stored = readExpansionState(plan.id, validPhaseIds)
+    initializedPlanIdRef.current = plan.id
+    setExpandedPhaseIds(stored.phases)
+    setExpandedCompletedPhaseIds(stored.completed)
+    setExpansionStateReady(true)
+  }, [plan])
+
+  useEffect(() => {
+    if (!plan || !expansionStateReady || initializedPlanIdRef.current !== plan.id) return
+    const stored: StoredPlanExpansionState = {
+      version: planExpansionStateVersion,
+      expandedPhaseIds: [...(
+        categoryFilters.size > 0
+          ? preFilterExpandedPhaseIdsRef.current ?? new Set<string>()
+          : expandedPhaseIds
+      )],
+      expandedCompletedPhaseIds: [...expandedCompletedPhaseIds],
+    }
+    try {
+      sessionStorage.setItem(expansionStorageKey(plan.id), JSON.stringify(stored))
+    } catch {
+      // Expansion remains usable when browser storage is unavailable.
+    }
+  }, [categoryFilters, expandedCompletedPhaseIds, expandedPhaseIds, expansionStateReady, plan])
+
+  useEffect(() => {
     if (!draft) return
     editorRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
     titleInputRef.current?.focus()
@@ -260,7 +327,39 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     taskElement.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
     taskElement.focus({ preventScroll: true })
     setPendingNavigationTaskId(null)
-  }, [expandedCompletedPhaseIds, pendingNavigationTaskId])
+  }, [expandedCompletedPhaseIds, expandedPhaseIds, pendingNavigationTaskId])
+
+  function matchingPhaseIds(filters: Set<CategoryFilter>) {
+    if (!plan) return new Set<string>()
+    return new Set(plan.tasks
+      .filter((task) => taskMatchesCategoryFilters(task, filters))
+      .map((task) => task.phase_id))
+  }
+
+  function updateCategoryFilters(next: Set<CategoryFilter>) {
+    const filterWasActive = categoryFilters.size > 0
+    const filterWillBeActive = next.size > 0
+    if (!filterWasActive && filterWillBeActive) {
+      preFilterExpandedPhaseIdsRef.current = new Set(expandedPhaseIds)
+    }
+    if (filterWillBeActive) {
+      const matching = matchingPhaseIds(next)
+      setExpandedPhaseIds((expanded) => new Set([...expanded, ...matching]))
+    } else if (filterWasActive) {
+      setExpandedPhaseIds(new Set(preFilterExpandedPhaseIdsRef.current ?? []))
+      preFilterExpandedPhaseIdsRef.current = null
+    }
+    setCategoryFilters(next)
+  }
+
+  function togglePhase(phaseId: string) {
+    setExpandedPhaseIds((expanded) => {
+      const next = new Set(expanded)
+      if (next.has(phaseId)) next.delete(phaseId)
+      else next.add(phaseId)
+      return next
+    })
+  }
 
   function closeFinder() {
     setFinderQuery('')
@@ -270,8 +369,13 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
   function selectFinderResult(task: RelocationTask) {
     if (!taskMatchesCategoryFilters(task, categoryFilters)) {
+      const restored = preFilterExpandedPhaseIdsRef.current ?? new Set<string>()
+      setExpandedPhaseIds(new Set([...restored, task.phase_id]))
+      preFilterExpandedPhaseIdsRef.current = null
       setCategoryFilters(new Set())
       setNotice('Category filter cleared to show the selected task.')
+    } else {
+      setExpandedPhaseIds((expanded) => new Set(expanded).add(task.phase_id))
     }
     closeFinder()
     setFoundTaskId(task.id)
@@ -488,26 +592,26 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
               id={`category-filter-${category}`}
               key={category}
               label={categoryLabels[category]}
-              onChange={(event) => setCategoryFilters((current) => {
-                const next = new Set(current)
+              onChange={(event) => {
+                const next = new Set(categoryFilters)
                 if (event.target.checked) next.add(category)
                 else next.delete(category)
-                return next
-              })}
+                updateCategoryFilters(next)
+              }}
             />
           ))}
           <Form.Check
             checked={categoryFilters.has('uncategorized')}
             id="category-filter-uncategorized"
             label="Uncategorized"
-            onChange={(event) => setCategoryFilters((current) => {
-              const next = new Set(current)
+            onChange={(event) => {
+              const next = new Set(categoryFilters)
               if (event.target.checked) next.add('uncategorized')
               else next.delete('uncategorized')
-              return next
-            })}
+              updateCategoryFilters(next)
+            }}
           />
-          {categoryFilters.size > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => setCategoryFilters(new Set())}>Clear all</Button>}
+          {categoryFilters.size > 0 && <Button className="mt-2 p-0" variant="link" type="button" onClick={() => updateCategoryFilters(new Set())}>Clear all</Button>}
         </PersistentCategoryDropdown>
         </div>
       )}
@@ -595,16 +699,69 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         <p className="text-muted py-4 mb-0">No tasks match the selected categories.</p>
       )}
 
+      {plan && (
+        <div className="phase-list-heading d-flex flex-wrap align-items-center justify-content-between gap-2 px-1 px-sm-0 mb-2">
+          <h3 className="h5 mb-0" id="task-phases-heading">Task phases</h3>
+          <div className="d-flex flex-wrap gap-2" aria-label="Phase display controls">
+            <Button
+              className="phase-display-control"
+              onClick={() => setExpandedPhaseIds(new Set(plan.phases
+                .filter((phase) => categoryFilters.size === 0 || plan.tasks.some((task) => task.phase_id === phase.id && categoryMatches(task)))
+                .map((phase) => phase.id)))}
+              size="sm"
+              type="button"
+              variant="outline-secondary"
+            >
+              Expand all
+            </Button>
+            <Button
+              className="phase-display-control"
+              onClick={() => {
+                setExpandedPhaseIds(new Set())
+                setExpandedCompletedPhaseIds(new Set())
+              }}
+              size="sm"
+              type="button"
+              variant="outline-secondary"
+            >
+              Collapse all
+            </Button>
+          </div>
+        </div>
+      )}
+
       {plan?.phases.map((phase) => {
         const phaseTasks = plan.tasks.filter((task) => task.phase_id === phase.id && categoryMatches(task))
         if (categoryFilters.size > 0 && phaseTasks.length === 0) return null
         const activeTasks = phaseTasks.filter((task) => task.status !== 'completed')
         const completedTasks = phaseTasks.filter((task) => task.status === 'completed')
+        const phaseExpanded = expandedPhaseIds.has(phase.id)
         const completedExpanded = expandedCompletedPhaseIds.has(phase.id)
+        const bodyId = `phase-body-${phase.id}`
         return (
           <Card className="phase-card mb-3" key={phase.id}>
-            <Card.Header as="h3">{phase.title}</Card.Header>
-            <Card.Body className="px-1 py-2 p-sm-3">
+            <Card.Header aria-label={phase.title} as="h4" className="p-0">
+              <button
+                aria-controls={bodyId}
+                aria-expanded={phaseExpanded}
+                aria-label={`${phase.title} ${activeTasks.length} remaining · ${completedTasks.length} completed`}
+                className="phase-toggle d-flex w-100 align-items-center justify-content-between gap-3 border-0 px-3 py-3 text-start"
+                onClick={() => togglePhase(phase.id)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter' && event.key !== ' ') return
+                  event.preventDefault()
+                  togglePhase(phase.id)
+                }}
+                type="button"
+              >
+                <span>
+                  <span className="phase-title d-block">{phase.title}</span>
+                  <span className="phase-counts d-block fw-normal">{activeTasks.length} remaining · {completedTasks.length} completed</span>
+                </span>
+                <span aria-hidden="true" className={`phase-chevron flex-shrink-0 ${phaseExpanded ? 'is-expanded' : ''}`}>›</span>
+              </button>
+            </Card.Header>
+            {phaseExpanded && <Card.Body className="px-1 py-2 p-sm-3" id={bodyId}>
               {phaseTasks.length === 0 && <p className="text-muted mb-0">No tasks in this phase yet.</p>}
               {activeTasks.length === 0 && completedTasks.length > 0 && <p className="text-muted mb-0">No active tasks in this phase.</p>}
               <Stack className="task-list gap-1 gap-sm-3">
@@ -631,7 +788,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                   </Accordion.Item>
                 </Accordion>
               )}
-            </Card.Body>
+            </Card.Body>}
           </Card>
         )
       })}

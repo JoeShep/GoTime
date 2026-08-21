@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RelocationPlanExperience } from './RelocationPlanExperience'
 import type {
   RelocationPlan,
@@ -88,7 +88,18 @@ function response(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as Response
 }
 
-afterEach(() => vi.unstubAllGlobals())
+beforeEach(() => {
+  sessionStorage.setItem('gotime:plan:family-relocation-plan:expansion', JSON.stringify({
+    version: 1,
+    expandedPhaseIds: phases.map((phase) => phase.id),
+    expandedCompletedPhaseIds: [],
+  }))
+})
+
+afterEach(() => {
+  sessionStorage.clear()
+  vi.unstubAllGlobals()
+})
 
 describe('relocation-plan recommendation experience', () => {
   it('displays the returned stored-task recommendation and explanation', async () => {

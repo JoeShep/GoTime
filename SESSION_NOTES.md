@@ -2083,3 +2083,33 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - The first structural increment is complete. Phase collapsing, Plan session
   state, cross-route reveal, the unified Add menu, mobile Find navigation,
   secondary attention items, and derived-attention Increment 2 have not begun.
+
+# 2026-08-20 — Collapsible Plan phases candidate
+
+- Added accessible full-width phase-header buttons with remaining/completed
+  counts, directional chevrons, independent expansion, and compact Expand all
+  and Collapse all controls. Completed subsections remain independently
+  collapsed and Collapse all resets them.
+- Added versioned, plan-ID-scoped `sessionStorage` state for expanded phases and
+  completed subsections. Missing, malformed, incompatible, and stale records
+  safely produce or retain only valid phase IDs. No state is persisted through
+  the API or SQLite.
+- Category filtering snapshots pre-filter expansion once, opens matching
+  phases, retains user toggles without replacing the snapshot, and restores it
+  on clear. Finder opens only its destination phase and opens the completed
+  subsection when required while preserving existing filter, focus, scroll,
+  and highlight behavior.
+- Focused verification passed 46 tests. The complete frontend suite passed all
+  82 tests, the production build passed, and `git diff --check` passed. Backend
+  source and tests were unchanged.
+- Restored the verified backup with SQLite's backup API into disposable volume
+  `gotime_phase_collapse_acceptance_data_0660de4`. The isolated database has 49
+  unique Tasks, expected relationship counts, empty Increment-1 entities,
+  integrity `ok`, and no foreign-key violations.
+- Left the candidate running at `http://localhost:17173` in Compose project
+  `gotime_phase_collapse_acceptance`. Neither acceptance container mounts
+  `gotime_gotime_data`; the normal frontend remains stopped, while the normal
+  backend remains healthy and the active database is byte-for-byte unchanged.
+- Human acceptance remains pending. Cross-route Finder, Plan scroll restoration,
+  unified Add, mobile bottom navigation, secondary attention items, family-plan
+  conversion, and derived-attention Increment 2 were not started.
