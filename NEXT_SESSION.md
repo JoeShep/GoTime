@@ -1,15 +1,17 @@
 # NEXT_SESSION
 
-## Current objective: accept collapsible Plan phases
+## Current objective: plan cross-route reveal behavior
 
-Complete human browser acceptance of the isolated phase-collapse candidate at
-`http://localhost:17173`. Verify initial collapse, independent and global
-controls, filtered counts and restoration, Finder reveal, completed sections,
-session restoration, status-count stability, and desktop/mobile presentation.
+Review and prepare the next bounded structural increment for Plan scroll-state
+preservation and cross-route Finder and Recommendation navigation. Define how a
+target route reveals its phase and completed subsection, restores appropriate
+Plan workspace state, scrolls, focuses, and highlights without coupling Now to
+Plan internals.
 
-The candidate stores only phase and completed-subsection expansion in
-`sessionStorage`, keyed by plan ID. The normal frontend remains stopped; the
-normal backend and active family database remain unchanged. Do not deploy or
-close the increment before acceptance, and do not begin cross-route Finder,
-unified Add, mobile bottom navigation, secondary attention, family-plan
+Collapsible Plan phases are accepted, deployed, and closed. Their phase and
+completed-subsection expansion state remains browser-tab-only `sessionStorage`
+state keyed by plan ID. Keep unified Add and mobile bottom navigation later in
+the approved sequence. Do not begin secondary attention items, family-plan
 conversion, or derived-attention Increment 2.
+
+Minor unrelated mobile-spacing inconsistencies remain deferred visual polish.

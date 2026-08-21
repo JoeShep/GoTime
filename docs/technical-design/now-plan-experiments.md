@@ -195,6 +195,16 @@ state. Finder selection opens only the destination phase and, for completed
 Tasks, its completed subsection while retaining the established filter-clear,
 focus, scroll, and highlight behavior.
 
-Automated frontend verification passes, and the candidate is running only in
-an isolated acceptance project. Human acceptance is pending; the normal
-frontend has not been updated.
+Human browser acceptance passed for initial and independent expansion, counts,
+completed subsections, global controls, filtering and snapshot restoration,
+Finder reveal, route and refresh persistence, status-change stability, and
+desktop/mobile presentation. The accepted frontend was deployed without
+restarting the backend or changing the active database. Every database count
+and stable row-content hash matched before and after deployment. The disposable
+acceptance containers, network, volume, and temporary Compose files were then
+removed. This increment is complete.
+
+The next structural work remains Plan scroll restoration and cross-route Finder
+and Recommendation reveal. Unified Add and mobile bottom navigation follow in
+the approved sequence. Those items, secondary attention, family-plan
+conversion, and derived-attention Increment 2 have not begun.

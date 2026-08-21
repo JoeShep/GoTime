@@ -45,8 +45,9 @@
   acceptance environment safely.
 - [x] Introduce the initial Now/Plan shell, separate persisted Recommendation
   and Plan content, and default-off the suspended Experiments boundary.
-- [x] Implement collapsible phases and browser-session phase/completed-section
-  expansion state; complete isolated human acceptance before deployment.
+- [x] Implement, accept, and deploy collapsible phases with browser-session
+  phase/completed-section expansion state; remove the disposable acceptance
+  environment safely.
 - [ ] Preserve Plan scroll position during ordinary route navigation as a
   later workspace-state increment.
 - [ ] Add cross-route Finder and Recommendation reveal behavior, including the

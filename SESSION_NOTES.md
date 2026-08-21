@@ -2113,3 +2113,34 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Human acceptance remains pending. Cross-route Finder, Plan scroll restoration,
   unified Add, mobile bottom navigation, secondary attention items, family-plan
   conversion, and derived-attention Increment 2 were not started.
+
+# 2026-08-20 — Collapsible Plan phases closeout
+
+- Human browser acceptance passed for all phase-collapse behavior: initial and
+  multiple expansion, accessible keyboard headers, filtered and unfiltered
+  counts, independent completed sections, global controls, category-filter
+  expansion and restoration, Finder reveal, Now/Plan and refresh persistence,
+  status-count stability, and desktop/mobile presentation without observed
+  overflow, flicker, or page jumps.
+- Built the normal frontend from accepted commit `73a7edd9720fa4933baaa6eeb036eeea8184a3b8`
+  with Experiments disabled and recreated only `gotime-frontend-1`. The existing
+  backend remained running and healthy throughout. Frontend serving, API
+  proxying, Plan, and Recommendation checks passed; both experimental API
+  routes remained 404.
+- Active database evidence matched exactly before and after deployment: size,
+  modification timestamp, SHA-256, integrity, foreign keys, every table count,
+  and every stable row-content hash. Milestones, Decisions, and Decision options
+  remained empty.
+- Removed only `gotime-phase-collapse-acceptance-frontend`,
+  `gotime-phase-collapse-acceptance-backend`, volume
+  `gotime_phase_collapse_acceptance_data_0660de4`, network
+  `gotime_phase_collapse_acceptance_net_0660de4`, and their temporary Compose
+  directory after confirming project labels, mounts, and isolation. Normal
+  resources, `gotime_gotime_data`, and the verified backup were untouched.
+- Phase and completed-subsection expansion remains versioned, plan-ID-scoped
+  browser-tab `sessionStorage` state; no workspace state is stored in SQLite or
+  sent through the API. Remaining unrelated mobile spacing stays deferred
+  visual polish.
+- Cross-route Finder, Plan scroll restoration, unified Add, mobile bottom
+  navigation, secondary attention items, family-plan conversion, and
+  derived-attention Increment 2 were not started.
