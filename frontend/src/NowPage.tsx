@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { Alert, Spinner } from 'react-bootstrap'
 import { NextTaskRecommendation } from './NextTaskRecommendation'
 import { fetchRelocationPlan } from './api/relocationPlan'
@@ -6,6 +6,10 @@ import { fetchRelocationPlan } from './api/relocationPlan'
 export function NowPage() {
   const [planTitle, setPlanTitle] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [])
 
   useEffect(() => {
     const controller = new AbortController()

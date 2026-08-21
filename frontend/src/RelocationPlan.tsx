@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Accordion, Alert, Badge, Button, Card, Col, Dropdown, Form, Row, Spinner, Stack } from 'react-bootstrap'
 import {
   changeTaskStatus,
@@ -13,6 +13,7 @@ import {
   type TaskWrite,
 } from './api/relocationPlan'
 import { MilestoneDecisionFoundation } from './MilestoneDecisionFoundation'
+import { useFind } from './FindContext'
 
 const statusLabels: Record<TaskStatus, string> = {
   not_started: 'Not started',
@@ -40,6 +41,7 @@ const categoryOrder = Object.keys(categoryLabels) as TaskCategory[]
 type CategoryFilter = TaskCategory | 'uncategorized'
 
 const planExpansionStateVersion = 1
+const planScrollStateVersion = 1
 
 interface StoredPlanExpansionState {
   version: number
@@ -49,6 +51,28 @@ interface StoredPlanExpansionState {
 
 function expansionStorageKey(planId: string) {
   return `gotime:plan:${planId}:expansion`
+}
+
+function scrollStorageKey(planId: string) {
+  return `gotime:plan:${planId}:scroll`
+}
+
+function readScrollPosition(planId: string) {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(scrollStorageKey(planId)) ?? 'null') as { version?: unknown; y?: unknown } | null
+    if (parsed?.version !== planScrollStateVersion || typeof parsed.y !== 'number' || !Number.isFinite(parsed.y) || parsed.y < 0) return null
+    return parsed.y
+  } catch {
+    return null
+  }
+}
+
+function writeScrollPosition(planId: string, y: number) {
+  try {
+    sessionStorage.setItem(scrollStorageKey(planId), JSON.stringify({ version: planScrollStateVersion, y: Math.max(0, y) }))
+  } catch {
+    // Plan navigation remains usable when browser storage is unavailable.
+  }
 }
 
 function readExpansionState(planId: string, validPhaseIds: Set<string>) {
@@ -213,6 +237,7 @@ function taskMatchesCategoryFilters(
 }
 
 export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }) {
+  const { consumeTarget, target } = useFind()
   const [plan, setPlan] = useState<RelocationPlanData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -221,9 +246,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft | null>(null)
   const [dependencyQuery, setDependencyQuery] = useState('')
-  const [finderQuery, setFinderQuery] = useState('')
-  const [finderOpen, setFinderOpen] = useState(false)
-  const [activeFinderIndex, setActiveFinderIndex] = useState(-1)
   const [expandedPhaseIds, setExpandedPhaseIds] = useState<Set<string>>(new Set())
   const [expandedCompletedPhaseIds, setExpandedCompletedPhaseIds] = useState<Set<string>>(new Set())
   const [expansionStateReady, setExpansionStateReady] = useState(false)
@@ -235,6 +257,8 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const taskRefs = useRef(new Map<string, HTMLElement>())
   const initializedPlanIdRef = useRef<string | null>(null)
   const preFilterExpandedPhaseIdsRef = useRef<Set<string> | null>(null)
+  const scrollRestoredRef = useRef(false)
+  const scrollWriteFrameRef = useRef<number | null>(null)
 
   function acceptPlan(updated: RelocationPlanData) {
     setPlan({ ...updated, milestones: updated.milestones ?? [], decisions: updated.decisions ?? [] })
@@ -259,17 +283,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     () => new Map(plan?.tasks.map((task) => [task.id, task]) ?? []),
     [plan],
   )
-  const phaseById = useMemo(
-    () => new Map(plan?.phases.map((phase) => [phase.id, phase]) ?? []),
-    [plan],
-  )
-  const finderResults = useMemo(() => {
-    const normalizedQuery = finderQuery.trim().toLocaleLowerCase()
-    if (!normalizedQuery) return []
-    return (plan?.tasks ?? []).filter((task) =>
-      task.title.toLocaleLowerCase().includes(normalizedQuery),
-    )
-  }, [finderQuery, plan])
   const dependencyGroups = useMemo(() => {
     const normalizedQuery = dependencyQuery.trim().toLocaleLowerCase()
     return (plan?.phases ?? []).map((phase) => ({
@@ -314,6 +327,33 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     }
   }, [categoryFilters, expandedCompletedPhaseIds, expandedPhaseIds, expansionStateReady, plan])
 
+  useLayoutEffect(() => {
+    if (!plan || !expansionStateReady || scrollRestoredRef.current || target) return
+    scrollRestoredRef.current = true
+    const storedY = readScrollPosition(plan.id)
+    if (storedY === null) return
+    const maximumY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+    window.scrollTo({ top: Math.min(storedY, maximumY), left: 0, behavior: 'auto' })
+  }, [expandedCompletedPhaseIds, expandedPhaseIds, expansionStateReady, plan, target])
+
+  useEffect(() => {
+    if (!plan || !expansionStateReady) return
+    function saveBoundedScroll() {
+      if (scrollWriteFrameRef.current !== null) return
+      scrollWriteFrameRef.current = window.requestAnimationFrame(() => {
+        scrollWriteFrameRef.current = null
+        writeScrollPosition(plan!.id, window.scrollY)
+      })
+    }
+    window.addEventListener('scroll', saveBoundedScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', saveBoundedScroll)
+      if (scrollWriteFrameRef.current !== null) window.cancelAnimationFrame(scrollWriteFrameRef.current)
+      scrollWriteFrameRef.current = null
+      writeScrollPosition(plan.id, window.scrollY)
+    }
+  }, [expansionStateReady, plan])
+
   useEffect(() => {
     if (!draft) return
     editorRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
@@ -326,8 +366,11 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     if (!taskElement) return
     taskElement.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
     taskElement.focus({ preventScroll: true })
+    if (plan) {
+      window.requestAnimationFrame(() => writeScrollPosition(plan.id, window.scrollY))
+    }
     setPendingNavigationTaskId(null)
-  }, [expandedCompletedPhaseIds, expandedPhaseIds, pendingNavigationTaskId])
+  }, [expandedCompletedPhaseIds, expandedPhaseIds, pendingNavigationTaskId, plan])
 
   function matchingPhaseIds(filters: Set<CategoryFilter>) {
     if (!plan) return new Set<string>()
@@ -361,12 +404,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     })
   }
 
-  function closeFinder() {
-    setFinderQuery('')
-    setFinderOpen(false)
-    setActiveFinderIndex(-1)
-  }
-
   function selectFinderResult(task: RelocationTask) {
     if (!taskMatchesCategoryFilters(task, categoryFilters)) {
       const restored = preFilterExpandedPhaseIdsRef.current ?? new Set<string>()
@@ -377,7 +414,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     } else {
       setExpandedPhaseIds((expanded) => new Set(expanded).add(task.phase_id))
     }
-    closeFinder()
     setFoundTaskId(task.id)
     if (task.status === 'completed') {
       setExpandedCompletedPhaseIds((expanded) => {
@@ -389,37 +425,16 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setPendingNavigationTaskId(task.id)
   }
 
-  function handleFinderKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === 'Escape') {
-      if (finderOpen) event.preventDefault()
-      setFinderOpen(false)
-      setActiveFinderIndex(-1)
-      return
-    }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      if (finderResults.length === 0) return
-      event.preventDefault()
-      setFinderOpen(true)
-      setActiveFinderIndex((current) => {
-        if (current < 0) return event.key === 'ArrowDown' ? 0 : finderResults.length - 1
-        return event.key === 'ArrowDown'
-          ? (current + 1) % finderResults.length
-          : (current - 1 + finderResults.length) % finderResults.length
-      })
-      return
-    }
-    if (event.key === 'Enter' && finderOpen && activeFinderIndex >= 0) {
-      const selected = finderResults[activeFinderIndex]
-      if (selected) {
-        event.preventDefault()
-        selectFinderResult(selected)
-      }
-    }
-  }
+  useEffect(() => {
+    if (!target || !plan || !expansionStateReady) return
+    const task = plan.tasks.find((candidate) => candidate.id === target.taskId)
+    scrollRestoredRef.current = true
+    if (task) selectFinderResult(task)
+    consumeTarget()
+  }, [consumeTarget, expansionStateReady, plan, target])
 
   function beginAdd() {
     if (!plan) return
-    closeFinder()
     setEditingId(null)
     setDraft(emptyDraft(plan.phases[0].id))
     setDependencyQuery('')
@@ -428,7 +443,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   function beginEdit(task: RelocationTask) {
-    closeFinder()
     setEditingId(task.id)
     setDraft(draftFromTask(task))
     setDependencyQuery('')
@@ -523,64 +537,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
       {plan && !draft && (
         <div className="task-discovery px-2 px-sm-0 mb-3">
-        <Form.Group className="task-finder position-relative mb-2 mb-sm-4" controlId="task-finder">
-          <Form.Label>Find a task</Form.Label>
-          <Form.Control
-            aria-activedescendant={finderOpen && activeFinderIndex >= 0 ? `task-finder-option-${finderResults[activeFinderIndex]?.id}` : undefined}
-            aria-autocomplete="list"
-            aria-controls="task-finder-results"
-            aria-expanded={finderOpen && finderQuery.trim().length > 0}
-            autoComplete="off"
-            onBlur={() => {
-              setFinderOpen(false)
-              setActiveFinderIndex(-1)
-            }}
-            onChange={(event) => {
-              const nextQuery = event.target.value
-              setFinderQuery(nextQuery)
-              setFinderOpen(nextQuery.trim().length > 0)
-              setActiveFinderIndex(-1)
-              setFoundTaskId(null)
-            }}
-            onFocus={() => {
-              if (finderQuery.trim()) setFinderOpen(true)
-            }}
-            onKeyDown={handleFinderKeyDown}
-            placeholder="Search task titles"
-            role="combobox"
-            type="search"
-            value={finderQuery}
-          />
-          {finderOpen && finderQuery.trim() && finderResults.length > 0 && (
-            <div className="task-finder-results list-group" id="task-finder-results" role="listbox">
-              {finderResults.map((task, index) => {
-                const phase = phaseById.get(task.phase_id)
-                return (
-                  <button
-                    aria-selected={activeFinderIndex === index}
-                    className={`list-group-item list-group-item-action ${activeFinderIndex === index ? 'active' : ''}`}
-                    id={`task-finder-option-${task.id}`}
-                    key={task.id}
-                    onClick={() => selectFinderResult(task)}
-                    onMouseDown={(event) => event.preventDefault()}
-                    role="option"
-                    tabIndex={-1}
-                    type="button"
-                  >
-                    <span className="d-flex flex-wrap align-items-center gap-2">
-                      <strong>{task.title}</strong>
-                      {task.status === 'completed' && <Badge bg="secondary">Completed</Badge>}
-                    </span>
-                    <small className="d-block mt-1">{phase?.title} · {task.categories.length > 0 ? categoryOrder.filter((category) => task.categories.includes(category)).map((category) => categoryLabels[category]).join(', ') : 'Uncategorized'}</small>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-          {finderOpen && finderQuery.trim() && finderResults.length === 0 && (
-            <p className="task-finder-empty text-muted mb-0 mt-2" role="status">No matching tasks.</p>
-          )}
-        </Form.Group>
         <PersistentCategoryDropdown
           id="category-filter"
           toggleAriaLabel="Filter by categories"

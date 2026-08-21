@@ -48,10 +48,10 @@
 - [x] Implement, accept, and deploy collapsible phases with browser-session
   phase/completed-section expansion state; remove the disposable acceptance
   environment safely.
-- [ ] Preserve Plan scroll position during ordinary route navigation as a
-  later workspace-state increment.
-- [ ] Add cross-route Finder and Recommendation reveal behavior, including the
-  planned mobile Find navigation.
+- [ ] Complete human acceptance, deployment, and closeout of the shared
+  cross-route Find panel and browser-session Plan scroll restoration candidate.
+- [ ] Add cross-route Recommendation reveal behavior and the planned persistent
+  mobile Find navigation.
 - [ ] Consolidate Task, Milestone, and Decision creation into one Plan Add menu.
 
 ## Milestone-driven planning questions

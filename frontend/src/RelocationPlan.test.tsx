@@ -297,10 +297,7 @@ describe('persistent relocation plan', () => {
     expect(filter).toHaveTextContent('Categories (1)')
     expect(screen.getByRole('heading', { name: 'Choose a mover' })).toBeVisible()
     expect(screen.queryByRole('heading', { name: 'Settle in' })).not.toBeInTheDocument()
-    const finder = screen.getByRole('combobox', { name: 'Find a task' })
-    fireEvent.change(finder, { target: { value: 'deposit' } })
-    expect(screen.getByRole('option', { name: /Pay the mover deposit/ })).toBeVisible()
-    fireEvent.keyDown(finder, { key: 'Escape' })
+    expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByLabelText('Uncategorized'))
     expect(filter).toHaveTextContent('Categories (2)')
@@ -378,18 +375,17 @@ describe('persistent relocation plan', () => {
     expect(within(task).getByText('Logistics')).toHaveClass('badge', 'bg-light', 'text-dark')
   })
 
-  it('groups finder controls with a mobile inset and tighter responsive spacing', async () => {
+  it('keeps category filtering aligned after removing the inline finder', async () => {
     mockPlanRequests()
     render(<RelocationPlan />)
 
-    const finder = await screen.findByRole('combobox', { name: 'Find a task' })
-    const group = finder.closest('.task-discovery')!
+    const filter = await screen.findByRole('button', { name: 'Filter by categories' })
+    const group = filter.closest('.task-discovery')!
     expect(group).toHaveClass('px-2', 'px-sm-0', 'mb-3')
     expect(group.closest('.relocation-plan')?.querySelector('.plan-heading'))
       .toHaveClass('px-2', 'px-sm-0')
-    expect(finder.closest('.task-finder')).toHaveClass('mb-2', 'mb-sm-4')
-    expect(within(group as HTMLElement).getByRole('button', { name: 'Filter by categories' }))
-      .toBeVisible()
+    expect(filter).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
     expect(group.closest('.relocation-plan')).toBeInTheDocument()
   })
 
@@ -403,7 +399,7 @@ describe('persistent relocation plan', () => {
     mockPlanRequests()
     render(<RelocationPlan />)
     await screen.findByRole('button', { name: 'Add task' })
-    expect(screen.getByRole('combobox', { name: 'Find a task' })).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
 
@@ -421,7 +417,7 @@ describe('persistent relocation plan', () => {
 
     expect(screen.queryByRole('heading', { name: 'Add task' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add task' })).toBeVisible()
-    expect(screen.getByRole('combobox', { name: 'Find a task' })).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
   })
 
   it('hides Add task in edit mode and uses Save changes only', async () => {
@@ -488,227 +484,7 @@ describe('persistent relocation plan', () => {
     expect(screen.getByText('Blocked')).toBeVisible()
     expect(screen.getByText(/Depends on:/).closest('p')).toHaveTextContent('Choose a mover')
     expect(screen.getAllByText('No tasks in this phase yet.')).toHaveLength(3)
-    expect(screen.getByRole('combobox', { name: 'Find a task' })).toBeVisible()
-  })
-
-  it('finds multiple active and completed tasks by case-insensitive title with compact metadata', async () => {
-    const searchablePlan: RelocationPlanData = {
-      ...plan,
-      tasks: [
-        {
-          ...plan.tasks[0],
-          id: 'choose-region',
-          title: 'Choose a region',
-          phase_id: 'decide',
-          categories: ['housing'],
-        },
-        { ...plan.tasks[0], status: 'completed' },
-        plan.tasks[1],
-      ],
-    }
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(searchablePlan))))
-    render(<RelocationPlan />)
-    const finder = await screen.findByRole('combobox', { name: 'Find a task' })
-
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-    fireEvent.change(finder, { target: { value: 'CHOOSE' } })
-
-    const options = within(screen.getByRole('listbox')).getAllByRole('option')
-    expect(options).toHaveLength(2)
-    expect(within(options[0]).getByText('Choose a region')).toBeVisible()
-    expect(within(options[0]).getByText('Decide where and how to move · Housing')).toBeVisible()
-    expect(within(options[0]).queryByText('Completed')).not.toBeInTheDocument()
-    expect(within(options[1]).getByText('Choose a mover')).toBeVisible()
-    expect(within(options[1]).getByText('Prepare for the move · Logistics')).toBeVisible()
-    expect(within(options[1]).getByText('Completed')).toBeVisible()
-  })
-
-  it('selects an active result by pointer without editing or mutating the plan', async () => {
-    const scrollIntoView = vi.fn()
-    Object.defineProperty(Element.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: scrollIntoView,
-    })
-    const fetchMock = mockPlanRequests()
-    render(<RelocationPlan />)
-    const finder = await screen.findByRole('combobox', { name: 'Find a task' })
-    fireEvent.change(finder, { target: { value: 'deposit' } })
-
-    fireEvent.click(screen.getByRole('option', { name: /Pay the mover deposit/ }))
-
-    const foundTask = screen.getByRole('article', { name: 'Pay the mover deposit' })
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-    expect(finder).toHaveValue('')
-    expect(foundTask).toHaveClass('is-found')
-    expect(foundTask).toHaveFocus()
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
-    expect(screen.queryByRole('heading', { name: 'Edit task' })).not.toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
-  })
-
-  it('preserves an active filter when the selected finder result is visible', async () => {
-    const scrollIntoView = vi.fn()
-    Object.defineProperty(Element.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: scrollIntoView,
-    })
-    mockPlanRequests()
-    render(<RelocationPlan />)
-    const filter = await screen.findByRole('button', { name: 'Filter by categories' })
-    fireEvent.click(filter)
-    fireEvent.click(screen.getByLabelText('Logistics'))
-    fireEvent.click(document.body)
-    const finder = screen.getByRole('combobox', { name: 'Find a task' })
-    fireEvent.change(finder, { target: { value: 'choose' } })
-
-    fireEvent.click(screen.getByRole('option', { name: /Choose a mover/ }))
-
-    expect(filter).toHaveTextContent('Categories (1)')
-    expect(screen.queryByRole('heading', { name: 'Pay the mover deposit' })).not.toBeInTheDocument()
-    expect(screen.getByRole('article', { name: 'Choose a mover' })).toHaveFocus()
-    expect(screen.queryByText('Category filter cleared to show the selected task.')).not.toBeInTheDocument()
-    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
-  })
-
-  it('does not clear a filter while searching but clears it for a hidden result', async () => {
-    const scrollIntoView = vi.fn()
-    Object.defineProperty(Element.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: scrollIntoView,
-    })
-    mockPlanRequests()
-    render(<RelocationPlan />)
-    const filter = await screen.findByRole('button', { name: 'Filter by categories' })
-    fireEvent.click(filter)
-    fireEvent.click(screen.getByLabelText('Logistics'))
-    fireEvent.click(document.body)
-    const finder = screen.getByRole('combobox', { name: 'Find a task' })
-
-    fireEvent.change(finder, { target: { value: 'deposit' } })
-    expect(filter).toHaveTextContent('Categories (1)')
-    expect(screen.queryByRole('heading', { name: 'Pay the mover deposit' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('option', { name: /Pay the mover deposit/ }))
-
-    expect(filter).toHaveTextContent(/^Categories$/)
-    expect(screen.getByText('Category filter cleared to show the selected task.')).toBeVisible()
-    expect(screen.getByRole('article', { name: 'Pay the mover deposit' })).toHaveFocus()
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
-    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
-  })
-
-  it('clears an incompatible filter and reveals a hidden completed finder result', async () => {
-    const scrollIntoView = vi.fn()
-    Object.defineProperty(Element.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: scrollIntoView,
-    })
-    const completedPlan: RelocationPlanData = {
-      ...plan,
-      tasks: [
-        plan.tasks[0],
-        { ...plan.tasks[1], phase_id: 'settle', status: 'completed', blocked: false },
-      ],
-    }
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(completedPlan))))
-    render(<RelocationPlan />)
-    const filter = await screen.findByRole('button', { name: 'Filter by categories' })
-    fireEvent.click(filter)
-    fireEvent.click(screen.getByLabelText('Logistics'))
-    fireEvent.click(document.body)
-    const finder = screen.getByRole('combobox', { name: 'Find a task' })
-    fireEvent.change(finder, { target: { value: 'deposit' } })
-
-    fireEvent.click(screen.getByRole('option', { name: /Pay the mover deposit/ }))
-
-    expect(filter).toHaveTextContent(/^Categories$/)
-    expect(screen.getByRole('heading', { name: 'Settle in' })).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Completed (1)' })).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByRole('article', { name: 'Pay the mover deposit' })).toHaveFocus()
-    expect(screen.getByText('Category filter cleared to show the selected task.')).toBeVisible()
-    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
-  })
-
-  it('expands the selected completed task phase without collapsing another phase', async () => {
-    const scrollIntoView = vi.fn()
-    Object.defineProperty(Element.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: scrollIntoView,
-    })
-    const completedPlan: RelocationPlanData = {
-      ...plan,
-      tasks: [
-        {
-          ...plan.tasks[0],
-          id: 'choose-region',
-          title: 'Choose a region',
-          phase_id: 'decide',
-          status: 'completed',
-        },
-        { ...plan.tasks[0], status: 'completed' },
-        plan.tasks[1],
-      ],
-    }
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(completedPlan))))
-    render(<RelocationPlan />)
-    const finder = await screen.findByRole('combobox', { name: 'Find a task' })
-    const prepareHeading = screen.getByRole('heading', { name: 'Prepare for the move' })
-    const prepareCompleted = within(prepareHeading.closest('.card')!).getByRole('button', { name: 'Completed (1)' })
-    fireEvent.click(prepareCompleted)
-    expect(prepareCompleted).toHaveAttribute('aria-expanded', 'true')
-
-    fireEvent.change(finder, { target: { value: 'region' } })
-    fireEvent.click(screen.getByRole('option', { name: /Choose a region/ }))
-
-    const decideHeading = screen.getByRole('heading', { name: 'Decide where and how to move' })
-    const decideCompleted = within(decideHeading.closest('.card')!).getByRole('button', { name: 'Completed (1)' })
-    expect(decideCompleted).toHaveAttribute('aria-expanded', 'true')
-    expect(prepareCompleted).toHaveAttribute('aria-expanded', 'true')
-    const foundTask = screen.getByRole('article', { name: 'Choose a region' })
-    expect(foundTask).toHaveFocus()
-    expect(foundTask).toHaveClass('is-found')
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'center' })
-    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
-  })
-
-  it('supports keyboard result navigation and selection', async () => {
-    const scrollIntoView = vi.fn()
-    Object.defineProperty(Element.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: scrollIntoView,
-    })
-    mockPlanRequests()
-    render(<RelocationPlan />)
-    const finder = await screen.findByRole('combobox', { name: 'Find a task' })
-    fireEvent.change(finder, { target: { value: 'mover' } })
-
-    fireEvent.keyDown(finder, { key: 'ArrowDown' })
-    expect(finder).toHaveAttribute('aria-activedescendant', 'task-finder-option-choose-mover')
-    fireEvent.keyDown(finder, { key: 'ArrowDown' })
-    expect(finder).toHaveAttribute('aria-activedescendant', 'task-finder-option-pay-deposit')
-    fireEvent.keyDown(finder, { key: 'Enter' })
-
-    expect(screen.getByRole('article', { name: 'Pay the mover deposit' })).toHaveFocus()
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
-  })
-
-  it('closes results with Escape and reports no matches politely', async () => {
-    mockPlanRequests()
-    render(<RelocationPlan />)
-    const finder = await screen.findByRole('combobox', { name: 'Find a task' })
-
-    fireEvent.change(finder, { target: { value: 'mover' } })
-    expect(screen.getByRole('listbox')).toBeVisible()
-    fireEvent.keyDown(finder, { key: 'Escape' })
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
-    expect(finder).toHaveValue('mover')
-
-    fireEvent.change(finder, { target: { value: 'not a task' } })
-    expect(screen.getByRole('status')).toHaveTextContent('No matching tasks.')
-    fireEvent.change(finder, { target: { value: '   ' } })
-    expect(screen.queryByText('No matching tasks.')).not.toBeInTheDocument()
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
   })
 
   it('adds a task with selected dependencies', async () => {
@@ -725,7 +501,7 @@ describe('persistent relocation plan', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Task added.')).toBeVisible()
     expect(screen.getByRole('button', { name: 'Add task' })).toBeVisible()
-    expect(screen.getByRole('combobox', { name: 'Find a task' })).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
     const [, init] = fetchMock.mock.calls[1]
     expect(fetchMock.mock.calls[1][0]).toBe('/api/relocation-plan/tasks')
     expect(JSON.parse(String(init?.body))).toEqual(expect.objectContaining({
@@ -802,7 +578,7 @@ describe('persistent relocation plan', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     expect(screen.getByRole('button', { name: 'Add task' })).toBeVisible()
-    expect(screen.getByRole('combobox', { name: 'Find a task' })).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
     const [path, init] = fetchMock.mock.calls[1]
     expect(path).toBe('/api/relocation-plan/tasks/choose-mover')
     expect(JSON.parse(String(init?.body))).toEqual({

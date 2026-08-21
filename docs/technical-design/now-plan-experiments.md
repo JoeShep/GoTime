@@ -208,3 +208,37 @@ The next structural work remains Plan scroll restoration and cross-route Finder
 and Recommendation reveal. Unified Add and mobile bottom navigation follow in
 the approved sequence. Those items, secondary attention, family-plan
 conversion, and derived-attention Increment 2 have not begun.
+
+## Shared Find and Plan scroll-restoration candidate
+
+The next bounded candidate replaces the inline Plan Finder with one shared
+header **Find** action available from Now and Plan. It opens a React-Bootstrap
+off-canvas dialog, fetches a current persisted-plan snapshot each time it opens,
+and searches Task titles plan-wide without coupling to category filtering.
+Desktop uses a right-side panel; mobile uses a nearly full-width panel. The
+header action is intentionally distinct from the Now/Plan routes and remains a
+provisional mobile treatment until persistent bottom navigation is designed.
+
+A selected result is held only as transient React context. Selection from Now
+pushes one `/plan` history entry; selection already on Plan does not navigate
+again. After the panel finishes closing, Plan consumes the target once through
+the established reveal path: retain a compatible category filter or clear an
+incompatible one, open only the destination phase and any completed subsection,
+scroll, focus, and temporarily highlight. Refresh cannot replay the transient
+target or highlight.
+
+Plan scroll position uses a separate versioned session record at
+`gotime:plan:<plan-id>:scroll`. Writes are bounded to one per animation frame,
+the value is restored once after Plan data and expansion state are ready, and
+invalid or stale values are ignored while out-of-range values are clamped to
+the rendered page. Find targeting takes precedence over restoration and saves
+the resulting destination. Now opens at the top without clearing Plan state.
+No workspace state is sent to the API or SQLite.
+
+Automated verification passed all 89 frontend tests and the production build.
+The candidate runs for human review at `http://localhost:18173` in isolated
+Compose project `gotime_shared_find_acceptance`, backed by disposable volume
+`gotime_shared_find_acceptance_data_f08054d`. Its restored database has 49
+unique Tasks, integrity `ok`, no foreign-key violations, and empty Milestone,
+Decision, and Decision-option tables. Neither acceptance container mounts the
+active volume. Human acceptance and normal deployment remain pending.

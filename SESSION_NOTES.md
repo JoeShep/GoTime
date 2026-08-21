@@ -2144,3 +2144,37 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Cross-route Finder, Plan scroll restoration, unified Add, mobile bottom
   navigation, secondary attention items, family-plan conversion, and
   derived-attention Increment 2 were not started.
+
+# 2026-08-20 — Shared Find and Plan scroll-restoration candidate
+
+- Replaced the inline Plan Finder with a shared, text-labeled header action on
+  Now and Plan. It opens an accessible right-side off-canvas panel, refreshes
+  its plan snapshot on each opening, reports phase and status context, and
+  supports explicit, Escape, and backdrop dismissal with focus return.
+- Kept Find plan-wide and category-independent. A result from Now adds one Plan
+  history entry; selection already on Plan adds none. Plan consumes the target
+  once after panel closure, retaining compatible filters or clearing an
+  incompatible one, and reuses the accepted phase/completed reveal, scroll,
+  focus, and temporary-highlight behavior.
+- Added versioned, plan-ID-scoped `sessionStorage` for Plan scroll position.
+  Restoration waits for Plan data and expansion state, clamps page bounds,
+  ignores malformed or stale values, and yields to Find destinations. Scroll
+  writes are bounded to animation frames and never reach the API or SQLite.
+- Focused coverage and the complete frontend suite passed (89 tests), the
+  production frontend build passed, and backend/schema files remained
+  unchanged. No ADR was needed because ADR-0009 already assigns transient Plan
+  workspace state to a small provider plus `sessionStorage`.
+- Restored the verified pre-Increment-1 backup through SQLite's backup API into
+  disposable volume `gotime_shared_find_acceptance_data_f08054d`. The isolated
+  database migrated to the current additive schema, retained 49 unique Tasks,
+  passed integrity and foreign-key checks, and has no Milestones, Decisions, or
+  Decision options.
+- Left Compose project `gotime_shared_find_acceptance` running at
+  `http://localhost:18173` (backend `http://localhost:18000`) for human review.
+  Its containers use only the named disposable volume and network. The normal
+  frontend remains stopped, the normal backend remains healthy, and the active
+  database is byte-for-byte unchanged.
+- Human acceptance and normal deployment are pending. Cross-route
+  Recommendation navigation, unified Add, persistent mobile bottom navigation,
+  secondary attention items, family-plan conversion, and derived-attention
+  Increment 2 were not started.

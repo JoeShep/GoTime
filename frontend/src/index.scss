@@ -65,6 +65,15 @@ body {
   }
 }
 
+.shared-find-trigger {
+  min-width: 4.5rem;
+  font-weight: 700;
+}
+
+.shared-find-panel {
+  --bs-offcanvas-width: min(28rem, calc(100vw - 1rem));
+}
+
 .eyebrow,
 .section-label {
   color: variables.$muted-ink;
@@ -329,6 +338,19 @@ body {
   .family-navigation-wrap,
   .family-navigation {
     width: 100%;
+  }
+
+  .family-navigation-wrap {
+    align-items: stretch;
+  }
+
+  .family-navigation {
+    flex: 1 1 auto;
+  }
+
+  .shared-find-trigger {
+    flex: 0 0 auto;
+    min-width: 4.25rem;
   }
 
   .family-navigation .nav-link {

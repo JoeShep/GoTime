@@ -1,8 +1,10 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Alert, Card, Container, Nav, Spinner } from 'react-bootstrap'
+import { Alert, Button, Card, Container, Nav, Spinner } from 'react-bootstrap'
 import { Navigate, NavLink, Route, Routes } from 'react-router'
 import { NowPage } from './NowPage'
 import { PlanPage } from './PlanPage'
+import { FindProvider, useFind } from './FindContext'
+import { SharedFindPanel } from './SharedFindPanel'
 
 export const experimentsEnabled = import.meta.env.VITE_ENABLE_EXPERIMENTS === 'true'
 
@@ -11,12 +13,14 @@ const ExperimentsPage = experimentsEnabled
   : null
 
 function FamilyNavigation() {
+  const { openFind } = useFind()
   return (
-    <div className="family-navigation-wrap d-flex justify-content-end px-2 px-sm-0 pt-0 pt-sm-3 mb-3 mb-sm-0">
+    <div className="family-navigation-wrap d-flex justify-content-end align-items-stretch gap-2 px-2 px-sm-0 pt-0 pt-sm-3 mb-3 mb-sm-0">
       <Nav aria-label="Primary" as="nav" className="family-navigation">
         <Nav.Link as={NavLink} end to="/now">Now</Nav.Link>
         <Nav.Link as={NavLink} to="/plan">Plan</Nav.Link>
       </Nav>
+      <Button className="shared-find-trigger" onClick={openFind} type="button" variant="outline-secondary">Find</Button>
     </div>
   )
 }
@@ -29,6 +33,7 @@ function PageFrame({ children }: { children: ReactNode }) {
           <Card.Body className="pt-2 pb-4 px-0 p-sm-4 p-md-5">
             <FamilyNavigation />
             {children}
+            <SharedFindPanel />
           </Card.Body>
         </Card>
       </Container>
@@ -49,7 +54,7 @@ function NotFoundPage() {
 
 function App() {
   return (
-    <Routes>
+    <FindProvider><Routes>
       <Route element={<Navigate replace to="/now" />} path="/" />
       <Route element={<PageFrame><NowPage /></PageFrame>} path="/now" />
       <Route element={<PageFrame><PlanPage /></PageFrame>} path="/plan" />
@@ -64,7 +69,7 @@ function App() {
         />
       )}
       <Route element={<NotFoundPage />} path="*" />
-    </Routes>
+    </Routes></FindProvider>
   )
 }
 
