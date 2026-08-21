@@ -15,7 +15,7 @@ const ExperimentsPage = experimentsEnabled
 function FamilyNavigation() {
   const { openFind } = useFind()
   return (
-    <div className="family-navigation-wrap d-flex justify-content-end align-items-stretch gap-2 px-2 px-sm-0 pt-0 pt-sm-3 mb-3 mb-sm-0">
+    <div className="family-navigation-wrap d-flex justify-content-end align-items-center gap-2 px-2 px-sm-0 pt-0 pt-sm-3 mb-3 mb-sm-0">
       <Nav aria-label="Primary" as="nav" className="family-navigation">
         <Nav.Link as={NavLink} end to="/now">Now</Nav.Link>
         <Nav.Link as={NavLink} to="/plan">Plan</Nav.Link>

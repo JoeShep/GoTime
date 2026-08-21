@@ -235,7 +235,28 @@ the rendered page. Find targeting takes precedence over restoration and saves
 the resulting destination. Now opens at the top without clearing Plan state.
 No workspace state is sent to the API or SQLite.
 
-Automated verification passed all 89 frontend tests and the production build.
+Browser acceptance exposed a route-teardown ordering defect: the original
+cleanup read live `window.scrollY` after Now had moved the viewport to zero,
+overwriting the valid Plan position. The corrected lifecycle records the last
+Plan-owned position from Plan scroll events, uses a layout-effect cleanup before
+route layout changes, and never derives the teardown value from Now's viewport.
+Restoration still runs once after expansion and category-filter state are
+applied. Finder destinations override restoration, update the Plan-owned
+position after scrolling, and remain transient for focus and highlighting.
+
+Category filters are now a third versioned Plan workspace record at
+`gotime:plan:<plan-id>:filters`. Values are restored in configured order before
+scroll restoration; malformed, stale, duplicate, and unknown identifiers fall
+back to no filter. Clearing an incompatible filter through Find persists that
+empty state. The explanatory notice names the selected Task, uses non-layout
+informational status presentation, supports explicit dismissal, expires after
+approximately six seconds, and disappears on later filter or Find interaction.
+It is never stored. Find remains visually separate from route navigation but is
+centered and sized to the inner Now/Plan targets rather than their padded outer
+container.
+
+Automated verification for the corrected candidate passed all 100 frontend
+tests and the production build.
 The candidate runs for human review at `http://localhost:18173` in isolated
 Compose project `gotime_shared_find_acceptance`, backed by disposable volume
 `gotime_shared_find_acceptance_data_f08054d`. Its restored database has 49

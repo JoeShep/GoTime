@@ -67,7 +67,18 @@ body {
 
 .shared-find-trigger {
   min-width: 4.5rem;
+  min-height: calc(1.25em + 1.3rem + 2px);
+  padding: 0.65rem 1rem;
+  border-color: rgb(23 61 48 / 30%);
+  border-radius: 0.5rem;
+  color: variables.$forest;
   font-weight: 700;
+  line-height: 1.25;
+}
+
+.filter-clear-notice {
+  z-index: 1040;
+  width: min(calc(100% - 2rem), 40rem);
 }
 
 .shared-find-panel {
@@ -338,10 +349,6 @@ body {
   .family-navigation-wrap,
   .family-navigation {
     width: 100%;
-  }
-
-  .family-navigation-wrap {
-    align-items: stretch;
   }
 
   .family-navigation {

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import App from './App'
 import { RelocationPlan } from './RelocationPlan'
 import type { RelocationPlan as RelocationPlanData } from './api/relocationPlan'
@@ -33,6 +33,20 @@ function mockRequests() {
 function setLayout(scrollHeight: number, innerHeight: number) {
   Object.defineProperty(document.documentElement, 'scrollHeight', { configurable: true, value: scrollHeight })
   Object.defineProperty(window, 'innerHeight', { configurable: true, value: innerHeight })
+}
+
+function mockViewportScroll(initialY = 0) {
+  let y = initialY
+  Object.defineProperty(window, 'scrollY', { configurable: true, get: () => y })
+  const scrollTo = vi.fn((options: ScrollToOptions) => { y = Number(options.top ?? 0) })
+  vi.stubGlobal('scrollTo', scrollTo)
+  return { scrollTo, setY: (next: number) => { y = next }, getY: () => y }
+}
+
+function HistoryControls() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  return <><output data-testid="route">{location.pathname}</output><button onClick={() => navigate(-1)}>History back</button><button onClick={() => navigate(1)}>History forward</button></>
 }
 
 afterEach(() => {
@@ -98,30 +112,55 @@ describe('Plan scroll restoration', () => {
   it('preserves Plan position across Now navigation while Now opens at the top', async () => {
     mockRequests()
     setLayout(1400, 400)
-    Object.defineProperty(window, 'scrollY', { configurable: true, value: 360 })
-    const scrollTo = vi.fn()
-    vi.stubGlobal('scrollTo', scrollTo)
-    render(<MemoryRouter initialEntries={['/plan']}><App /></MemoryRouter>)
+    const viewport = mockViewportScroll()
+    render(<MemoryRouter initialEntries={['/plan']}><App /><HistoryControls /></MemoryRouter>)
     await screen.findByRole('button', { name: /Prepare/ })
+    viewport.setY(360)
     fireEvent.scroll(window)
     await waitFor(() => expect(sessionStorage.getItem('gotime:plan:scroll-plan:scroll')).toContain('360'))
 
     fireEvent.click(screen.getByRole('link', { name: 'Now' }))
     expect(await screen.findByText('What should I do next?')).toBeVisible()
-    expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' })
+    expect(viewport.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' })
+    expect(viewport.getY()).toBe(0)
     expect(sessionStorage.getItem('gotime:plan:scroll-plan:scroll')).toContain('360')
     fireEvent.click(screen.getByRole('link', { name: 'Plan' }))
-    await waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: 360, left: 0, behavior: 'auto' }))
+    await waitFor(() => expect(viewport.scrollTo).toHaveBeenCalledWith({ top: 360, left: 0, behavior: 'auto' }))
+    expect(viewport.getY()).toBe(360)
+  })
+
+  it('restores through browser-style Back and Forward without replaying Find state', async () => {
+    mockRequests()
+    setLayout(1400, 400)
+    const viewport = mockViewportScroll()
+    render(<MemoryRouter initialEntries={['/plan']}><App /><HistoryControls /></MemoryRouter>)
+    await screen.findByRole('button', { name: /Prepare/ })
+    viewport.setY(410)
+    fireEvent.scroll(window)
+    await waitFor(() => expect(sessionStorage.getItem('gotime:plan:scroll-plan:scroll')).toContain('410'))
+
+    fireEvent.click(screen.getByRole('link', { name: 'Now' }))
+    await screen.findByText('What should I do next?')
+    fireEvent.click(screen.getByRole('button', { name: 'History back' }))
+    await waitFor(() => expect(screen.getByTestId('route')).toHaveTextContent('/plan'))
+    await waitFor(() => expect(viewport.getY()).toBe(410))
+    expect(document.querySelector('.task-item.is-found')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'History forward' }))
+    await waitFor(() => expect(screen.getByTestId('route')).toHaveTextContent('/now'))
+    expect(viewport.getY()).toBe(0)
+    fireEvent.click(screen.getByRole('button', { name: 'History back' }))
+    await waitFor(() => expect(viewport.getY()).toBe(410))
   })
 
   it('lets a Find target override a saved position and saves the destination instead', async () => {
     mockRequests()
     setLayout(1400, 400)
     sessionStorage.setItem('gotime:plan:scroll-plan:scroll', JSON.stringify({ version: 1, y: 700 }))
-    const scrollTo = vi.fn()
-    vi.stubGlobal('scrollTo', scrollTo)
-    Object.defineProperty(window, 'scrollY', { configurable: true, value: 320 })
-    Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
+    const viewport = mockViewportScroll()
+    Object.defineProperty(Element.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(() => viewport.setY(320)),
+    })
     render(<MemoryRouter initialEntries={['/now']}><App /></MemoryRouter>)
     fireEvent.click(await screen.findByRole('button', { name: 'Find' }))
     const input = await screen.findByRole('combobox', { name: 'Search task titles' })
@@ -129,8 +168,13 @@ describe('Plan scroll restoration', () => {
     fireEvent.click(screen.getByRole('option', { name: /Pack boxes/ }))
 
     await screen.findByRole('article', { name: 'Pack boxes' })
-    expect(scrollTo).not.toHaveBeenCalledWith({ top: 700, left: 0, behavior: 'auto' })
+    expect(viewport.scrollTo).not.toHaveBeenCalledWith({ top: 700, left: 0, behavior: 'auto' })
     await waitFor(() => expect(sessionStorage.getItem('gotime:plan:scroll-plan:scroll')).toContain('320'))
+    fireEvent.click(screen.getByRole('link', { name: 'Now' }))
+    await screen.findByText('What should I do next?')
+    fireEvent.click(screen.getByRole('link', { name: 'Plan' }))
+    await waitFor(() => expect(viewport.scrollTo).toHaveBeenCalledWith({ top: 320, left: 0, behavior: 'auto' }))
+    expect(screen.getByRole('article', { name: 'Pack boxes' })).not.toHaveClass('is-found')
     delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
   })
 })

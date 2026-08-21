@@ -42,6 +42,8 @@ type CategoryFilter = TaskCategory | 'uncategorized'
 
 const planExpansionStateVersion = 1
 const planScrollStateVersion = 1
+const planFilterStateVersion = 1
+const allCategoryFilters = [...categoryOrder, 'uncategorized'] as const
 
 interface StoredPlanExpansionState {
   version: number
@@ -55,6 +57,36 @@ function expansionStorageKey(planId: string) {
 
 function scrollStorageKey(planId: string) {
   return `gotime:plan:${planId}:scroll`
+}
+
+function filterStorageKey(planId: string) {
+  return `gotime:plan:${planId}:filters`
+}
+
+function readCategoryFilters(planId: string) {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(filterStorageKey(planId)) ?? 'null') as { version?: unknown; categories?: unknown } | null
+    if (parsed?.version !== planFilterStateVersion || !Array.isArray(parsed.categories)) return new Set<CategoryFilter>()
+    const categories = parsed.categories as unknown[]
+    if (
+      !categories.every((value) => typeof value === 'string' && allCategoryFilters.includes(value as CategoryFilter))
+      || new Set(categories).size !== categories.length
+    ) return new Set<CategoryFilter>()
+    return new Set<CategoryFilter>(allCategoryFilters.filter((category) => categories.includes(category)))
+  } catch {
+    return new Set<CategoryFilter>()
+  }
+}
+
+function writeCategoryFilters(planId: string, filters: Set<CategoryFilter>) {
+  try {
+    sessionStorage.setItem(filterStorageKey(planId), JSON.stringify({
+      version: planFilterStateVersion,
+      categories: allCategoryFilters.filter((category) => filters.has(category)),
+    }))
+  } catch {
+    // Filtering remains usable when browser storage is unavailable.
+  }
 }
 
 function readScrollPosition(planId: string) {
@@ -237,12 +269,13 @@ function taskMatchesCategoryFilters(
 }
 
 export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }) {
-  const { consumeTarget, target } = useFind()
+  const { consumeTarget, isOpen: findIsOpen, target } = useFind()
   const [plan, setPlan] = useState<RelocationPlanData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [filterNotice, setFilterNotice] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft | null>(null)
   const [dependencyQuery, setDependencyQuery] = useState('')
@@ -259,6 +292,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const preFilterExpandedPhaseIdsRef = useRef<Set<string> | null>(null)
   const scrollRestoredRef = useRef(false)
   const scrollWriteFrameRef = useRef<number | null>(null)
+  const lastPlanScrollYRef = useRef(0)
 
   function acceptPlan(updated: RelocationPlanData) {
     setPlan({ ...updated, milestones: updated.milestones ?? [], decisions: updated.decisions ?? [] })
@@ -303,8 +337,14 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     if (!plan || initializedPlanIdRef.current === plan.id) return
     const validPhaseIds = new Set(plan.phases.map((phase) => phase.id))
     const stored = readExpansionState(plan.id, validPhaseIds)
+    const storedFilters = readCategoryFilters(plan.id)
+    const matching = new Set(plan.tasks
+      .filter((task) => taskMatchesCategoryFilters(task, storedFilters))
+      .map((task) => task.phase_id))
     initializedPlanIdRef.current = plan.id
-    setExpandedPhaseIds(stored.phases)
+    preFilterExpandedPhaseIdsRef.current = storedFilters.size > 0 ? new Set(stored.phases) : null
+    setCategoryFilters(storedFilters)
+    setExpandedPhaseIds(storedFilters.size > 0 ? new Set([...stored.phases, ...matching]) : stored.phases)
     setExpandedCompletedPhaseIds(stored.completed)
     setExpansionStateReady(true)
   }, [plan])
@@ -327,22 +367,30 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     }
   }, [categoryFilters, expandedCompletedPhaseIds, expandedPhaseIds, expansionStateReady, plan])
 
+  useEffect(() => {
+    if (!plan || !expansionStateReady || initializedPlanIdRef.current !== plan.id) return
+    writeCategoryFilters(plan.id, categoryFilters)
+  }, [categoryFilters, expansionStateReady, plan])
+
   useLayoutEffect(() => {
     if (!plan || !expansionStateReady || scrollRestoredRef.current || target) return
     scrollRestoredRef.current = true
     const storedY = readScrollPosition(plan.id)
     if (storedY === null) return
     const maximumY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
-    window.scrollTo({ top: Math.min(storedY, maximumY), left: 0, behavior: 'auto' })
+    const restoredY = Math.min(storedY, maximumY)
+    lastPlanScrollYRef.current = restoredY
+    window.scrollTo({ top: restoredY, left: 0, behavior: 'auto' })
   }, [expandedCompletedPhaseIds, expandedPhaseIds, expansionStateReady, plan, target])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!plan || !expansionStateReady) return
     function saveBoundedScroll() {
+      lastPlanScrollYRef.current = Math.max(0, window.scrollY)
       if (scrollWriteFrameRef.current !== null) return
       scrollWriteFrameRef.current = window.requestAnimationFrame(() => {
         scrollWriteFrameRef.current = null
-        writeScrollPosition(plan!.id, window.scrollY)
+        writeScrollPosition(plan!.id, lastPlanScrollYRef.current)
       })
     }
     window.addEventListener('scroll', saveBoundedScroll, { passive: true })
@@ -350,9 +398,19 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       window.removeEventListener('scroll', saveBoundedScroll)
       if (scrollWriteFrameRef.current !== null) window.cancelAnimationFrame(scrollWriteFrameRef.current)
       scrollWriteFrameRef.current = null
-      writeScrollPosition(plan.id, window.scrollY)
+      writeScrollPosition(plan.id, lastPlanScrollYRef.current)
     }
   }, [expansionStateReady, plan])
+
+  useEffect(() => {
+    if (!filterNotice) return
+    const timeout = window.setTimeout(() => setFilterNotice(null), 6000)
+    return () => window.clearTimeout(timeout)
+  }, [filterNotice])
+
+  useEffect(() => {
+    if (findIsOpen) setFilterNotice(null)
+  }, [findIsOpen])
 
   useEffect(() => {
     if (!draft) return
@@ -367,7 +425,10 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     taskElement.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
     taskElement.focus({ preventScroll: true })
     if (plan) {
-      window.requestAnimationFrame(() => writeScrollPosition(plan.id, window.scrollY))
+      window.requestAnimationFrame(() => {
+        lastPlanScrollYRef.current = Math.max(0, window.scrollY)
+        writeScrollPosition(plan.id, lastPlanScrollYRef.current)
+      })
     }
     setPendingNavigationTaskId(null)
   }, [expandedCompletedPhaseIds, expandedPhaseIds, pendingNavigationTaskId, plan])
@@ -380,6 +441,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   function updateCategoryFilters(next: Set<CategoryFilter>) {
+    setFilterNotice(null)
     const filterWasActive = categoryFilters.size > 0
     const filterWillBeActive = next.size > 0
     if (!filterWasActive && filterWillBeActive) {
@@ -405,12 +467,13 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   function selectFinderResult(task: RelocationTask) {
+    setFilterNotice(null)
     if (!taskMatchesCategoryFilters(task, categoryFilters)) {
       const restored = preFilterExpandedPhaseIdsRef.current ?? new Set<string>()
       setExpandedPhaseIds(new Set([...restored, task.phase_id]))
       preFilterExpandedPhaseIdsRef.current = null
       setCategoryFilters(new Set())
-      setNotice('Category filter cleared to show the selected task.')
+      setFilterNotice(`Category filter cleared to show “${task.title}.”`)
     } else {
       setExpandedPhaseIds((expanded) => new Set(expanded).add(task.phase_id))
     }
@@ -532,6 +595,17 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       {loading && <div className="py-4 text-center" role="status"><Spinner size="sm" /> <span>Loading relocation plan…</span></div>}
       {error && <Alert variant="danger">{error}</Alert>}
       {notice && <Alert variant="success">{notice}</Alert>}
+      {filterNotice && (
+        <Alert
+          className="filter-clear-notice position-fixed bottom-0 start-50 translate-middle-x mb-3 shadow-sm"
+          dismissible
+          onClose={() => setFilterNotice(null)}
+          role="status"
+          variant="info"
+        >
+          {filterNotice}
+        </Alert>
+      )}
 
       {plan && !draft && <MilestoneDecisionFoundation plan={plan} onPlanUpdated={acceptPlan} />}
 

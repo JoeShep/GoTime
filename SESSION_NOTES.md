@@ -2178,3 +2178,28 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   Recommendation navigation, unified Add, persistent mobile bottom navigation,
   secondary attention items, family-plan conversion, and derived-attention
   Increment 2 were not started.
+
+## Browser-acceptance corrections
+
+- Diagnosed why direct refresh restored Plan scroll while route navigation did
+  not: passive route cleanup read `window.scrollY` after Now had moved the
+  viewport to zero and replaced the saved Plan position. Plan now tracks its
+  last owned scroll value immediately on scroll events, bounds storage writes,
+  and uses layout lifecycle cleanup without consulting Now's viewport.
+- Restores expansion, completed-subsection, and category-filter session state
+  before the one-time scroll restoration. Finder still overrides restoration;
+  its resulting position becomes the next ordinary return position without
+  persisting or replaying focus and highlight state.
+- Added versioned, plan-ID-scoped category-filter `sessionStorage`, configured
+  ordering, safe invalid-data handling, route/refresh restoration, and
+  persistence of compatible or Finder-cleared filter state.
+- Replaced the persistent generic filter banner with a Task-specific,
+  dismissible informational notice. It is fixed outside document flow to avoid
+  page jumps, expires after about six seconds, and clears on filter changes,
+  new Find actions, routing, or remount.
+- Centered the distinct Find action beside the segmented navigation and matched
+  its computed line-height, padding, border, radius, and minimum height to the
+  inner Now/Plan targets while preserving tap targets and responsive structure.
+- Focused route, filter, notice, and Finder regressions passed. The complete
+  frontend suite passed all 100 tests and the production build passed. Human
+  retesting in the isolated environment remains pending.
