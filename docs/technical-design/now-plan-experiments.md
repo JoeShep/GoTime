@@ -293,3 +293,49 @@ deep in the desktop Plan may be reconsidered later. Unrelated mobile-spacing
 polish remains deferred. Cross-route Recommendation targeting, unified Add,
 persistent mobile bottom navigation, secondary attention items, family-plan
 conversion, and derived-attention Increment 2 were not started.
+
+## Unified Plan Add candidate
+
+Plan now presents one prominent text-labeled **Add** dropdown beside the compact
+**Family plan** heading. Its responsive flex header keeps the action at the
+upper right on desktop and permits a clean wrap on narrow screens. The menu
+uses accessible dropdown semantics and lists, in order: **Task — Something that
+needs to be done**, **Milestone — An important outcome or moment**, and
+**Decision — A choice that needs to be made**. It closes by toggle, outside
+selection, Escape, or choice; Escape returns focus to Add, and every opening
+starts without a remembered creation type. Now has no Add action.
+
+Each choice coordinates the existing Task, Milestone, or Decision editor rather
+than introducing a parallel form. Only one creation editor can be active. Its
+first meaningful field receives focus, Add and Find cannot launch conflicting
+transient interfaces while the editor is active, validation retains the draft,
+and save disabling remains scoped to that editor. Cancel preserves the captured
+Plan position, restores focus to Add, and does not change workspace state.
+
+Successful Task creation reuses the established Finder reveal path against the
+aggregate returned by the existing API: it opens only the selected phase,
+preserves unrelated phases, retains a compatible category filter or clears and
+persists an incompatible one with the Task-specific transient notice, scrolls
+and focuses the new card, applies the bounded highlight, updates counts, and
+saves the resulting Plan position. Successful Milestone and Decision creation
+similarly use their returned Plan aggregate, then scroll, focus, highlight, and
+save the new card location. Creation focus and highlighting are transient and
+are not persisted or replayed.
+
+Focused verification passed 70 tests; the complete frontend suite passed all
+107 tests; the production frontend build and `git diff --check` passed. No
+backend, schema, API, ADR, or database files changed. The candidate runs at
+`http://localhost:19173` in Compose project
+`gotime_unified_add_acceptance`, using containers
+`gotime-unified-add-acceptance-frontend` and
+`gotime-unified-add-acceptance-backend`, disposable volume
+`gotime_unified_add_acceptance_data_7a91c2e`, and isolated network
+`gotime_unified_add_acceptance_net_7a91c2e`. The restored database passed
+integrity and foreign-key checks with 49 unique Tasks and zero Milestones,
+Decisions, or Decision options. The normal frontend remains stopped, the normal
+backend remains healthy, and the active database is byte-for-byte unchanged.
+
+Human acceptance and normal deployment are pending. Cross-route Recommendation
+targeting, persistent mobile bottom navigation, secondary attention items,
+family-plan conversion, and derived-attention Increment 2 were not started;
+unrelated mobile-spacing polish remains deferred.

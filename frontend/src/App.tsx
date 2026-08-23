@@ -13,14 +13,14 @@ const ExperimentsPage = experimentsEnabled
   : null
 
 function FamilyNavigation() {
-  const { openFind } = useFind()
+  const { editorOpen, openFind } = useFind()
   return (
     <div className="family-navigation-wrap d-flex justify-content-end align-items-center gap-2 px-2 px-sm-0 pt-0 pt-sm-3 mb-3 mb-sm-0">
       <Nav aria-label="Primary" as="nav" className="family-navigation">
         <Nav.Link as={NavLink} end to="/now">Now</Nav.Link>
         <Nav.Link as={NavLink} to="/plan">Plan</Nav.Link>
       </Nav>
-      <Button className="shared-find-trigger" onClick={openFind} type="button" variant="outline-secondary">Find</Button>
+      <Button className="shared-find-trigger" disabled={editorOpen} onClick={openFind} type="button" variant="outline-secondary">Find</Button>
     </div>
   )
 }

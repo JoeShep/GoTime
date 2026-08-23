@@ -65,6 +65,11 @@ function mockPlanRequests(mutationPlan = plan) {
   return fetchMock
 }
 
+async function beginTaskCreation() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Add' }))
+  fireEvent.click(screen.getByRole('menuitem', { name: /Task/ }))
+}
+
 const expansionStorageKey = 'gotime:plan:family-relocation-plan:expansion'
 
 function storeExpansionState(expandedPhaseIds: string[], expandedCompletedPhaseIds: string[] = []) {
@@ -193,7 +198,7 @@ describe('persistent relocation plan', () => {
     expect(await screen.findByRole('heading', { name: 'Make the move' })).toBeVisible()
     expect(screen.queryByText('Complete the move')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await beginTaskCreation()
     const category = screen.getByLabelText('Categories (optional)')
     expect(category).toHaveTextContent('Select categories')
     fireEvent.click(category)
@@ -206,8 +211,7 @@ describe('persistent relocation plan', () => {
   it('keeps the category editor open, shows selections, and clears them', async () => {
     mockPlanRequests()
     render(<RelocationPlan />)
-    await screen.findByRole('button', { name: 'Add task' })
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await beginTaskCreation()
     const categories = screen.getByLabelText('Categories (optional)')
 
     fireEvent.click(categories)
@@ -225,8 +229,7 @@ describe('persistent relocation plan', () => {
   it('dismisses the category editor on outside click and Escape', async () => {
     mockPlanRequests()
     render(<RelocationPlan />)
-    await screen.findByRole('button', { name: 'Add task' })
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await beginTaskCreation()
     const trigger = screen.getByLabelText('Categories (optional)')
 
     fireEvent.click(trigger)
@@ -395,15 +398,15 @@ describe('persistent relocation plan', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Loading relocation plan')
   })
 
-  it('hides Add task in add mode and restores it after Cancel', async () => {
+  it('disables Add in add mode and restores it after Cancel', async () => {
     mockPlanRequests()
     render(<RelocationPlan />)
-    await screen.findByRole('button', { name: 'Add task' })
+    const add = await screen.findByRole('button', { name: 'Add' })
     expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await beginTaskCreation()
 
-    expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
+    expect(add).toBeDisabled()
     expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Create task' })).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument()
@@ -416,18 +419,18 @@ describe('persistent relocation plan', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.queryByRole('heading', { name: 'Add task' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Add task' })).toBeVisible()
+    await waitFor(() => expect(add).not.toBeDisabled())
     expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
   })
 
-  it('hides Add task in edit mode and uses Save changes only', async () => {
+  it('disables Add in edit mode and uses Save changes only', async () => {
     mockPlanRequests()
     render(<RelocationPlan />)
     const taskHeading = await screen.findByRole('heading', { name: 'Choose a mover' })
 
     fireEvent.click(within(taskHeading.closest('article')!).getByRole('button', { name: 'Edit' }))
 
-    expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
     expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Save changes' })).toBeVisible()
     expect(screen.queryByRole('button', { name: 'Create task' })).not.toBeInTheDocument()
@@ -441,8 +444,7 @@ describe('persistent relocation plan', () => {
     })
     vi.stubGlobal('fetch', fetchMock)
     render(<RelocationPlan />)
-    await screen.findByRole('button', { name: 'Add task' })
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await beginTaskCreation()
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Pack books' } })
 
     fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
@@ -492,7 +494,7 @@ describe('persistent relocation plan', () => {
     render(<RelocationPlan />)
     await screen.findByRole('heading', { name: 'Choose a mover' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await beginTaskCreation()
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Pack the kitchen' } })
     fireEvent.change(screen.getByLabelText(/^Assignees/), { target: { value: 'Joe, Sarah' } })
     fireEvent.click(screen.getByLabelText('Choose a mover (Not started)'))
@@ -500,7 +502,7 @@ describe('persistent relocation plan', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
     expect(screen.getByText('Task added.')).toBeVisible()
-    expect(screen.getByRole('button', { name: 'Add task' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Add' })).toBeVisible()
     expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
     const [, init] = fetchMock.mock.calls[1]
     expect(fetchMock.mock.calls[1][0]).toBe('/api/relocation-plan/tasks')
@@ -520,7 +522,7 @@ describe('persistent relocation plan', () => {
     render(<RelocationPlan />)
     await screen.findByRole('heading', { name: 'Choose a mover' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await beginTaskCreation()
     const assignees = screen.getByLabelText('Assignees (optional)')
     expect(assignees).not.toBeRequired()
     expect(assignees).toHaveAttribute('placeholder', 'Separate names with commas')
@@ -540,7 +542,7 @@ describe('persistent relocation plan', () => {
     render(<RelocationPlan />)
     await screen.findByRole('heading', { name: 'Choose a mover' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await beginTaskCreation()
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: longTitle } })
     fireEvent.change(screen.getByLabelText(/^Assignees/), { target: { value: 'Joe' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
@@ -577,7 +579,7 @@ describe('persistent relocation plan', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
-    expect(screen.getByRole('button', { name: 'Add task' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Add' })).toBeVisible()
     expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
     const [path, init] = fetchMock.mock.calls[1]
     expect(path).toBe('/api/relocation-plan/tasks/choose-mover')
@@ -682,7 +684,7 @@ describe('persistent relocation plan', () => {
     render(<RelocationPlan />)
     await screen.findByRole('button', { name: 'Completed (1)' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add task' }))
+    await beginTaskCreation()
 
     expect(screen.queryByLabelText('Choose a mover (Completed)')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Pay the mover deposit (Not started)')).toBeVisible()
@@ -862,7 +864,7 @@ describe('persistent relocation plan', () => {
 
     expect(await screen.findByText('Task dependencies cannot contain a cycle.')).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Edit task' })).toBeVisible()
-    expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled()
     expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
   })
 
@@ -871,6 +873,6 @@ describe('persistent relocation plan', () => {
     render(<RelocationPlan />)
 
     expect(await screen.findByText('The server is unavailable.')).toBeVisible()
-    expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument()
   })
 })

@@ -269,10 +269,11 @@ function taskMatchesCategoryFilters(
 }
 
 export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }) {
-  const { consumeTarget, isOpen: findIsOpen, target } = useFind()
+  const { closeFind, consumeTarget, isOpen: findIsOpen, setEditorOpen, target } = useFind()
   const [plan, setPlan] = useState<RelocationPlanData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [taskEditorSaving, setTaskEditorSaving] = useState(false)
+  const [pendingTaskStatusIds, setPendingTaskStatusIds] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [filterNotice, setFilterNotice] = useState<string | null>(null)
@@ -285,6 +286,10 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [pendingNavigationTaskId, setPendingNavigationTaskId] = useState<string | null>(null)
   const [foundTaskId, setFoundTaskId] = useState<string | null>(null)
   const [categoryFilters, setCategoryFilters] = useState<Set<CategoryFilter>>(new Set())
+  const [addMenuOpen, setAddMenuOpen] = useState(false)
+  const [creationType, setCreationType] = useState<'task' | 'milestone' | 'decision' | null>(null)
+  const [foundationEditorOpen, setFoundationEditorOpen] = useState(false)
+  const addToggleRef = useRef<HTMLButtonElement>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const taskRefs = useRef(new Map<string, HTMLElement>())
@@ -293,6 +298,9 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const scrollRestoredRef = useRef(false)
   const scrollWriteFrameRef = useRef<number | null>(null)
   const lastPlanScrollYRef = useRef(0)
+  const preCreationScrollYRef = useRef(0)
+
+  const editorActive = Boolean(draft) || foundationEditorOpen || creationType !== null
 
   function acceptPlan(updated: RelocationPlanData) {
     setPlan({ ...updated, milestones: updated.milestones ?? [], decisions: updated.decisions ?? [] })
@@ -312,6 +320,11 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       })
     return () => controller.abort()
   }, [])
+
+  useEffect(() => {
+    setEditorOpen(editorActive)
+    return () => setEditorOpen(false)
+  }, [editorActive, setEditorOpen])
 
   const taskById = useMemo(
     () => new Map(plan?.tasks.map((task) => [task.id, task]) ?? []),
@@ -496,13 +509,33 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     consumeTarget()
   }, [consumeTarget, expansionStateReady, plan, target])
 
-  function beginAdd() {
-    if (!plan) return
+  function beginCreation(type: 'task' | 'milestone' | 'decision') {
+    if (!plan || editorActive) return
+    closeFind()
+    setAddMenuOpen(false)
+    preCreationScrollYRef.current = Math.max(0, window.scrollY)
+    setCreationType(type)
+    setFilterNotice(null)
+    setError(null)
+    setNotice(null)
+    if (type !== 'task') return
     setEditingId(null)
     setDraft(emptyDraft(plan.phases[0].id))
     setDependencyQuery('')
-    setError(null)
-    setNotice(null)
+  }
+
+  function cancelCreation() {
+    const restoreY = preCreationScrollYRef.current
+    setCreationType(null)
+    setDraft(null)
+    setEditingId(null)
+    setDependencyQuery('')
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: restoreY, left: 0, behavior: 'auto' })
+      lastPlanScrollYRef.current = restoreY
+      if (plan) writeScrollPosition(plan.id, restoreY)
+      addToggleRef.current?.focus()
+    })
   }
 
   function beginEdit(task: RelocationTask) {
@@ -514,29 +547,35 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   async function saveTask() {
-    if (!draft || saving) return
-    setSaving(true)
+    if (!draft || taskEditorSaving) return
+    setTaskEditorSaving(true)
     setError(null)
     setNotice(null)
     try {
       const write = writeFromDraft(draft)
+      const createdId = editingId ?? generateTaskId(write.title)
       const updated = editingId
         ? await replaceTask(editingId, write)
-        : await createTask(generateTaskId(write.title), write)
+        : await createTask(createdId, write)
       acceptPlan(updated)
       onPlanChanged?.()
       setDraft(null)
       setEditingId(null)
       setNotice(editingId ? 'Task updated.' : 'Task added.')
+      if (!editingId) {
+        setCreationType(null)
+        const createdTask = updated.tasks.find((task) => task.id === createdId)
+        if (createdTask) selectFinderResult(createdTask)
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to save the task.')
     } finally {
-      setSaving(false)
+      setTaskEditorSaving(false)
     }
   }
 
   async function updateStatus(task: RelocationTask, status: TaskStatus) {
-    setSaving(true)
+    setPendingTaskStatusIds((current) => new Set(current).add(task.id))
     setError(null)
     setNotice(null)
     try {
@@ -546,7 +585,11 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to update task status.')
     } finally {
-      setSaving(false)
+      setPendingTaskStatusIds((current) => {
+        const next = new Set(current)
+        next.delete(task.id)
+        return next
+      })
     }
   }
 
@@ -572,7 +615,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
           </div>
           <div className="task-actions d-flex flex-wrap align-items-start gap-2">
-            <Form.Select aria-label={`Status for ${task.title}`} disabled={saving} value={task.status} onChange={(event) => void updateStatus(task, event.target.value as TaskStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select>
+            <Form.Select aria-label={`Status for ${task.title}`} disabled={pendingTaskStatusIds.has(task.id)} value={task.status} onChange={(event) => void updateStatus(task, event.target.value as TaskStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select>
             <Button variant="outline-secondary" onClick={() => beginEdit(task)}>Edit</Button>
           </div>
         </div>
@@ -581,7 +624,49 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   return (
-    <section className="relocation-plan mt-5" aria-labelledby="relocation-plan-heading">
+    <>
+    <header className="plan-page-heading d-flex flex-wrap align-items-start justify-content-between gap-2 px-2 px-sm-0 pt-0 pt-sm-4 mb-3">
+      <div>
+        <p className="section-label mb-1">Plan</p>
+        <h1 className="detail-heading mb-0">Family plan</h1>
+      </div>
+      {plan && (
+        <Dropdown
+          align="end"
+          autoClose
+          className="plan-add-menu"
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape' || !addMenuOpen) return
+            event.preventDefault()
+            event.stopPropagation()
+            setAddMenuOpen(false)
+            addToggleRef.current?.focus()
+          }}
+          onToggle={(show) => {
+            if (show && !editorActive) closeFind()
+            setAddMenuOpen(show && !editorActive)
+          }}
+          show={addMenuOpen}
+        >
+          <Dropdown.Toggle className="plan-add-toggle" disabled={editorActive} id="plan-add" ref={addToggleRef}>Add</Dropdown.Toggle>
+          <Dropdown.Menu aria-label="Add to Plan" className="plan-add-menu-list p-1" role="menu">
+            <Dropdown.Item as="button" onClick={() => beginCreation('task')} role="menuitem">
+              <strong className="d-block">Task</strong>
+              <span className="d-block text-muted">Something that needs to be done</span>
+            </Dropdown.Item>
+            <Dropdown.Item as="button" onClick={() => beginCreation('milestone')} role="menuitem">
+              <strong className="d-block">Milestone</strong>
+              <span className="d-block text-muted">An important outcome or moment</span>
+            </Dropdown.Item>
+            <Dropdown.Item as="button" disabled={plan.milestones.length === 0} onClick={() => beginCreation('decision')} role="menuitem">
+              <strong className="d-block">Decision</strong>
+              <span className="d-block text-muted">A choice that needs to be made</span>
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown>
+      )}
+    </header>
+    <section className="relocation-plan mt-3" aria-labelledby="relocation-plan-heading">
       <div className="plan-heading d-flex flex-wrap align-items-center justify-content-between gap-3 px-2 px-sm-0 mb-3">
         <div>
           <p className="section-label mb-1">Persistent plan</p>
@@ -589,7 +674,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             {plan?.title ?? 'Family relocation plan'}
           </h2>
         </div>
-        {plan && !draft && <Button onClick={beginAdd}>Add task</Button>}
       </div>
 
       {loading && <div className="py-4 text-center" role="status"><Spinner size="sm" /> <span>Loading relocation plan…</span></div>}
@@ -607,7 +691,20 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         </Alert>
       )}
 
-      {plan && !draft && <MilestoneDecisionFoundation plan={plan} onPlanUpdated={acceptPlan} />}
+      {plan && !draft && <MilestoneDecisionFoundation
+        creationType={creationType === 'milestone' || creationType === 'decision' ? creationType : null}
+        onCreationCanceled={cancelCreation}
+        onCreationSaved={() => setCreationType(null)}
+        onEditorOpenChange={setFoundationEditorOpen}
+        onItemRevealed={() => {
+          window.requestAnimationFrame(() => {
+            lastPlanScrollYRef.current = Math.max(0, window.scrollY)
+            writeScrollPosition(plan.id, lastPlanScrollYRef.current)
+          })
+        }}
+        onPlanUpdated={acceptPlan}
+        plan={plan}
+      />}
 
       {plan && !draft && (
         <div className="task-discovery px-2 px-sm-0 mb-3">
@@ -653,10 +750,13 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
               <Card.Title as="h3">{editingId ? 'Edit task' : 'Add task'}</Card.Title>
               <Form onSubmit={(event) => { event.preventDefault(); void saveTask() }}>
               <Stack direction="horizontal" gap={2} className="task-editor-actions sticky-top flex-wrap py-3 mb-3">
-                <Button type="submit" disabled={saving}>
-                  {saving ? (editingId ? 'Saving…' : 'Creating…') : (editingId ? 'Save changes' : 'Create task')}
+                <Button type="submit" disabled={taskEditorSaving}>
+                  {taskEditorSaving ? (editingId ? 'Saving…' : 'Creating…') : (editingId ? 'Save changes' : 'Create task')}
                 </Button>
-                <Button type="button" variant="outline-secondary" disabled={saving} onClick={() => { setDraft(null); setEditingId(null); setDependencyQuery('') }}>Cancel</Button>
+                <Button type="button" variant="outline-secondary" disabled={taskEditorSaving} onClick={() => {
+                  if (!editingId && creationType === 'task') cancelCreation()
+                  else { setDraft(null); setEditingId(null); setDependencyQuery('') }
+                }}>Cancel</Button>
               </Stack>
               <Row className="g-3">
                 <Col md={8}><Form.Group controlId="task-title"><Form.Label>Title</Form.Label><Form.Control ref={titleInputRef} required maxLength={200} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></Form.Group></Col>
@@ -823,5 +923,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         )
       })}
     </section>
+    </>
   )
 }

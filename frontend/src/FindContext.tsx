@@ -8,6 +8,8 @@ interface FindContextValue {
   isOpen: boolean
   openFind: () => void
   closeFind: () => void
+  editorOpen: boolean
+  setEditorOpen: (open: boolean) => void
   target: FindTarget | null
   selectTarget: (target: FindTarget) => void
   consumeTarget: () => void
@@ -17,6 +19,8 @@ const FindContext = createContext<FindContextValue>({
   isOpen: false,
   openFind: () => undefined,
   closeFind: () => undefined,
+  editorOpen: false,
+  setEditorOpen: () => undefined,
   target: null,
   selectTarget: () => undefined,
   consumeTarget: () => undefined,
@@ -24,18 +28,23 @@ const FindContext = createContext<FindContextValue>({
 
 export function FindProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
   const [target, setTarget] = useState<FindTarget | null>(null)
   const value = useMemo<FindContextValue>(() => ({
     isOpen,
-    openFind: () => setIsOpen(true),
+    openFind: () => {
+      if (!editorOpen) setIsOpen(true)
+    },
     closeFind: () => setIsOpen(false),
+    editorOpen,
+    setEditorOpen,
     target,
     selectTarget: (next) => {
       setTarget(next)
       setIsOpen(false)
     },
     consumeTarget: () => setTarget(null),
-  }), [isOpen, target])
+  }), [editorOpen, isOpen, target])
 
   return <FindContext.Provider value={value}>{children}</FindContext.Provider>
 }

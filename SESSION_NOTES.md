@@ -2250,3 +2250,44 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Cross-route Recommendation targeting, unified Add, persistent mobile bottom
   navigation, secondary attention items, family-plan conversion, and
   derived-attention Increment 2 were not started.
+
+# 2026-08-23 — Unified Plan Add candidate
+
+- Added one responsive Add dropdown beside the compact Family plan heading on
+  Plan, and removed the separate Add Task, Add Milestone, and Add Decision
+  controls. The ordered menu copy is Task — Something that needs to be done;
+  Milestone — An important outcome or moment; Decision — A choice that needs to
+  be made. Now remains recommendation-focused with no Add control.
+- Reused the existing three creation editors with initial-field focus, one-flow
+  coordination, scoped saving state, preserved validation drafts, cancel focus
+  return, and captured-scroll restoration. Add closes shared Find; Find cannot
+  open over an unsaved creation editor.
+- Successful Task creation consumes the returned Plan aggregate and reuses the
+  established phase/filter/notice/scroll/focus/highlight path. Successful
+  Milestone and Decision creation reveal their returned cards with the same
+  bounded focus and highlight treatment. Resulting positions replace the saved
+  Plan scroll position; transient creation targeting does not replay.
+- Focused verification passed 70 tests, the full frontend suite passed all 107
+  tests, the production build passed, and `git diff --check` passed. No backend,
+  schema, API, ADR, or database files changed.
+- Built candidate image `gotime-unified-add-frontend:candidate-7a91c2e` and
+  restored the verified pre-Increment-1 backup with SQLite's backup API into
+  disposable volume `gotime_unified_add_acceptance_data_7a91c2e`. The isolated
+  database has integrity `ok`, no foreign-key violations, 49 unique Tasks, and
+  zero Milestones, Decisions, or Decision options.
+- Left Compose project `gotime_unified_add_acceptance` running at
+  `http://localhost:19173` (backend `http://localhost:19000`) with containers
+  `gotime-unified-add-acceptance-frontend` and
+  `gotime-unified-add-acceptance-backend` connected only to network
+  `gotime_unified_add_acceptance_net_7a91c2e`. Neither container mounts or joins
+  normal data or networking. The normal bind-mounted frontend remains stopped;
+  the original normal backend remains healthy with restart count zero.
+- The active database remained exactly 221,184 bytes, mtime_ns
+  `1787514115744690963`, and SHA-256
+  `f7b533dec39ee57207928a92b61af4de87a4219791454dcc9ba78b1476e9d036`,
+  with integrity `ok`, no foreign-key violations, identical table counts and
+  stable row hashes, 49 unique Tasks, and zero Increment-1 entities.
+- Human acceptance and normal deployment remain pending. Cross-route
+  Recommendation targeting, persistent mobile bottom navigation, secondary
+  attention items, family-plan conversion, and derived-attention Increment 2
+  were not started. Unrelated mobile-spacing polish remains deferred.

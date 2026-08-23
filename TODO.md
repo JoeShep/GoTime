@@ -52,7 +52,8 @@
   cross-route Find panel and browser-session Plan scroll restoration candidate.
 - [ ] Add cross-route Recommendation reveal behavior and the planned persistent
   mobile Find navigation.
-- [ ] Consolidate Task, Milestone, and Decision creation into one Plan Add menu.
+- [ ] Complete human acceptance, deployment, and closeout of the implemented
+  unified Task, Milestone, and Decision Plan Add menu candidate.
 
 ## Milestone-driven planning questions
 
