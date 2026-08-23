@@ -61,12 +61,14 @@ change status, assign people and dates, and select dependencies. Blocked state
 is derived from incomplete dependencies and shown directly in the plan. The
 fixed relocation categories are optional equal labels: tasks may have none or
 several, cards show all assignments, and a local OR filter includes a derived
-Uncategorized choice. Existing single-category databases migrate in place, and
-the plan-wide title finder remains independent of category filtering. The
-primary recommendation now selects one currently actionable stored task through
-an explicit deterministic order. The earlier employment-planning inputs remain
-in browser/request memory as a separate recommendation flow. There is no
-authentication or generalized multi-goal infrastructure.
+Uncategorized choice. Existing single-category databases migrate in place.
+A shared Find action on Now and Plan replaces the inline Plan Finder and keeps
+plan-wide title search independent of category filtering. Plan preserves phase,
+completed-section, category-filter, and scroll workspace state for the browser
+session. The primary recommendation now selects one currently actionable stored
+task through an explicit deterministic order. The earlier employment-planning
+inputs remain in browser/request memory as a separate recommendation flow.
+There is no authentication or generalized multi-goal infrastructure.
 
 The codebase also preserves an optional, explicitly triggered fake-adapter
 experiment for suggesting one moving-service question. It is excluded from the

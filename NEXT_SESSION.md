@@ -1,24 +1,20 @@
 # NEXT_SESSION
 
-## Current objective: accept shared Find and Plan scroll restoration
+## Current objective: select the next bounded navigation increment
 
-Human-test the shared cross-route Find panel and browser-session Plan scroll
-restoration at `http://localhost:18173`. The disposable project is
-`gotime_shared_find_acceptance`; it is isolated from `gotime_gotime_data` and
-must remain running until acceptance is reported.
+Shared Find and Plan workspace restoration passed complete human acceptance and
+is deployed in the normal frontend. Find is available from Now and Plan, and
+Plan preserves versioned phase, completed-section, category-filter, and scroll
+state for the browser session. The disposable acceptance environment has been
+removed.
 
-The candidate replaces the inline Plan Finder with a shared header action,
-preserves Finder reveal/filter behavior across routes, and stores only a
-versioned Plan scroll position and category-filter selection in plan-ID-scoped
-`sessionStorage`. Acceptance corrections retain the last Plan-owned scroll
-value across route teardown, restore filters before layout restoration, provide
-a transient dismissible incompatible-filter notice, and align Find with the
-inner Now/Plan targets. The mobile header Find button remains provisional until
-future bottom navigation.
+Before implementation, select and plan the next bounded navigation increment.
+Cross-route Recommendation targeting, unified Add, persistent mobile bottom
+navigation, secondary attention items, family-plan conversion, and
+derived-attention Increment 2 have not begun.
 
-Do not deploy or close this increment before human acceptance. Recommendation
-cross-route targeting, unified Add, mobile bottom navigation, secondary
-attention items, family-plan conversion, and derived-attention Increment 2 have
-not begun.
-
-Minor unrelated mobile-spacing inconsistencies remain deferred visual polish.
+Desktop navigation is not sticky. Returning Plan to the top before leaving it
+correctly records the top as its latest saved position. Persistent access to
+Now, Plan, and Find while deep in the desktop Plan may be reconsidered later;
+persistent mobile bottom navigation remains planned. Minor unrelated
+mobile-spacing inconsistencies remain deferred visual polish.

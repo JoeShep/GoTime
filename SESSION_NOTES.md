@@ -2203,3 +2203,50 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Focused route, filter, notice, and Finder regressions passed. The complete
   frontend suite passed all 100 tests and the production build passed. Human
   retesting in the isolated environment remains pending.
+
+# 2026-08-23 — Shared Find and Plan workspace-restoration closeout
+
+- Complete human acceptance passed for shared Find from Now and Plan, the
+  off-canvas panel, cross-route targeting and browser-history behavior,
+  session-restored Plan workspace state, corrected route restoration, the
+  transient filter-cleared notice, and responsive Find-button alignment. The
+  shared action replaces the inline Plan Finder.
+- Phase, completed-section, category-filter, and Plan-scroll records remain
+  versioned, plan-ID-scoped `sessionStorage`. Finder destinations override
+  restoration and become the next saved Plan position. Target focus and
+  highlighting remain transient and do not replay after refresh or later
+  navigation. The Task-specific filter-cleared notice is dismissible, expires
+  after about six seconds, and is never persisted.
+- Built `gotime-frontend:latest` from accepted commit
+  `408546bf431cdc85c09934e58ccb3c0444b8379e` and recreated only
+  `gotime-frontend-1` with `VITE_ENABLE_EXPERIMENTS=false`. Frontend serving,
+  Now, Plan, Plan and Recommendation proxy calls, client-side Experiments
+  not-found handling, and both disabled experimental APIs passed. The normal
+  backend retained container `f1728652cb2086f2aed3ae63db66e4a1f5618c24264d011bf15ed62c7d9676bb`,
+  image `b533f1f2fea957a51dcf3624811d3d220fca8d5effa65ece5cb20d8722ec82ee`,
+  its original reboot start time, and restart count zero.
+- The active database began at 221,184 bytes with SHA-256
+  `cf158547d56c158d16ed442bae279a4a7d27ef266a78d15b258e007f69c656c1`.
+  Its first Plan read after the backend's independent reboot restart lazily ran
+  the existing idempotent repository initialization and same-value default-phase
+  updates, changing only SQLite file metadata and its byte checksum. Final size
+  remained 221,184 bytes and final SHA-256 was
+  `f7b533dec39ee57207928a92b61af4de87a4219791454dcc9ba78b1476e9d036`.
+  Integrity was `ok`, foreign-key checks were empty, all table counts and stable
+  row hashes matched, all 49 Task IDs remained unique, and Milestones,
+  Decisions, and Decision options remained empty. Repeated reads produced no
+  further file change.
+- Removed exactly `gotime-shared-find-acceptance-frontend`,
+  `gotime-shared-find-acceptance-backend`, volume
+  `gotime_shared_find_acceptance_data_f08054d`, network
+  `gotime_shared_find_acceptance_net_f08054d`, and
+  `/tmp/gotime-shared-find-acceptance-f08054d/`. Normal containers, the active
+  volume and network, verified backups, manifests, and unrelated Docker
+  resources were untouched.
+- Desktop navigation is not sticky. Scrolling Plan to the top before leaving
+  correctly saves the top; persistent Now, Plan, and Find access deep in the
+  desktop Plan may be reconsidered later. Persistent mobile bottom navigation
+  remains planned, and unrelated mobile-spacing polish remains deferred.
+- Cross-route Recommendation targeting, unified Add, persistent mobile bottom
+  navigation, secondary attention items, family-plan conversion, and
+  derived-attention Increment 2 were not started.

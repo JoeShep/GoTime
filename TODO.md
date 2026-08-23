@@ -48,7 +48,7 @@
 - [x] Implement, accept, and deploy collapsible phases with browser-session
   phase/completed-section expansion state; remove the disposable acceptance
   environment safely.
-- [ ] Complete human acceptance, deployment, and closeout of the shared
+- [x] Complete human acceptance, deployment, and closeout of the shared
   cross-route Find panel and browser-session Plan scroll restoration candidate.
 - [ ] Add cross-route Recommendation reveal behavior and the planned persistent
   mobile Find navigation.

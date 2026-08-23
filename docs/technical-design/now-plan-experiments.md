@@ -209,9 +209,9 @@ and Recommendation reveal. Unified Add and mobile bottom navigation follow in
 the approved sequence. Those items, secondary attention, family-plan
 conversion, and derived-attention Increment 2 have not begun.
 
-## Shared Find and Plan scroll-restoration candidate
+## Shared Find and Plan scroll restoration
 
-The next bounded candidate replaces the inline Plan Finder with one shared
+This bounded increment replaces the inline Plan Finder with one shared
 header **Find** action available from Now and Plan. It opens a React-Bootstrap
 off-canvas dialog, fetches a current persisted-plan snapshot each time it opens,
 and searches Task titles plan-wide without coupling to category filtering.
@@ -256,10 +256,40 @@ centered and sized to the inner Now/Plan targets rather than their padded outer
 container.
 
 Automated verification for the corrected candidate passed all 100 frontend
-tests and the production build.
-The candidate runs for human review at `http://localhost:18173` in isolated
-Compose project `gotime_shared_find_acceptance`, backed by disposable volume
-`gotime_shared_find_acceptance_data_f08054d`. Its restored database has 49
-unique Tasks, integrity `ok`, no foreign-key violations, and empty Milestone,
-Decision, and Decision-option tables. Neither acceptance container mounts the
-active volume. Human acceptance and normal deployment remain pending.
+tests and the production build. Complete human acceptance then passed for the
+shared Find panel, cross-route navigation and browser history, restored Plan
+workspace state, transient targeting, filter-cleared notice, and responsive
+Find-button sizing and alignment.
+
+The accepted frontend was deployed by rebuilding the normal frontend image and
+recreating only `gotime-frontend-1`, with Experiments disabled. The normal
+backend was not rebuilt, restarted, or recreated. Frontend serving, Now, Plan,
+Plan and Recommendation API proxying, the client-side Experiments not-found
+boundary, and both disabled experimental APIs passed runtime verification.
+
+Before deployment, the active database was 221,184 bytes with SHA-256
+`cf158547d56c158d16ed442bae279a4a7d27ef266a78d15b258e007f69c656c1`.
+The first Plan API read after the backend's independent reboot restart lazily
+initialized the repository; its existing idempotent default-phase updates
+changed SQLite file metadata and the byte checksum. The final file remained
+221,184 bytes with SHA-256
+`f7b533dec39ee57207928a92b61af4de87a4219791454dcc9ba78b1476e9d036`.
+Integrity remained `ok`, foreign-key checks remained empty, and every table
+count and stable row-content hash matched before and after. All 49 Task IDs
+remained unique, and Milestones, Decisions, and Decision options remained
+empty. Repeated reads caused no further file change.
+
+After verification, only the `gotime_shared_find_acceptance` frontend and
+backend containers, disposable volume
+`gotime_shared_find_acceptance_data_f08054d`, isolated network
+`gotime_shared_find_acceptance_net_f08054d`, and temporary Compose directory
+were removed. Normal resources, the active volume, verified backup, and
+manifests were untouched. This increment is complete.
+
+Desktop navigation is not sticky. Scrolling Plan to the top before leaving
+correctly makes the top the latest saved position. Persistent mobile bottom
+navigation remains planned, and persistent Now, Plan, and Find access while
+deep in the desktop Plan may be reconsidered later. Unrelated mobile-spacing
+polish remains deferred. Cross-route Recommendation targeting, unified Add,
+persistent mobile bottom navigation, secondary attention items, family-plan
+conversion, and derived-attention Increment 2 were not started.
