@@ -339,3 +339,44 @@ Human acceptance and normal deployment are pending. Cross-route Recommendation
 targeting, persistent mobile bottom navigation, secondary attention items,
 family-plan conversion, and derived-attention Increment 2 were not started;
 unrelated mobile-spacing polish remains deferred.
+
+### Prospective title uniqueness extension
+
+The unified Add candidate now treats titles as unique within one Plan and the
+same entity type. Tasks compare across all phases and statuses, including
+completed work; Milestones compare with Milestones; Decisions compare with
+Decisions. Cross-type title matches are valid. Canonical comparison trims
+surrounding whitespace, collapses consecutive internal whitespace, and applies
+Unicode-aware case-insensitive comparison without otherwise rewriting the
+stored display title.
+
+The repository remains authoritative for Task, Milestone, and Decision POST and
+full PUT. It performs the canonical duplicate check and mutation under one
+immediate SQLite write transaction, excludes the edited record, and permits an
+edit whose canonical title is unchanged even if prospective enforcement finds
+legacy duplicates. Conflicts return HTTP 409 with stable `duplicate_task_title`,
+`duplicate_milestone_title`, or `duplicate_decision_title` codes and bounded
+human messages. No schema, index, trigger, title key, migration, or active-data
+conversion is introduced.
+
+The frontend shares one canonicalization utility across all three existing
+editors. A current aggregate conflict produces inline invalid title feedback
+without a request. An authoritative stale or concurrent conflict keeps the
+draft open, restores the save control, focuses the title, and avoids global
+errors and all successful-reveal side effects. Changing to a nonconflicting
+title clears the error; unchanged self-edits and cross-type matches remain
+valid.
+
+The read-only active audit found no Task, Milestone, or Decision duplicate
+groups. The disposable audit found one permitted Task group in Plan
+`family-relocation-plan`, canonical title `notice timeout test`, IDs
+`notice-timeout-test-bb118b9d-04d0-4d33-a77c-f336611c57c1` and
+`notice-timeout-test-cb948a97-1cec-44a4-8bdc-3cc16a0b4b1d`; both stored titles
+are `Notice timeout test`, phase `decide`, status `not_started`. Those records
+remain unchanged and do not block canonical-equivalent edits.
+
+Focused backend verification passed 42 tests and the complete backend suite
+passed 207 tests. Backend compilation passed. Focused frontend verification
+passed 77 tests, the complete frontend suite passed 114 tests, and the
+production build and `git diff --check` passed. Human acceptance and normal
+deployment remain pending.

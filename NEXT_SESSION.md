@@ -1,6 +1,6 @@
 # NEXT_SESSION
 
-## Current objective: human acceptance of unified Plan Add
+## Current objective: human acceptance of unified Add title uniqueness
 
 The frontend-only unified Add candidate is ready for human acceptance at
 `http://localhost:19173` (isolated backend `http://localhost:19000`). Plan has
@@ -15,10 +15,17 @@ unfiltered creation relies on the accepted reveal feedback. Final human retest
 is limited to this notice lifecycle; the native Firefox Responsive Design Mode
 date-picker behavior remains explicitly out of scope.
 
-Complete the focused notice retest before any deployment or closeout. Verify
-task-specific copy, close and six-second expiry, dismissal on filter/Add/Find
-interaction, absence for compatible or unfiltered creation, and unchanged Task
-reveal/focus/highlight/count/scroll behavior.
+The final candidate extension adds prospective, plan-scoped title uniqueness
+within each of Tasks, Milestones, and Decisions. Comparison trims surrounding
+whitespace, collapses internal whitespace, and ignores capitalization with
+Unicode-aware comparison. Cross-type matches remain allowed. Backend POST/PUT
+is authoritative and transactional; the frontend provides immediate inline
+accessible validation and maps stale 409 conflicts back to the title field.
+
+Complete the focused duplicate-title and notice retest before any deployment or
+closeout. Existing disposable duplicates remain untouched and unchanged
+canonical edits remain valid. Verify rejection has no reveal, filter, phase,
+highlight, or saved-scroll side effects.
 Human-created acceptance records are disposable and must never be copied to the
 active family plan.
 

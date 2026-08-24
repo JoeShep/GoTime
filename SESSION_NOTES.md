@@ -2315,3 +2315,46 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   options, integrity `ok`, no foreign-key violations, size 221,184 bytes, and
   SHA-256 `99de5dfc6eeeefd1bf5c16291025729402985b66f28f9dce1a92a8fd6b270e4b`.
   These records must remain intact for the final focused retest.
+
+# 2026-08-23 — Plan-wide duplicate-title candidate extension
+
+- The required read-only active audit found no canonical duplicate Task,
+  Milestone, or Decision groups. The disposable audit found one allowed Task
+  group in `family-relocation-plan`: canonical `notice timeout test`, IDs
+  `notice-timeout-test-bb118b9d-04d0-4d33-a77c-f336611c57c1` and
+  `notice-timeout-test-cb948a97-1cec-44a4-8bdc-3cc16a0b4b1d`, both stored as
+  `Notice timeout test` in phase `decide` with status `not_started`. No records
+  were repaired or changed.
+- Added prospective per-Plan, per-type uniqueness for Task, Milestone, and
+  Decision titles. Canonical comparison trims, collapses internal whitespace,
+  and case-folds Unicode. Tasks compare across all phases and statuses;
+  cross-type titles remain valid. Canonical-equivalent self-edits remain valid,
+  including for legacy duplicate groups.
+- Backend POST and full PUT checks execute with their writes inside immediate
+  SQLite transactions. Stable 409 codes and bounded messages identify each
+  entity type. No schema, migration, trigger, denormalized key, or active-data
+  conversion was added.
+- The three reused editors share one frontend comparison utility. Proven local
+  conflicts and authoritative backend conflicts remain inline at the title,
+  preserve drafts, restore save controls, and cause no reveal or workspace
+  effects. Backend conflicts focus the title; a unique change clears the error.
+- Before candidate container work, acceptance had 55 unique Tasks, one
+  Milestone, one Decision, two Decision options, integrity `ok`, no foreign-key
+  violations, size 221,184 bytes, and SHA-256
+  `46c01214f5af7b3a59b28d000ae63189d6c6e5a5d2ce85ef26a2ca7def4c04d0`.
+  The active database remained 221,184 bytes with SHA-256
+  `f7b533dec39ee57207928a92b61af4de87a4219791454dcc9ba78b1476e9d036`.
+- Focused backend tests passed 42; the complete backend suite passed 207;
+  backend compilation passed. Focused frontend tests passed 77; the complete
+  frontend suite passed 114; the production frontend build and
+  `git diff --check` passed.
+- Recreated only the isolated acceptance backend and frontend from the focused
+  candidate while retaining volume `gotime_unified_add_acceptance_data_7a91c2e`.
+  Runtime Plan, proxy, and health checks returned 200, and a read-only duplicate
+  probe returned the stable 409 payload. Post-replacement integrity remained
+  `ok`, foreign keys remained clean, and every count and stable row hash
+  matched. Existing startup initialization changed only SQLite file metadata
+  and byte checksum to
+  `a9d82c974795715c2c89bd6030fd43a19ddf77842c9e06859cac9b727a9c513d`.
+  The active database, normal backend, and stopped normal frontend were
+  unchanged.

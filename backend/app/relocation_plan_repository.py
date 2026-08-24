@@ -64,6 +64,42 @@ class PlanItemAlreadyExistsError(RelocationPlanError):
     pass
 
 
+class DuplicateTitleError(RelocationPlanError):
+    code: str
+
+    def __init__(self, message: str, code: str):
+        super().__init__(message)
+        self.code = code
+
+
+class DuplicateTaskTitleError(DuplicateTitleError):
+    def __init__(self):
+        super().__init__(
+            "A task with this title already exists in this plan.",
+            "duplicate_task_title",
+        )
+
+
+class DuplicateMilestoneTitleError(DuplicateTitleError):
+    def __init__(self):
+        super().__init__(
+            "A milestone with this title already exists in this plan.",
+            "duplicate_milestone_title",
+        )
+
+
+class DuplicateDecisionTitleError(DuplicateTitleError):
+    def __init__(self):
+        super().__init__(
+            "A decision with this title already exists in this plan.",
+            "duplicate_decision_title",
+        )
+
+
+def canonicalize_plan_item_title(title: str) -> str:
+    return " ".join(title.split()).casefold()
+
+
 class MilestoneNotFoundError(RelocationPlanError):
     pass
 
@@ -533,8 +569,12 @@ class SQLiteRelocationPlanRepository:
 
     def create_task(self, task: TaskCreate) -> RelocationPlan:
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             if self._task_exists(connection, task.id):
                 raise TaskAlreadyExistsError(f"Task '{task.id}' already exists.")
+            self._validate_unique_title(
+                connection, "tasks", RELOCATION_PLAN_ID, task.title
+            )
             self._validate_task_bindings(
                 connection, task.id, task.phase_id, task.dependency_task_ids
             )
@@ -544,8 +584,20 @@ class SQLiteRelocationPlanRepository:
 
     def update_task(self, task_id: str, task: TaskUpdate) -> RelocationPlan:
         with self._connect() as connection:
-            if not self._task_exists(connection, task_id):
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT plan_id, title FROM tasks WHERE id = ?", (task_id,)
+            ).fetchone()
+            if existing is None:
                 raise TaskNotFoundError(f"Task '{task_id}' does not exist.")
+            self._validate_unique_title(
+                connection,
+                "tasks",
+                existing["plan_id"],
+                task.title,
+                entity_id=task_id,
+                existing_title=existing["title"],
+            )
             existing_dependency_ids = {
                 row["dependency_task_id"]
                 for row in connection.execute(
@@ -598,10 +650,14 @@ class SQLiteRelocationPlanRepository:
 
     def create_milestone(self, milestone: MilestoneCreate) -> RelocationPlan:
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             if self._plan_item_id_exists(connection, milestone.id):
                 raise PlanItemAlreadyExistsError(
                     f"Plan item '{milestone.id}' already exists."
                 )
+            self._validate_unique_title(
+                connection, "milestones", RELOCATION_PLAN_ID, milestone.title
+            )
             connection.execute(
                 """
                 INSERT INTO milestones (
@@ -626,10 +682,22 @@ class SQLiteRelocationPlanRepository:
         self, milestone_id: str, milestone: MilestoneUpdate
     ) -> RelocationPlan:
         with self._connect() as connection:
-            if not self._milestone_exists(connection, milestone_id):
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT plan_id, title FROM milestones WHERE id = ?", (milestone_id,)
+            ).fetchone()
+            if existing is None:
                 raise MilestoneNotFoundError(
                     f"Milestone '{milestone_id}' does not exist."
                 )
+            self._validate_unique_title(
+                connection,
+                "milestones",
+                existing["plan_id"],
+                milestone.title,
+                entity_id=milestone_id,
+                existing_title=existing["title"],
+            )
             connection.execute(
                 """
                 UPDATE milestones SET title = ?, description = ?,
@@ -667,10 +735,14 @@ class SQLiteRelocationPlanRepository:
 
     def create_decision(self, decision: DecisionCreate) -> RelocationPlan:
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             if self._plan_item_id_exists(connection, decision.id):
                 raise PlanItemAlreadyExistsError(
                     f"Plan item '{decision.id}' already exists."
                 )
+            self._validate_unique_title(
+                connection, "decisions", RELOCATION_PLAN_ID, decision.title
+            )
             self._validate_milestone(connection, decision.milestone_id)
             self._validate_option_ids_available(connection, decision.options)
             connection.execute(
@@ -694,14 +766,23 @@ class SQLiteRelocationPlanRepository:
         self, decision_id: str, decision: DecisionUpdate
     ) -> RelocationPlan:
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
-                "SELECT selected_option_id FROM decisions WHERE id = ?",
+                "SELECT plan_id, title, selected_option_id FROM decisions WHERE id = ?",
                 (decision_id,),
             ).fetchone()
             if row is None:
                 raise DecisionNotFoundError(
                     f"Decision '{decision_id}' does not exist."
                 )
+            self._validate_unique_title(
+                connection,
+                "decisions",
+                row["plan_id"],
+                decision.title,
+                entity_id=decision_id,
+                existing_title=row["title"],
+            )
             self._validate_milestone(connection, decision.milestone_id)
             selected_option_id = row["selected_option_id"]
             option_ids = {option.id for option in decision.options}
@@ -834,6 +915,39 @@ class SQLiteRelocationPlanRepository:
         return connection.execute(
             "SELECT 1 FROM tasks WHERE id = ?", (task_id,)
         ).fetchone() is not None
+
+    @staticmethod
+    def _validate_unique_title(
+        connection: sqlite3.Connection,
+        table: str,
+        plan_id: str,
+        title: str,
+        *,
+        entity_id: str | None = None,
+        existing_title: str | None = None,
+    ) -> None:
+        canonical_title = canonicalize_plan_item_title(title)
+        if (
+            existing_title is not None
+            and canonical_title == canonicalize_plan_item_title(existing_title)
+        ):
+            return
+        rows = connection.execute(
+            f"SELECT id, title FROM {table} WHERE plan_id = ?",
+            (plan_id,),
+        ).fetchall()
+        if not any(
+            row["id"] != entity_id
+            and canonicalize_plan_item_title(row["title"]) == canonical_title
+            for row in rows
+        ):
+            return
+        error_by_table = {
+            "tasks": DuplicateTaskTitleError,
+            "milestones": DuplicateMilestoneTitleError,
+            "decisions": DuplicateDecisionTitleError,
+        }
+        raise error_by_table[table]()
 
     def _validate_task_bindings(
         self,

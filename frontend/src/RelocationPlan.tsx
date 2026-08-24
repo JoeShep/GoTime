@@ -5,6 +5,7 @@ import {
   createTask,
   fetchRelocationPlan,
   replaceTask,
+  PlanRequestError,
   type RelocationPlan as RelocationPlanData,
   type RelocationTask,
   type TaskCategory,
@@ -12,6 +13,7 @@ import {
   type TaskStatus,
   type TaskWrite,
 } from './api/relocationPlan'
+import { hasDuplicatePlanItemTitle } from './titleUniqueness'
 import { MilestoneDecisionFoundation } from './MilestoneDecisionFoundation'
 import { useFind } from './FindContext'
 
@@ -282,6 +284,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [filterNotice, setFilterNotice] = useState<string | null>(null)
+  const [taskTitleError, setTaskTitleError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft | null>(null)
   const [dependencyQuery, setDependencyQuery] = useState('')
@@ -523,6 +526,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setFilterNotice(null)
     setError(null)
     setNotice(null)
+    setTaskTitleError(null)
     if (type !== 'task') return
     setEditingId(null)
     setDraft(emptyDraft(plan.phases[0].id))
@@ -549,10 +553,17 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setDependencyQuery('')
     setError(null)
     setNotice(null)
+    setTaskTitleError(null)
   }
 
   async function saveTask() {
     if (!draft || taskEditorSaving) return
+    if (plan && hasDuplicatePlanItemTitle(plan.tasks, draft.title, editingId)) {
+      setError(null)
+      setTaskTitleError('A task with this title already exists in this plan.')
+      titleInputRef.current?.focus()
+      return
+    }
     setTaskEditorSaving(true)
     setError(null)
     setNotice(null)
@@ -573,7 +584,12 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         if (createdTask) selectFinderResult(createdTask)
       }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Unable to save the task.')
+      if (requestError instanceof PlanRequestError && requestError.code === 'duplicate_task_title') {
+        setTaskTitleError(requestError.message)
+        titleInputRef.current?.focus()
+      } else {
+        setError(requestError instanceof Error ? requestError.message : 'Unable to save the task.')
+      }
     } finally {
       setTaskEditorSaving(false)
     }
@@ -768,7 +784,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                 }}>Cancel</Button>
               </Stack>
               <Row className="g-3">
-                <Col md={8}><Form.Group controlId="task-title"><Form.Label>Title</Form.Label><Form.Control ref={titleInputRef} required maxLength={200} value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></Form.Group></Col>
+                <Col md={8}><Form.Group controlId="task-title"><Form.Label>Title</Form.Label><Form.Control aria-describedby="task-title-error" aria-invalid={Boolean(taskTitleError)} isInvalid={Boolean(taskTitleError)} ref={titleInputRef} required maxLength={200} value={draft.title} onChange={(event) => { const title = event.target.value; setDraft({ ...draft, title }); setTaskTitleError(plan && hasDuplicatePlanItemTitle(plan.tasks, title, editingId) ? 'A task with this title already exists in this plan.' : null) }} /><Form.Control.Feedback id="task-title-error" type="invalid">{taskTitleError}</Form.Control.Feedback></Form.Group></Col>
                 <Col md={4}><Form.Group controlId="task-phase"><Form.Label>Phase</Form.Label><Form.Select value={draft.phaseId} onChange={(event) => setDraft({ ...draft, phaseId: event.target.value })}>{plan.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}</Form.Select></Form.Group></Col>
                 <Col xs={12}><Form.Group controlId="task-description"><Form.Label>Description <span className="text-muted">(optional)</span></Form.Label><Form.Control as="textarea" rows={2} maxLength={2000} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></Form.Group></Col>
                 <Col md={4}>

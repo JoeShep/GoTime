@@ -31,6 +31,7 @@ from app.relocation_plan_models import (
 from app.relocation_plan_repository import (
     DecisionNotFoundError,
     DependencyCycleError,
+    DuplicateTitleError,
     InvalidDependencyError,
     InvalidPhaseError,
     InvalidDecisionError,
@@ -94,6 +95,11 @@ def get_plan_repository(request: Request) -> SQLiteRelocationPlanRepository:
 def plan_error(error: ValueError) -> HTTPException:
     if isinstance(error, (TaskNotFoundError, MilestoneNotFoundError, DecisionNotFoundError)):
         return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))
+    if isinstance(error, DuplicateTitleError):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code, "message": str(error)},
+        )
     if isinstance(error, (TaskAlreadyExistsError, PlanItemAlreadyExistsError)):
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error))
     if isinstance(error, (InvalidPhaseError, InvalidDependencyError, DependencyCycleError, InvalidDecisionError)):

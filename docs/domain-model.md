@@ -18,6 +18,24 @@ A `Task` belongs to exactly one phase and records a stable ID, title, optional
 description, zero or more categories, status, zero or more assignee names, optional start/due
 dates, user priority, and zero or more dependency task IDs.
 
+Titles are prospectively unique within one Plan and entity type: Tasks compare
+only with Tasks across every phase and status, Milestones only with Milestones,
+and Decisions only with Decisions. Different entity types may use the same
+display title. Comparison trims surrounding whitespace, collapses consecutive
+internal whitespace, and uses Unicode-aware case-insensitive matching; stored
+display titles otherwise retain the existing input behavior. Full edits exclude
+the item itself. An edit whose canonical title is unchanged remains valid even
+when legacy records already contain a duplicate, while a new item or a rename
+to another item's canonical title is rejected.
+
+The backend owns this invariant for create and full-replacement operations. It
+serializes duplicate checking and writing in one SQLite write transaction and
+returns a stable conflict code without exposing persistence details. The
+frontend performs the same comparison against its current Plan aggregate for
+immediate inline feedback, while still handling authoritative stale or
+concurrent backend conflicts. This rule adds no schema key, trigger, migration,
+or conversion of existing records.
+
 The implemented status vocabulary is `not_started`, `in_progress`, and
 `completed`. Priority is `low`, `medium`, `high`, or `critical`. Categories are
 optional, equal labels bounded to employment, family, financial, healthcare,

@@ -5,6 +5,7 @@ import {
   changeMilestoneAchievement,
   createDecision,
   createMilestone,
+  PlanRequestError,
   replaceDecision,
   replaceMilestone,
   type Decision,
@@ -12,6 +13,7 @@ import {
   type Milestone,
   type RelocationPlan,
 } from './api/relocationPlan'
+import { hasDuplicatePlanItemTitle } from './titleUniqueness'
 
 interface Props {
   plan: RelocationPlan
@@ -87,6 +89,8 @@ export function MilestoneDecisionFoundation({
   const [decisionId, setDecisionId] = useState<string | null>(null)
   const [pendingActions, setPendingActions] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
+  const [milestoneTitleError, setMilestoneTitleError] = useState<string | null>(null)
+  const [decisionTitleError, setDecisionTitleError] = useState<string | null>(null)
   const [foundItem, setFoundItem] = useState<{ type: 'milestone' | 'decision'; id: string } | null>(null)
   const [pendingReveal, setPendingReveal] = useState<{ type: 'milestone' | 'decision'; id: string } | null>(null)
   const milestoneTitleRef = useRef<HTMLInputElement>(null)
@@ -100,12 +104,14 @@ export function MilestoneDecisionFoundation({
       setMilestoneId(null)
       setMilestoneDraft(emptyMilestone())
       setError(null)
+      setMilestoneTitleError(null)
     } else if (creationType === 'decision' && plan.milestones.length > 0) {
       setMilestoneDraft(null)
       setMilestoneId(null)
       setDecisionId(null)
       setDecisionDraft({ title: '', description: '', milestone_id: plan.milestones[0].id, options: [newOption(), newOption()] })
       setError(null)
+      setDecisionTitleError(null)
     }
   }, [creationType, plan.milestones])
 
@@ -128,7 +134,11 @@ export function MilestoneDecisionFoundation({
     onItemRevealed?.()
   }, [onItemRevealed, pendingReveal, plan])
 
-  async function perform(key: string, action: () => Promise<RelocationPlan>) {
+  async function perform(
+    key: string,
+    action: () => Promise<RelocationPlan>,
+    handleError?: (reason: unknown) => boolean,
+  ) {
     setPendingActions((current) => new Set(current).add(key))
     setError(null)
     try {
@@ -136,7 +146,12 @@ export function MilestoneDecisionFoundation({
       onPlanUpdated(updated)
       return updated
     }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Unable to update the plan.'); return null }
+    catch (reason) {
+      if (!handleError?.(reason)) {
+        setError(reason instanceof Error ? reason.message : 'Unable to update the plan.')
+      }
+      return null
+    }
     finally {
       setPendingActions((current) => {
         const next = new Set(current)
@@ -148,6 +163,12 @@ export function MilestoneDecisionFoundation({
 
   async function saveMilestone() {
     if (!milestoneDraft) return
+    if (hasDuplicatePlanItemTitle(plan.milestones, milestoneDraft.title, milestoneId)) {
+      setError(null)
+      setMilestoneTitleError('A milestone with this title already exists in this plan.')
+      milestoneTitleRef.current?.focus()
+      return
+    }
     if (
       milestoneDraft.target_earliest_date
       && milestoneDraft.target_latest_date
@@ -157,7 +178,12 @@ export function MilestoneDecisionFoundation({
     const createdId = milestoneId ?? itemId(write.title, 'milestone')
     const saved = await perform('save-milestone', () => milestoneId
       ? replaceMilestone(milestoneId, write)
-      : createMilestone(createdId, write))
+      : createMilestone(createdId, write), (reason) => {
+        if (!(reason instanceof PlanRequestError) || reason.code !== 'duplicate_milestone_title') return false
+        setMilestoneTitleError(reason.message)
+        milestoneTitleRef.current?.focus()
+        return true
+      })
     if (!saved) return
     setMilestoneDraft(null)
     setMilestoneId(null)
@@ -170,6 +196,12 @@ export function MilestoneDecisionFoundation({
 
   async function saveDecision() {
     if (!decisionDraft) return
+    if (hasDuplicatePlanItemTitle(plan.decisions, decisionDraft.title, decisionId)) {
+      setError(null)
+      setDecisionTitleError('A decision with this title already exists in this plan.')
+      decisionTitleRef.current?.focus()
+      return
+    }
     const write = {
       ...decisionDraft,
       description: decisionDraft.description?.trim() || null,
@@ -180,7 +212,12 @@ export function MilestoneDecisionFoundation({
     const createdId = decisionId ?? itemId(write.title, 'decision')
     const saved = await perform('save-decision', () => decisionId
       ? replaceDecision(decisionId, write)
-      : createDecision(createdId, write))
+      : createDecision(createdId, write), (reason) => {
+        if (!(reason instanceof PlanRequestError) || reason.code !== 'duplicate_decision_title') return false
+        setDecisionTitleError(reason.message)
+        decisionTitleRef.current?.focus()
+        return true
+      })
     if (!saved) return
     setDecisionDraft(null)
     setDecisionId(null)
@@ -208,12 +245,12 @@ export function MilestoneDecisionFoundation({
         <Card.Title className="plan-foundation-title">{milestoneId ? 'Edit milestone' : 'Add milestone'}</Card.Title>
         <Form onSubmit={(event) => { event.preventDefault(); void saveMilestone() }}>
           <Row className="g-3">
-            <Col xs={12}><Form.Group controlId="milestone-title"><Form.Label>Name</Form.Label><Form.Control ref={milestoneTitleRef} required maxLength={200} value={milestoneDraft.title} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, title: event.target.value })} /></Form.Group></Col>
+            <Col xs={12}><Form.Group controlId="milestone-title"><Form.Label>Name</Form.Label><Form.Control aria-describedby="milestone-title-error" aria-invalid={Boolean(milestoneTitleError)} isInvalid={Boolean(milestoneTitleError)} ref={milestoneTitleRef} required maxLength={200} value={milestoneDraft.title} onChange={(event) => { const title = event.target.value; setMilestoneDraft({ ...milestoneDraft, title }); setMilestoneTitleError(hasDuplicatePlanItemTitle(plan.milestones, title, milestoneId) ? 'A milestone with this title already exists in this plan.' : null) }} /><Form.Control.Feedback id="milestone-title-error" type="invalid">{milestoneTitleError}</Form.Control.Feedback></Form.Group></Col>
             <Col xs={12}><Form.Group controlId="milestone-description"><Form.Label>Description <span className="text-muted">(optional)</span></Form.Label><Form.Control as="textarea" maxLength={2000} value={milestoneDraft.description ?? ''} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, description: event.target.value })} /></Form.Group></Col>
             <Col sm={6}><Form.Group controlId="milestone-earliest"><Form.Label>Earliest target date <span className="text-muted">(optional)</span></Form.Label><Form.Control type="date" value={milestoneDraft.target_earliest_date ?? ''} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, target_earliest_date: event.target.value || null })} /><Form.Text>Planning guidance; not a task start date.</Form.Text></Form.Group></Col>
             <Col sm={6}><Form.Group controlId="milestone-latest"><Form.Label>Latest target date <span className="text-muted">(optional)</span></Form.Label><Form.Control aria-describedby="milestone-latest-help" isInvalid={invalidTargetWindow} min={milestoneDraft.target_earliest_date ?? undefined} type="date" value={milestoneDraft.target_latest_date ?? ''} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, target_latest_date: event.target.value || null })} /><Form.Control.Feedback type="invalid">Latest target must be on or after the earliest target.</Form.Control.Feedback><Form.Text id="milestone-latest-help">Leave blank for an open-ended “on or after” target.</Form.Text></Form.Group></Col>
           </Row>
-          <Stack direction="horizontal" gap={2} className="mt-3"><Button type="submit" disabled={pendingActions.has('save-milestone') || invalidTargetWindow}>Save milestone</Button><Button variant="outline-secondary" disabled={pendingActions.has('save-milestone')} onClick={() => { const creating = !milestoneId; setMilestoneDraft(null); setMilestoneId(null); if (creating) onCreationCanceled?.() }}>Cancel</Button></Stack>
+          <Stack direction="horizontal" gap={2} className="mt-3"><Button type="submit" disabled={pendingActions.has('save-milestone') || invalidTargetWindow}>Save milestone</Button><Button variant="outline-secondary" disabled={pendingActions.has('save-milestone')} onClick={() => { const creating = !milestoneId; setMilestoneDraft(null); setMilestoneId(null); setMilestoneTitleError(null); if (creating) onCreationCanceled?.() }}>Cancel</Button></Stack>
         </Form>
       </Card.Body></Card>}
 
@@ -221,13 +258,13 @@ export function MilestoneDecisionFoundation({
         <Card.Title className="plan-foundation-title">{decisionId ? 'Edit decision' : 'Add decision'}</Card.Title>
         <Form onSubmit={(event) => { event.preventDefault(); void saveDecision() }}>
           <Row className="g-3">
-            <Col md={8}><Form.Group controlId="decision-title"><Form.Label>Decision</Form.Label><Form.Control ref={decisionTitleRef} required maxLength={200} value={decisionDraft.title} onChange={(event) => setDecisionDraft({ ...decisionDraft, title: event.target.value })} /></Form.Group></Col>
+            <Col md={8}><Form.Group controlId="decision-title"><Form.Label>Decision</Form.Label><Form.Control aria-describedby="decision-title-error" aria-invalid={Boolean(decisionTitleError)} isInvalid={Boolean(decisionTitleError)} ref={decisionTitleRef} required maxLength={200} value={decisionDraft.title} onChange={(event) => { const title = event.target.value; setDecisionDraft({ ...decisionDraft, title }); setDecisionTitleError(hasDuplicatePlanItemTitle(plan.decisions, title, decisionId) ? 'A decision with this title already exists in this plan.' : null) }} /><Form.Control.Feedback id="decision-title-error" type="invalid">{decisionTitleError}</Form.Control.Feedback></Form.Group></Col>
             <Col md={4}><Form.Group controlId="decision-milestone"><Form.Label>Milestone</Form.Label><Form.Select value={decisionDraft.milestone_id} onChange={(event) => setDecisionDraft({ ...decisionDraft, milestone_id: event.target.value })}>{plan.milestones.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</Form.Select></Form.Group></Col>
             <Col xs={12}><Form.Group controlId="decision-description"><Form.Label>Context <span className="text-muted">(optional)</span></Form.Label><Form.Control as="textarea" maxLength={2000} value={decisionDraft.description ?? ''} onChange={(event) => setDecisionDraft({ ...decisionDraft, description: event.target.value })} /></Form.Group></Col>
             <Col xs={12}><Form.Label>Options</Form.Label>{decisionDraft.options.map((option, index) => <div className="decision-option-row d-flex flex-wrap flex-sm-nowrap gap-2 mb-2" key={option.id}><Form.Control className="decision-option-input" aria-label={`Option ${index + 1}`} required maxLength={200} value={option.title} onChange={(event) => setDecisionDraft({ ...decisionDraft, options: decisionDraft.options.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item) })} /><Button aria-label={`Move option ${index + 1} up`} disabled={index === 0} variant="outline-secondary" onClick={() => { const options = [...decisionDraft.options]; [options[index - 1], options[index]] = [options[index], options[index - 1]]; setDecisionDraft({ ...decisionDraft, options }) }}>↑</Button><Button aria-label={`Remove option ${index + 1}`} disabled={decisionDraft.options.length <= 2 || option.id === plan.decisions.find((item) => item.id === decisionId)?.selected_option_id} variant="outline-secondary" onClick={() => setDecisionDraft({ ...decisionDraft, options: decisionDraft.options.filter((_, itemIndex) => itemIndex !== index) })}>Remove</Button></div>)}</Col>
           </Row>
           <Button size="sm" variant="outline-secondary" onClick={() => setDecisionDraft({ ...decisionDraft, options: [...decisionDraft.options, newOption()] })}>Add option</Button>
-          <Stack direction="horizontal" gap={2} className="mt-3"><Button type="submit" disabled={pendingActions.has('save-decision')}>Save decision</Button><Button variant="outline-secondary" disabled={pendingActions.has('save-decision')} onClick={() => { const creating = !decisionId; setDecisionDraft(null); setDecisionId(null); if (creating) onCreationCanceled?.() }}>Cancel</Button></Stack>
+          <Stack direction="horizontal" gap={2} className="mt-3"><Button type="submit" disabled={pendingActions.has('save-decision')}>Save decision</Button><Button variant="outline-secondary" disabled={pendingActions.has('save-decision')} onClick={() => { const creating = !decisionId; setDecisionDraft(null); setDecisionId(null); setDecisionTitleError(null); if (creating) onCreationCanceled?.() }}>Cancel</Button></Stack>
         </Form>
       </Card.Body></Card>}
 

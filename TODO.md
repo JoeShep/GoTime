@@ -53,7 +53,8 @@
 - [ ] Add cross-route Recommendation reveal behavior and the planned persistent
   mobile Find navigation.
 - [ ] Complete human acceptance, deployment, and closeout of the implemented
-  unified Task, Milestone, and Decision Plan Add menu candidate.
+  unified Task, Milestone, and Decision Plan Add menu candidate, including its
+  final prospective plan-wide duplicate-title validation extension.
 
 ## Milestone-driven planning questions
 

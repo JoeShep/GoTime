@@ -101,21 +101,43 @@ export interface RelocationTaskRecommendation {
   ranking_factors: RankingFactors | null
 }
 
+export type PlanErrorCode =
+  | 'duplicate_task_title'
+  | 'duplicate_milestone_title'
+  | 'duplicate_decision_title'
+
+export class PlanRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code: PlanErrorCode | null = null,
+  ) {
+    super(message)
+    this.name = 'PlanRequestError'
+  }
+}
+
 async function planRequest(path: string, init?: RequestInit): Promise<RelocationPlan> {
   const response = await fetch(path, init)
   if (!response.ok) {
     let message = `Unable to save the relocation plan (${response.status}).`
+    let code: PlanErrorCode | null = null
     try {
-      const body = (await response.json()) as { detail?: string | Array<{ msg?: string }> }
+      const body = (await response.json()) as {
+        detail?: string | Array<{ msg?: string }> | { code?: PlanErrorCode; message?: string }
+      }
       if (typeof body.detail === 'string') {
         message = body.detail
       } else if (Array.isArray(body.detail)) {
         message = body.detail.map((item) => item.msg).filter(Boolean).join(' ') || message
+      } else if (body.detail && typeof body.detail === 'object') {
+        message = body.detail.message || message
+        code = body.detail.code ?? null
       }
     } catch {
       // Keep the bounded status-based message when the response is not JSON.
     }
-    throw new Error(message)
+    throw new PlanRequestError(message, response.status, code)
   }
   return (await response.json()) as RelocationPlan
 }
