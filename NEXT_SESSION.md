@@ -1,6 +1,6 @@
 # NEXT_SESSION
 
-## Current objective: human acceptance of persistent mobile navigation
+## Current objective: persistent mobile navigation closed
 
 The unified Add and plan-wide title-uniqueness increment passed complete human
 acceptance and is deployed to the normal stack at `http://localhost:5173`.
@@ -22,7 +22,7 @@ all stable ordered-row hashes matched. The isolated acceptance containers,
 volume, network, and temporary Compose directory were removed. No acceptance
 records were copied to the family plan.
 
-The next frontend-only candidate replaces the provisional below-`sm` header
+The accepted frontend increment replaces the provisional below-`sm` header
 controls with a fixed, equal-width Now, Plan, and Find bottom navigation. At
 `sm` and above the accepted desktop header is unchanged. Active mobile route
 taps return that route to the top without adding history; an active Plan tap
@@ -33,8 +33,8 @@ Mobile Find opens the existing Offcanvas, which remains above and disables the
 bar while open. Closing without a result restores the originating bottom Find
 control; desktop focus return remains tied to the desktop trigger. One shared
 safe-area-aware bottom accommodation keeps final route content and transient
-notices above the fixed bar. Human acceptance and normal deployment remain
-pending; the normal bind-mounted frontend is stopped.
+notices above the fixed bar. Human acceptance passed and the accepted frontend
+is deployed to the normal stack at `http://localhost:5173`.
 
 The focused spacing correction removes stacked mobile bottom contributions
 from the shell container, card body, route alert, and final Plan phase. The
@@ -43,20 +43,16 @@ inset plus a 1rem (16px) content gutter. The safe-area inset is included once
 inside the fixed bar and once in the matching page reserve, so it is not
 double-counted. At zero inset the targets remain at least 44px tall and the
 structural maximum-scroll clearance above the bar is 16px.
-The corrected isolated frontend is running at `http://localhost:20173`; its
-backend, network, disposable volume, and 48-Task data set were preserved.
 The mobile PageFrame now also uses a `100dvh` flex height chain and a mobile-only
 white shell background, so short Now and not-found content reaches the fixed
 bar without changing the established Plan gutter or desktop body background.
 
-Human review is available at `http://localhost:20173` with isolated backend
-`http://localhost:20000`. Compose project `gotime_mobile_nav_acceptance` uses
-containers `gotime-mobile-nav-acceptance-frontend` and
-`gotime-mobile-nav-acceptance-backend`, disposable volume
-`gotime_mobile_nav_acceptance_data_8559604`, and isolated network
-`gotime_mobile_nav_acceptance_net_8559604`. Its verified restored database has
-48 unique Tasks (the preserved backup-manifest baseline), zero Milestones,
-Decisions, or options, integrity `ok`, and no foreign-key violations.
+Normal smoke verification passed for frontend serving, Now, Plan, and the
+frontend API proxy with Experiments disabled. The normal backend was not
+rebuilt or restarted. The active database checksum remained
+`9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`.
+The isolated acceptance containers, volume, network, and temporary Compose
+directory were removed after successful deployment verification.
 
 Cross-route Recommendation targeting, secondary attention items, family-plan
 conversion, and derived-attention Increment 2 have not begun.

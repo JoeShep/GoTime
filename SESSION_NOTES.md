@@ -2548,3 +2548,31 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   16px Plan content gutter are unchanged. Long Plan content still determines
   document height normally; desktop shell/body colors and spacing are
   untouched.
+
+# 2026-08-23 — Persistent mobile navigation acceptance and closeout
+
+- Complete human acceptance passed for the fixed below-`sm` Now, Plan, and Find
+  navigation; active-route return-to-top behavior; deep Plan restoration;
+  browser history; Find layering, focus return, and targeting; safe-area-aware
+  content accommodation; the corrected 64px zero-inset bar and 16px Plan
+  gutter; and the short-page white content surface. Desktop navigation remains
+  unchanged and nonsticky.
+- Built normal image `gotime-frontend:latest` from accepted commit
+  `5fbfda9e1169fd1f3e41ced3f09f929b64fece91`, verified its production bundle
+  with `VITE_ENABLE_EXPERIMENTS=false`, and recreated only
+  `gotime-frontend-1`. Frontend serving, `/now`, `/plan`, Plan API proxying,
+  desktop header source, and the accepted mobile navigation and spacing bundle
+  content passed smoke verification.
+- The healthy normal backend retained image
+  `d8aedab223dded275d35f30eb9717c23b7821d9e4dd6f5c94f6888ab384c7056`,
+  start time `2026-08-24T02:50:36.992026018Z`, and restart count zero; it was
+  not rebuilt, restarted, or recreated. The active database remained unchanged
+  with SHA-256
+  `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`.
+- Removed exactly acceptance containers
+  `gotime-mobile-nav-acceptance-frontend` and
+  `gotime-mobile-nav-acceptance-backend`, volume
+  `gotime_mobile_nav_acceptance_data_8559604`, network
+  `gotime_mobile_nav_acceptance_net_8559604`, and temporary directory
+  `/tmp/gotime-mobile-nav-acceptance-8559604/`. Normal resources and unrelated
+  Docker resources were preserved. No next increment was started.
