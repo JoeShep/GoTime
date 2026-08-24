@@ -70,7 +70,8 @@ Keep these observations separate from the selected derived-attention milestone:
   navigation sequence is complete.
 * Validate native date-picker reliability on a real mobile browser; do not
   replace the native input based only on Firefox Responsive Design Mode.
-* Reconsider persistent desktop access to Now, Plan, and Find while deep in a
+* Mobile now has its selected persistent bottom navigation; separately
+  reconsider persistent desktop access to Now, Plan, and Find while deep in a
   long Plan after the current non-sticky navigation has broader use.
 * General task filters beyond the existing category filter and plan-wide
   finder.

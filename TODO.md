@@ -50,8 +50,9 @@
   environment safely.
 - [x] Complete human acceptance, deployment, and closeout of the shared
   cross-route Find panel and browser-session Plan scroll restoration candidate.
-- [ ] Add cross-route Recommendation reveal behavior and the planned persistent
-  mobile Find navigation.
+- [ ] Add cross-route Recommendation reveal behavior.
+- [ ] Complete human acceptance, deployment, and closeout of the implemented
+  persistent mobile Now, Plan, and Find bottom navigation candidate.
 - [x] Complete human acceptance, deployment, and closeout of the implemented
   unified Task, Milestone, and Decision Plan Add menu candidate, including its
   final prospective plan-wide duplicate-title validation extension.

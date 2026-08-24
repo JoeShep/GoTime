@@ -16,6 +16,7 @@ import {
 import { hasDuplicatePlanItemTitle } from './titleUniqueness'
 import { MilestoneDecisionFoundation } from './MilestoneDecisionFoundation'
 import { useFind } from './FindContext'
+import { returnPlanToTopEvent, savePlanPositionEvent } from './planWorkspaceEvents'
 
 const statusLabels: Record<TaskStatus, string> = {
   not_started: 'Not started',
@@ -422,6 +423,24 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     }
   }, [expansionStateReady, plan])
 
+  useLayoutEffect(() => {
+    if (!plan || !expansionStateReady) return
+    function saveCurrentPosition() {
+      lastPlanScrollYRef.current = Math.max(0, window.scrollY)
+      writeScrollPosition(plan!.id, lastPlanScrollYRef.current)
+    }
+    function saveTopPosition() {
+      lastPlanScrollYRef.current = 0
+      writeScrollPosition(plan!.id, 0)
+    }
+    window.addEventListener(savePlanPositionEvent, saveCurrentPosition)
+    window.addEventListener(returnPlanToTopEvent, saveTopPosition)
+    return () => {
+      window.removeEventListener(savePlanPositionEvent, saveCurrentPosition)
+      window.removeEventListener(returnPlanToTopEvent, saveTopPosition)
+    }
+  }, [expansionStateReady, plan])
+
   useEffect(() => {
     if (!filterNotice) return
     const timeout = window.setTimeout(() => setFilterNotice(null), 6000)
@@ -697,7 +716,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       {error && <Alert variant="danger">{error}</Alert>}
       {filterNotice && (
         <Alert
-          className="filter-clear-notice position-fixed bottom-0 start-50 translate-middle-x mb-3 shadow-sm"
+          className="filter-clear-notice position-fixed start-50 translate-middle-x mb-3 shadow-sm"
           dismissible
           onClose={() => setFilterNotice(null)}
           role="status"

@@ -7,6 +7,11 @@ body {
   background: variables.$page;
 }
 
+:root {
+  --mobile-bottom-navigation-height: 3.75rem;
+  --mobile-bottom-safe-area: env(safe-area-inset-bottom, 0px);
+}
+
 .app-shell {
   min-height: 100vh;
 }
@@ -78,6 +83,7 @@ body {
 
 .filter-clear-notice {
   z-index: 1040;
+  bottom: 0;
   width: min(calc(100% - 2rem), 40rem);
 }
 
@@ -367,27 +373,16 @@ body {
 }
 
 @media (max-width: 575.98px) {
+  .app-shell {
+    padding-bottom: calc(var(--mobile-bottom-navigation-height) + var(--mobile-bottom-safe-area) + 1rem);
+  }
+
   .app-container {
     padding-inline: 0.5rem;
   }
 
-  .family-navigation-wrap,
-  .family-navigation {
-    width: 100%;
-  }
-
-  .family-navigation {
-    flex: 1 1 auto;
-  }
-
-  .shared-find-trigger {
-    flex: 0 0 auto;
-    min-width: 4.25rem;
-  }
-
-  .family-navigation .nav-link {
-    flex: 1 1 0;
-    min-width: 0;
+  .filter-clear-notice {
+    bottom: calc(var(--mobile-bottom-navigation-height) + var(--mobile-bottom-safe-area));
   }
 
   .completed-task-list-body {
@@ -423,5 +418,68 @@ body {
 
   .plan-foundation-metadata {
     font-size: 0.85rem;
+  }
+}
+
+.mobile-bottom-navigation {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1025;
+  display: flex;
+  padding: 0.25rem 0.5rem var(--mobile-bottom-safe-area);
+  border-top: 1px solid rgb(23 61 48 / 25%);
+  background: variables.$card;
+  box-shadow: 0 -0.35rem 1rem rgb(42 61 52 / 10%);
+}
+
+.mobile-bottom-navigation-target {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: calc(var(--mobile-bottom-navigation-height) - 0.5rem);
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 0.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  color: variables.$forest;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+
+  &:hover,
+  &:active {
+    color: variables.$forest;
+    background: #e8efe9;
+  }
+
+  &:focus-visible {
+    outline: 0.2rem solid variables.$accent;
+    outline-offset: -0.2rem;
+  }
+
+  &.active,
+  &.is-open {
+    color: #fff;
+    background: variables.$forest;
+    text-decoration: underline;
+    text-decoration-thickness: 0.12rem;
+    text-underline-offset: 0.2rem;
+  }
+
+  &:disabled {
+    color: variables.$muted-ink;
+    opacity: 0.65;
+  }
+}
+
+@media (min-width: 576px) {
+  .mobile-bottom-navigation {
+    display: none;
   }
 }

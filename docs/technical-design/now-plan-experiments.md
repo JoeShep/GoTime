@@ -392,8 +392,56 @@ deferred. The isolated acceptance containers, disposable database volume,
 network, and temporary Compose directory were removed after normal runtime and
 data verification.
 
-Cross-route Recommendation targeting, persistent mobile bottom navigation,
-secondary attention items, family-plan conversion, and derived-attention
-Increment 2 were not started. Unrelated mobile-spacing polish, real-mobile
+Cross-route Recommendation targeting, secondary attention items, family-plan
+conversion, and derived-attention Increment 2 were not started. Unrelated mobile-spacing polish, real-mobile
 native date-picker validation, and possible persistent desktop Now/Plan/Find
 access deep in Plan remain deferred.
+
+## Persistent mobile bottom-navigation candidate
+
+Below Bootstrap's existing `sm` breakpoint, PageFrame renders one labelled,
+fixed bottom navigation with equal-width text targets in the order Now, Plan,
+Find. The provisional mobile header wrapper and controls are absent rather than
+merely duplicated or visually hidden. At `sm` and above, only the accepted
+desktop header renders and its structure, sizing, and ordinary link behavior
+remain unchanged.
+
+Now and Plan remain real links with `aria-current="page"`. A tap on the active
+mobile link prevents redundant router navigation and scrolls that route to the
+top, using smooth motion unless the browser requests reduced motion. The Plan
+workspace owner handles two bounded window events: it snapshots the actual
+deep position before a mobile route departure and writes zero before an
+intentional active-Plan return-to-top. Phase, completed-section, filter, and
+scroll state otherwise retain the accepted session behavior, including Back,
+Forward, refresh, Now-at-top, and Find destinations replacing saved position.
+
+Find remains a button and opens the single existing Offcanvas without changing
+the URL. Its expanded/pressed state mirrors the panel; the mobile navigation is
+inert beneath the modal and its Bootstrap backdrop. Offcanvas focus containment
+and dismissal are unchanged, so a non-selection close restores the precise
+desktop or mobile trigger that opened it. Result selection continues through
+the existing Plan targeting, filter compatibility, focus, bounded highlight,
+and saved-position flow.
+
+One mobile CSS custom-property boundary combines the fixed navigation height
+with `env(safe-area-inset-bottom, 0px)`. Shared PageFrame bottom accommodation
+keeps final Now, Plan, editor, validation, notice, and not-found content clear;
+the transient filter notice receives the same offset. The accommodation is
+absent at `sm` and above. The bar uses a restrained border/shadow, visible focus
+treatment, minimum tap height, non-color active decoration, and a z-index below
+the Offcanvas and backdrop without overflow suppression or fixed offsets.
+
+Focused navigation, workspace, Find, routing, and unified-Add verification
+passed 38 tests. The complete frontend suite passed all 122 tests and the
+production build passed. No backend, schema, API, database, title-uniqueness,
+or ADR file changed. Human acceptance and normal deployment remain pending.
+
+The candidate is isolated at `http://localhost:20173` with backend
+`http://localhost:20000` in project `gotime_mobile_nav_acceptance`. Its unique
+frontend/backend containers share only network
+`gotime_mobile_nav_acceptance_net_8559604`; only the backend mounts disposable
+volume `gotime_mobile_nav_acceptance_data_8559604`. SQLite's backup API restored
+the verified preserved backup, whose manifest baseline is 48 unique Tasks; the
+current backend added only the empty additive Milestone, Decision, and option
+tables. Integrity is `ok`, foreign keys are clean, and neither acceptance
+container mounts or joins `gotime_gotime_data` or the normal network.

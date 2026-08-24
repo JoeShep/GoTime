@@ -6,7 +6,7 @@ Object.defineProperty(window, 'matchMedia', {
   configurable: true,
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
+    matches: query === '(min-width: 576px)',
     media: query,
     onchange: null,
     addListener: vi.fn(),

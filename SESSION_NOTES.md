@@ -2441,3 +2441,57 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   native date-picker validation, possible persistent desktop Now/Plan/Find
   access deep in Plan, and elimination of no-op initialization writes remain
   deferred.
+
+# 2026-08-23 — Persistent mobile bottom-navigation candidate
+
+- Replaced the below-`sm` provisional header navigation with one semantic,
+  fixed, equal-width Now, Plan, and Find bottom bar. Only the established
+  desktop header renders at `sm` and above. Active route styling includes
+  `aria-current`; Find exposes expanded/pressed state while remaining a button.
+- Active mobile route taps scroll to the top without adding history, respecting
+  reduced motion. Plan directly persists zero for an intentional active tap;
+  leaving a deep Plan snapshots the actual position before navigation, and an
+  ordinary return restores it. Existing Back, Forward, refresh, filter, phase,
+  completed-section, and Finder destination behavior remains intact.
+- Reused the single existing Find Offcanvas. The bottom bar becomes inert below
+  its backdrop, while modal focus containment, Escape/backdrop/close dismissal,
+  trigger-specific focus return, and result targeting remain unchanged.
+- Added a shared mobile navigation-height/safe-area boundary and one PageFrame
+  bottom accommodation. The transient filter-cleared notice uses the same
+  offset; desktop spacing and all accepted horizontal insets/card density are
+  unchanged.
+- Focused navigation, workspace, Find, routing, and unified-Add tests passed 38;
+  the complete frontend suite passed 122; the production build passed; and
+  `git diff --check` passed. Backend, schema, API, database, title-uniqueness,
+  and ADR files were unchanged; ADR-0009 already owns routing and session
+  workspace boundaries, so no new ADR was needed.
+- Before candidate work, the active database remained 221,184 bytes, mtime_ns
+  `1787540386457385549`, and SHA-256
+  `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`,
+  with integrity `ok`, no foreign-key violations, 49 Tasks, zero Milestones,
+  Decisions, or options, and the accepted stable ordered-row hashes. The normal
+  bind-mounted frontend was stopped before edits; the unchanged normal backend
+  remained healthy.
+- Built isolated frontend image `gotime-mobile-nav-frontend:candidate-8559604` and left
+  project `gotime_mobile_nav_acceptance` running at
+  `http://localhost:20173` with backend `http://localhost:20000`. Containers
+  `gotime-mobile-nav-acceptance-frontend` and
+  `gotime-mobile-nav-acceptance-backend` connect only to network
+  `gotime_mobile_nav_acceptance_net_8559604`; only the backend mounts volume
+  `gotime_mobile_nav_acceptance_data_8559604`.
+- Restored the preserved manifest-bound backup through SQLite's backup API.
+  Its expected baseline contains 48 unique Tasks, 75 assignees, 48 category
+  assignments, and 45 dependencies. Current additive initialization left zero
+  Milestones, Decisions, and options; integrity is `ok` and foreign keys are
+  clean. Acceptance health, Plan, Recommendation, direct Now/Plan, and frontend
+  proxy requests returned HTTP 200.
+- After candidate work, the active database retained the exact baseline size,
+  mtime_ns, checksum, counts, integrity/foreign-key results, and every stable
+  ordered-row hash. Neither acceptance container mounts `gotime_gotime_data` or
+  joins the normal network; the normal frontend remains stopped and the normal
+  backend identity, start time, and restart count remain unchanged.
+- Human acceptance and normal deployment remain pending. Desktop navigation
+  remains nonsticky and may be reconsidered separately. Cross-route
+  Recommendation targeting, secondary attention items, family-plan conversion,
+  derived-attention Increment 2, unrelated spacing polish, native date-picker
+  emulator behavior, and backend no-op initialization writes were not changed.

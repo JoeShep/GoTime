@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import App from './App'
@@ -127,6 +127,35 @@ describe('Plan scroll restoration', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Plan' }))
     await waitFor(() => expect(viewport.scrollTo).toHaveBeenCalledWith({ top: 360, left: 0, behavior: 'auto' }))
     expect(viewport.getY()).toBe(360)
+  })
+
+  it('uses mobile navigation to save a deep position and makes an active Plan tap the new saved top', async () => {
+    vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })))
+    mockRequests()
+    setLayout(1400, 400)
+    const viewport = mockViewportScroll()
+    render(<MemoryRouter initialEntries={['/plan']}><App /></MemoryRouter>)
+    await screen.findByRole('button', { name: /Prepare/ })
+    viewport.setY(460)
+
+    let navigation = screen.getByRole('navigation', { name: 'Mobile primary' })
+    fireEvent.click(within(navigation).getByRole('link', { name: 'Now' }))
+    await screen.findByText('What should I do next?')
+    expect(sessionStorage.getItem('gotime:plan:scroll-plan:scroll')).toContain('460')
+    navigation = screen.getByRole('navigation', { name: 'Mobile primary' })
+    fireEvent.click(within(navigation).getByRole('link', { name: 'Plan' }))
+    await waitFor(() => expect(viewport.getY()).toBe(460))
+
+    fireEvent.click(within(screen.getByRole('navigation', { name: 'Mobile primary' })).getByRole('link', { name: 'Plan' }))
+    expect(viewport.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'smooth' })
+    expect(sessionStorage.getItem('gotime:plan:scroll-plan:scroll')).toContain('"y":0')
   })
 
   it('restores through browser-style Back and Forward without replaying Find state', async () => {

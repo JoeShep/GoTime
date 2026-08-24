@@ -164,6 +164,32 @@ describe('shared Find', () => {
     expect(await screen.findByTestId('location')).toHaveTextContent('/now')
   })
 
+  it('uses the mobile bottom Find trigger for the existing cross-route targeting flow', async () => {
+    vi.stubGlobal('matchMedia', vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })))
+    vi.stubGlobal('fetch', mockRequests())
+    Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
+    render(<MemoryRouter initialEntries={['/now']}><App /></MemoryRouter>)
+    const navigation = screen.getByRole('navigation', { name: 'Mobile primary' })
+    const find = within(navigation).getByRole('button', { name: 'Find' })
+    fireEvent.click(find)
+    expect(find).toHaveAttribute('aria-pressed', 'true')
+    const input = await screen.findByRole('combobox', { name: 'Search task titles' })
+    fireEvent.change(input, { target: { value: 'deposit' } })
+    fireEvent.click(screen.getByRole('option', { name: /Pay deposit/ }))
+
+    const task = await screen.findByRole('article', { name: 'Pay deposit' })
+    expect(task).toHaveFocus()
+    expect(task).toHaveClass('is-found')
+    expect(screen.getByRole('button', { name: 'Completed (1)' })).toHaveAttribute('aria-expanded', 'true')
+  })
+
   it('does not add redundant history when selecting on Plan', async () => {
     vi.stubGlobal('fetch', mockRequests())
     Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })

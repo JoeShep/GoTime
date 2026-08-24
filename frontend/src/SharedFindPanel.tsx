@@ -79,6 +79,7 @@ export function SharedFindPanel() {
     <Offcanvas
       aria-labelledby="shared-find-title"
       className="shared-find-panel"
+      id="shared-find-panel"
       onEntered={() => inputRef.current?.focus()}
       onExited={() => {
         const taskId = pendingTaskIdRef.current

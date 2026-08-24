@@ -18,7 +18,6 @@ describe('application routes', () => {
     expect(await screen.findByRole('heading', { name: 'Now content' })).toBeVisible()
     expect(container.querySelector('.app-shell')).toHaveClass(
       'pt-2',
-      'pb-5',
       'py-sm-5',
     )
     expect(container.querySelector('.app-container')).toHaveClass(
