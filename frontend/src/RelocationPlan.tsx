@@ -215,6 +215,7 @@ function CategoryLabels({ categories }: { categories: TaskCategory[] }) {
 interface PersistentCategoryDropdownProps {
   children: ReactNode
   id: string
+  onInteraction?: () => void
   toggleAriaLabel?: string
   toggleClassName?: string
   toggleLabel: ReactNode
@@ -223,6 +224,7 @@ interface PersistentCategoryDropdownProps {
 function PersistentCategoryDropdown({
   children,
   id,
+  onInteraction,
   toggleAriaLabel,
   toggleClassName,
   toggleLabel,
@@ -242,7 +244,10 @@ function PersistentCategoryDropdown({
     <Dropdown
       autoClose="outside"
       onKeyDown={handleKeyDown}
-      onToggle={setShow}
+      onToggle={(nextShow) => {
+        onInteraction?.()
+        setShow(nextShow)
+      }}
       show={show}
     >
       <Dropdown.Toggle
@@ -561,7 +566,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       onPlanChanged?.()
       setDraft(null)
       setEditingId(null)
-      setNotice(editingId ? 'Task updated.' : 'Task added.')
+      if (editingId) setNotice('Task updated.')
       if (!editingId) {
         setCreationType(null)
         const createdTask = updated.tasks.find((task) => task.id === createdId)
@@ -643,7 +648,10 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             addToggleRef.current?.focus()
           }}
           onToggle={(show) => {
-            if (show && !editorActive) closeFind()
+            if (show && !editorActive) {
+              closeFind()
+              setFilterNotice(null)
+            }
             setAddMenuOpen(show && !editorActive)
           }}
           show={addMenuOpen}
@@ -710,6 +718,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         <div className="task-discovery px-2 px-sm-0 mb-3">
         <PersistentCategoryDropdown
           id="category-filter"
+          onInteraction={() => setFilterNotice(null)}
           toggleAriaLabel="Filter by categories"
           toggleLabel={`Categories${categoryFilters.size > 0 ? ` (${categoryFilters.size})` : ''}`}
         >

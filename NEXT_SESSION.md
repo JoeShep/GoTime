@@ -8,10 +8,17 @@ one Add menu beside **Family plan**, ordered Task, Milestone, Decision, using
 the existing creation editors. The normal bind-mounted frontend remains
 stopped; the normal backend is healthy and the active database is unchanged.
 
-Complete desktop and 390 × 844 browser acceptance before any deployment or
-closeout. Verify menu wrapping/dismissal/keyboard focus, all three editor flows,
-Task phase and filter reveal, foundation-card reveal, transient highlighting,
-scroll-position updates, overlapping-flow prevention, and Find coordination.
+All broad human acceptance passed. A focused correction removed the persistent
+generic `Task added` banner: incompatible-filter creation now shows only the
+established task-specific, dismissible, six-second notice, while compatible or
+unfiltered creation relies on the accepted reveal feedback. Final human retest
+is limited to this notice lifecycle; the native Firefox Responsive Design Mode
+date-picker behavior remains explicitly out of scope.
+
+Complete the focused notice retest before any deployment or closeout. Verify
+task-specific copy, close and six-second expiry, dismissal on filter/Add/Find
+interaction, absence for compatible or unfiltered creation, and unchanged Task
+reveal/focus/highlight/count/scroll behavior.
 Human-created acceptance records are disposable and must never be copied to the
 active family plan.
 

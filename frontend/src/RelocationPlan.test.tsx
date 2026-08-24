@@ -501,7 +501,8 @@ describe('persistent relocation plan', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
-    expect(screen.getByText('Task added.')).toBeVisible()
+    expect(screen.queryByText('Task added.')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Category filter cleared/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add' })).toBeVisible()
     expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
     const [, init] = fetchMock.mock.calls[1]

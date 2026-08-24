@@ -2291,3 +2291,27 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   Recommendation targeting, persistent mobile bottom navigation, secondary
   attention items, family-plan conversion, and derived-attention Increment 2
   were not started. Unrelated mobile-spacing polish remains deferred.
+
+# 2026-08-23 — Unified Add notice correction
+
+- Human acceptance passed every unified Add behavior except successful Task
+  feedback with an incompatible category filter. Task save unconditionally set
+  the persistent generic `Task added` success state before the existing reveal
+  path correctly produced its task-specific transient filter-cleared notice.
+- Removed only the generic successful-creation assignment. Task editing and
+  status success messages, validation and request errors, and Milestone and
+  Decision behavior remain unchanged. Compatible and unfiltered Task creation
+  now relies on phase reveal, scroll, focus, highlight, and count updates.
+- Reused the established fixed informational notice without adding another
+  mechanism. It names the created Task, has an accessible close control,
+  expires after six seconds, clears on category-filter, Add, or Find
+  interaction, is not persisted, does not take focus, and does not replay.
+- Focused notice and Plan regressions passed 57 tests; the complete frontend
+  suite passed all 109 tests; the production build and `git diff --check`
+  passed. Backend, schema, API, ADR, database, and native date-input files were
+  unchanged.
+- Before frontend replacement, the human-tested disposable database remained
+  healthy with 52 unique Tasks, one Milestone, one Decision, two Decision
+  options, integrity `ok`, no foreign-key violations, size 221,184 bytes, and
+  SHA-256 `99de5dfc6eeeefd1bf5c16291025729402985b66f28f9dce1a92a8fd6b270e4b`.
+  These records must remain intact for the final focused retest.

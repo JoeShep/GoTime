@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
 import App from './App'
@@ -50,6 +50,33 @@ async function openAdd() {
   const add = await screen.findByRole('button', { name: 'Add' })
   fireEvent.click(add)
   return { add, menu: screen.getByRole('menu', { name: 'Add' }) }
+}
+
+function mockTaskCreationRequests() {
+  let latest = plan
+  return vi.fn((path: string, init?: RequestInit) => {
+    if (path === '/api/relocation-plan/recommendation') return Promise.resolve(response(recommendation()))
+    if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(latest))
+    const body = JSON.parse(String(init?.body))
+    latest = { ...latest, tasks: [...latest.tasks, { ...body, blocked: false }] }
+    return Promise.resolve(response(latest))
+  })
+}
+
+async function createTaskBehindFinancialFilter(title: string) {
+  const filter = await screen.findByRole('button', { name: 'Filter by categories' })
+  fireEvent.click(filter)
+  fireEvent.click(screen.getByLabelText('Financial'))
+  fireEvent.click(document.body)
+  const { menu } = await openAdd()
+  fireEvent.click(within(menu).getByRole('menuitem', { name: /Task/ }))
+  fireEvent.change(screen.getByLabelText('Title'), { target: { value: title } })
+  const categories = screen.getByLabelText('Categories (optional)')
+  fireEvent.click(categories)
+  fireEvent.click(screen.getByLabelText('Logistics'))
+  fireEvent.click(document.body)
+  fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
+  return screen.findByText(`Category filter cleared to show “${title}.”`)
 }
 
 beforeEach(() => {
@@ -217,6 +244,8 @@ describe('unified Plan Add menu', () => {
     const created = await screen.findByRole('article', { name: 'Load truck' })
     expect(created).toHaveFocus()
     expect(created).toHaveClass('is-found')
+    expect(screen.queryByText('Task added.')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Category filter cleared/)).not.toBeInTheDocument()
     expect(filter).toHaveTextContent('Categories (1)')
     expect(screen.getByRole('button', { name: /Move 1 remaining/ })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('button', { name: /Prepare 1 remaining/ })).toHaveAttribute('aria-expanded', 'true')
@@ -246,13 +275,61 @@ describe('unified Plan Add menu', () => {
     fireEvent.click(screen.getByLabelText('Logistics'))
     fireEvent.click(document.body)
     fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
-    expect(await screen.findByText('Category filter cleared to show “Pack lamps.”')).toBeVisible()
+    const notice = await screen.findByText('Category filter cleared to show “Pack lamps.”')
+    expect(notice).toBeVisible()
+    expect(screen.queryByText('Task added.')).not.toBeInTheDocument()
+    expect(within(notice.closest('[role="status"]')!).getByRole('button', { name: 'Close alert' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Filter by categories' })).toHaveTextContent(/^Categories$/)
     await waitFor(() => expect(sessionStorage.getItem('gotime:plan:unified-add-plan:filters')).toContain('"categories":[]'))
 
     rendered.unmount()
     render(<MemoryRouter initialEntries={['/plan']}><App /></MemoryRouter>)
     expect(await screen.findByRole('article', { name: 'Pack lamps' })).not.toHaveClass('is-found')
+    expect(screen.queryByText(/Category filter cleared/)).not.toBeInTheDocument()
+  })
+
+  it('dismisses the Task-creation filter notice explicitly and after filter, Add, or Find interaction', async () => {
+    vi.stubGlobal('fetch', mockTaskCreationRequests())
+    Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
+    render(<MemoryRouter initialEntries={['/plan']}><App /></MemoryRouter>)
+
+    let notice = await createTaskBehindFinancialFilter('Pack books')
+    fireEvent.click(within(notice.closest('[role="status"]')!).getByRole('button', { name: 'Close alert' }))
+    await waitFor(() => expect(screen.queryByText(/Category filter cleared/)).not.toBeInTheDocument())
+
+    notice = await createTaskBehindFinancialFilter('Pack dishes')
+    expect(notice).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Filter by categories' }))
+    expect(screen.queryByText(/Category filter cleared/)).not.toBeInTheDocument()
+    fireEvent.click(document.body)
+
+    notice = await createTaskBehindFinancialFilter('Pack linens')
+    expect(notice).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.queryByText(/Category filter cleared/)).not.toBeInTheDocument()
+    fireEvent.click(document.body)
+
+    notice = await createTaskBehindFinancialFilter('Pack tools')
+    expect(notice).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Find' }))
+    expect(screen.queryByText(/Category filter cleared/)).not.toBeInTheDocument()
+  })
+
+  it('automatically dismisses the Task-creation filter notice after six seconds', async () => {
+    vi.stubGlobal('fetch', mockTaskCreationRequests())
+    Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
+    const timers: Array<{ callback: TimerHandler; delay?: number }> = []
+    const nativeSetTimeout = window.setTimeout.bind(window)
+    vi.spyOn(window, 'setTimeout').mockImplementation(((callback: TimerHandler, delay?: number, ...args: unknown[]) => {
+      timers.push({ callback, delay })
+      return nativeSetTimeout(callback, delay, ...args)
+    }) as typeof window.setTimeout)
+    render(<MemoryRouter initialEntries={['/plan']}><App /></MemoryRouter>)
+    await createTaskBehindFinancialFilter('Pack photos')
+    const dismissal = timers.find((timer) => timer.delay === 6000)
+    expect(dismissal).toBeDefined()
+    if (typeof dismissal!.callback === 'function') act(() => (dismissal!.callback as () => void)())
+    await waitFor(() => expect(screen.queryByText(/Category filter cleared/)).not.toBeInTheDocument())
   })
 
   it('creates and reveals Milestones and Decisions from their existing aggregate APIs', async () => {
