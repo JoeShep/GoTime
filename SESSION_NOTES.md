@@ -2385,3 +2385,59 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   frontend remained stopped; the normal backend remained healthy and
   unchanged; the active database remained byte-for-byte unchanged at SHA-256
   `f7b533dec39ee57207928a92b61af4de87a4219791454dcc9ba78b1476e9d036`.
+
+# 2026-08-23 — Unified Add acceptance, deployment, and closeout
+
+- Complete human acceptance passed for unified Add, all three reused creation
+  editors and reveal paths, corrected transient Task feedback, prospective
+  per-type title uniqueness, inline conflict recovery, and the final removal of
+  redundant Task edit/status success banners.
+- The pre-deployment active audit found no canonical duplicate groups among
+  Tasks, Milestones, or Decisions. The database was 221,184 bytes, mtime_ns
+  `1787514115744690963`, SHA-256
+  `f7b533dec39ee57207928a92b61af4de87a4219791454dcc9ba78b1476e9d036`,
+  integrity `ok`, and foreign-key clean. It contained 49 unique Tasks, zero
+  Milestones, zero Decisions, and zero Decision options.
+- Pre-deployment stable ordered-row hashes were: decision options, decisions,
+  and milestones `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`;
+  phases `77e694dd42fa94fb15d3fb75f452ff37aab2fb590f2d317e68e24c3ea8130340`;
+  relocation plans `2c2620d61df783578e34379c44863b0ab43678a69076dc48e0494ab9d4bb888a`;
+  task assignees `58d8e5d6f8ac36df50c3fbfde48da0420a09686e74fa9180d198656d98c63c73`;
+  task categories `6134fca669f6fda7c70139fbc70db66edcf73fd697f1cda6960bbc00be3617b0`;
+  task dependencies `46549ba537ed2d21636759600647a7a3a04286d56ec2a3902cbdb07af4b61d75`;
+  and Tasks `167e1cc3b57658c50f04fe9ea7d71ba872fed6d69821ef38c5561fdc9e35dc17`.
+- Built and deployed normal images `gotime-frontend` image SHA
+  `830167f0903763b5ddc03b93a45eced30d47298451b6b817b6a27a44ad357253`
+  and `gotime-backend` image SHA
+  `d8aedab223dded275d35f30eb9717c23b7821d9e4dd6f5c94f6888ab384c7056`.
+  Recreated only `gotime-frontend-1` and `gotime-backend-1`; both started with
+  restart count zero, their experiment flags explicitly false, normal ports
+  and proxy intact, and `gotime_gotime_data` preserved.
+- Normal frontend, `/now`, `/plan`, Plan and Recommendation APIs, frontend API
+  proxy, and both health paths returned 200. Root retains its client redirect
+  to `/now`; disabled `/experiments` uses the client not-found route, no
+  Experiments navigation is present, and both experimental APIs returned 404.
+  Deployed source contains unified Add copy and shared title validation and
+  omits the removed Task edit/status success strings.
+- The non-mutating normal Task duplicate probe returned HTTP 409 with
+  `duplicate_task_title` and created no Task. Post-deployment integrity remained
+  `ok`, foreign keys remained clean, canonical audits remained empty, every
+  table count and stable ordered-row hash matched, and all 49 Task IDs remained
+  unique. Final size remained 221,184 bytes; mtime_ns became
+  `1787540386457385549`; SHA-256 became
+  `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`.
+  The byte change reflects known no-op SQLite write activity; logical content
+  was identical before and after.
+- Removed exactly acceptance containers
+  `gotime-unified-add-acceptance-frontend` and
+  `gotime-unified-add-acceptance-backend`, volume
+  `gotime_unified_add_acceptance_data_7a91c2e`, network
+  `gotime_unified_add_acceptance_net_7a91c2e`, and temporary directory
+  `/tmp/gotime-unified-add-acceptance-7a91c2e/`. Normal resources, verified
+  backups, manifests, and unrelated Docker resources were untouched.
+- Cross-route Recommendation targeting, persistent mobile bottom navigation,
+  secondary attention items, family-plan conversion, and derived-attention
+  Increment 2 were not started. Unrelated mobile-spacing polish, real-mobile
+  native date-picker validation, possible persistent desktop Now/Plan/Find
+  access deep in Plan, and elimination of no-op initialization writes remain
+  deferred.

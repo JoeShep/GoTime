@@ -68,6 +68,10 @@ Keep these observations separate from the selected derived-attention milestone:
 * Minor mobile page-shell spacing inconsistencies remaining after the accepted
   Now/Plan navigation work; revisit as visual polish after the functional
   navigation sequence is complete.
+* Validate native date-picker reliability on a real mobile browser; do not
+  replace the native input based only on Firefox Responsive Design Mode.
+* Reconsider persistent desktop access to Now, Plan, and Find while deep in a
+  long Plan after the current non-sticky navigation has broader use.
 * General task filters beyond the existing category filter and plan-wide
   finder.
 * Dependency visualization.
@@ -77,3 +81,8 @@ Keep these observations separate from the selected derived-attention milestone:
 
 These remain useful candidates, but none is part of the current product-design
 objective.
+
+### Operational cleanup
+
+* Eliminate SQLite byte-level writes from no-op backend repository
+  initialization while preserving idempotent schema validation and startup.

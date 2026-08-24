@@ -322,23 +322,12 @@ similarly use their returned Plan aggregate, then scroll, focus, highlight, and
 save the new card location. Creation focus and highlighting are transient and
 are not persisted or replayed.
 
-Focused verification passed 70 tests; the complete frontend suite passed all
-107 tests; the production frontend build and `git diff --check` passed. No
-backend, schema, API, ADR, or database files changed. The candidate runs at
-`http://localhost:19173` in Compose project
-`gotime_unified_add_acceptance`, using containers
-`gotime-unified-add-acceptance-frontend` and
-`gotime-unified-add-acceptance-backend`, disposable volume
-`gotime_unified_add_acceptance_data_7a91c2e`, and isolated network
-`gotime_unified_add_acceptance_net_7a91c2e`. The restored database passed
-integrity and foreign-key checks with 49 unique Tasks and zero Milestones,
-Decisions, or Decision options. The normal frontend remains stopped, the normal
-backend remains healthy, and the active database is byte-for-byte unchanged.
-
-Human acceptance and normal deployment are pending. Cross-route Recommendation
-targeting, persistent mobile bottom navigation, secondary attention items,
-family-plan conversion, and derived-attention Increment 2 were not started;
-unrelated mobile-spacing polish remains deferred.
+Initial focused verification passed 70 tests; the then-complete frontend suite
+passed all 107 tests; the production frontend build and `git diff --check`
+passed. No backend, schema, API, ADR, or database files changed in that initial
+frontend-only candidate. Its isolated acceptance environment was retained
+through the later notice, title-uniqueness, and success-feedback corrections,
+then removed after complete acceptance and normal deployment as recorded below.
 
 ### Prospective title uniqueness extension
 
@@ -378,5 +367,33 @@ remain unchanged and do not block canonical-equivalent edits.
 Focused backend verification passed 42 tests and the complete backend suite
 passed 207 tests. Backend compilation passed. Focused frontend verification
 passed 77 tests, the complete frontend suite passed 114 tests, and the
-production build and `git diff --check` passed. Human acceptance and normal
-deployment remain pending.
+production build and `git diff --check` passed.
+
+### Unified Add deployment closeout
+
+Complete human acceptance included Add placement and menu behavior, reuse of
+all three editors, successful-creation reveal, transient filter-cleared
+feedback, title-conflict recovery, and removal of redundant persistent Task
+creation, edit, and status success banners. The visible card, status, counts,
+focus, and bounded highlight provide successful-operation confirmation.
+
+Accepted frontend and backend images were deployed together with both
+experiment flags false and without a migration or data conversion. The active
+canonical-title audit found no duplicate Task, Milestone, or Decision groups.
+The approved duplicate Task API probe returned HTTP 409 and
+`duplicate_task_title`, created no row, and left every ordered-row hash
+unchanged. The active Plan remained at 49 unique Tasks and zero Milestones,
+Decisions, and Decision options with integrity `ok` and no foreign-key
+violations.
+
+Backend initialization/no-op write activity changed SQLite file metadata and
+bytes, but not logical content; eliminating those no-op byte changes remains
+deferred. The isolated acceptance containers, disposable database volume,
+network, and temporary Compose directory were removed after normal runtime and
+data verification.
+
+Cross-route Recommendation targeting, persistent mobile bottom navigation,
+secondary attention items, family-plan conversion, and derived-attention
+Increment 2 were not started. Unrelated mobile-spacing polish, real-mobile
+native date-picker validation, and possible persistent desktop Now/Plan/Find
+access deep in Plan remain deferred.

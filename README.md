@@ -65,10 +65,13 @@ Uncategorized choice. Existing single-category databases migrate in place.
 A shared Find action on Now and Plan replaces the inline Plan Finder and keeps
 plan-wide title search independent of category filtering. Plan preserves phase,
 completed-section, category-filter, and scroll workspace state for the browser
-session. Within a Plan, Task titles are unique among Tasks, Milestone titles
+session. Plan has one Add menu beside its heading for the existing Task,
+Milestone, and Decision editors; successful creation reveals and focuses the
+new card without persistent generic success feedback. Within a Plan, Task titles are unique among Tasks, Milestone titles
 among Milestones, and Decision titles among Decisions using trimmed,
 whitespace-collapsed, Unicode-aware case-insensitive comparison; different item
-types may share a display title. The primary recommendation now selects one currently actionable stored
+types may share a display title. Conflicts are enforced transactionally by the
+backend with stable HTTP 409 codes and shown inline by the frontend. The primary recommendation now selects one currently actionable stored
 task through an explicit deterministic order. The earlier employment-planning
 inputs remain in browser/request memory as a separate recommendation flow.
 There is no authentication or generalized multi-goal infrastructure.
