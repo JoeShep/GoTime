@@ -1,4 +1,4 @@
-import { lazy, Suspense, type MouseEvent, type ReactNode } from 'react'
+import { lazy, Suspense, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
 import { Alert, Button, Card, Container, Nav, Spinner } from 'react-bootstrap'
 import { Navigate, NavLink, Route, Routes, useLocation } from 'react-router'
 import { NowPage } from './NowPage'
@@ -7,6 +7,7 @@ import { FindProvider, useFind } from './FindContext'
 import { SharedFindPanel } from './SharedFindPanel'
 import { returnPlanToTopEvent, savePlanPositionEvent } from './planWorkspaceEvents'
 import { useMediaQuery } from './useMediaQuery'
+import { mobileBottomContentGutter, mobileBottomNavigationHeight } from './mobileNavigationLayout'
 
 export const experimentsEnabled = import.meta.env.VITE_ENABLE_EXPERIMENTS === 'true'
 
@@ -78,10 +79,16 @@ function MobileBottomNavigation() {
 function PageFrame({ children }: { children: ReactNode }) {
   const desktop = useMediaQuery('(min-width: 576px)')
   return (
-    <main className="app-shell pt-2 py-sm-5">
-      <Container className="app-container pt-0 pb-4 py-sm-4">
+    <main
+      className="app-shell pt-2 py-sm-5"
+      style={{
+        '--mobile-bottom-navigation-height': mobileBottomNavigationHeight,
+        '--mobile-bottom-content-gutter': mobileBottomContentGutter,
+      } as CSSProperties}
+    >
+      <Container className="app-container pt-0 py-sm-4">
         <Card className="next-step-card mx-auto border-0 shadow-sm">
-          <Card.Body className="pt-2 pb-4 px-0 p-sm-4 p-md-5">
+          <Card.Body className="pt-2 px-0 p-sm-4 p-md-5">
             {desktop && <DesktopNavigation />}
             {children}
             <SharedFindPanel />
@@ -96,7 +103,7 @@ function PageFrame({ children }: { children: ReactNode }) {
 function NotFoundPage() {
   return (
     <PageFrame>
-      <Alert className="mx-2 mx-sm-0 mt-4" variant="light">
+      <Alert className="mx-2 mx-sm-0 mt-4 mb-0 mb-sm-3" variant="light">
         <Alert.Heading as="h1">Page not found</Alert.Heading>
         <p className="mb-0">This GoTime page is not available.</p>
       </Alert>

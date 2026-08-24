@@ -905,7 +905,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         const completedExpanded = expandedCompletedPhaseIds.has(phase.id)
         const bodyId = `phase-body-${phase.id}`
         return (
-          <Card className="phase-card mb-3" key={phase.id}>
+          <Card className="phase-card" key={phase.id}>
             <Card.Header aria-label={phase.title} as="h4" className="p-0">
               <button
                 aria-controls={bodyId}

@@ -22,12 +22,10 @@ describe('application routes', () => {
     )
     expect(container.querySelector('.app-container')).toHaveClass(
       'pt-0',
-      'pb-4',
       'py-sm-4',
     )
     expect(container.querySelector('.next-step-card > .card-body')).toHaveClass(
       'pt-2',
-      'pb-4',
       'p-sm-4',
       'p-md-5',
     )

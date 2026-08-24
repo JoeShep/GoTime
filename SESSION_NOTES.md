@@ -2495,3 +2495,44 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   Recommendation targeting, secondary attention items, family-plan conversion,
   derived-attention Increment 2, unrelated spacing polish, native date-picker
   emulator behavior, and backend no-op initialization writes were not changed.
+
+# 2026-08-23 — Mobile bottom-spacing acceptance correction
+
+- Traced the excessive bottom gap to stacked spacing: the original shared
+  mobile reserve was 3.75rem plus the safe-area inset plus 1rem, while the
+  application container and card body each contributed `pb-4` and the final
+  Plan phase contributed `mb-3`. At zero safe-area inset those explicit
+  contributions totaled about 140px before incidental borders and matched the
+  reported 150–160px visual region.
+- Consolidated mobile accommodation into one PageFrame calculation: 4rem base
+  navigation height plus `env(safe-area-inset-bottom, 0px)` plus a 1rem content
+  gutter. Safe-area padding remains inside the fixed bar, the bar stays at
+  `bottom: 0`, and the inset is added exactly once to both bar height and the
+  corresponding page reserve. The 44px minimum targets sit within the 64px
+  zero-inset bar with modest vertical inset.
+- Removed only redundant mobile bottom padding/margins. Responsive Bootstrap
+  spacing preserves the accepted desktop layout, and ordinary phase spacing
+  remains unchanged except that the final mobile phase no longer adds a second
+  trailing spacer. Notices continue to use the shared navigation boundary;
+  modal and Offcanvas layering is unchanged.
+- Focused and complete frontend verification and the production build passed.
+  No trustworthy browser layout engine was installed, so dimensions are
+  structurally established as a 64px zero-inset bar and 16px final-content
+  clearance; final 390 x 844 visual measurement remains a human acceptance
+  check.
+- Focused coverage passed 68 tests, the complete frontend suite passed all 123
+  tests, the production build passed, and `git diff --check` passed. Rebuilt
+  and recreated only `gotime-mobile-nav-acceptance-frontend` with image
+  `gotime-mobile-nav-frontend:spacing-correction`; routes, proxy, and both
+  health endpoints passed. The preserved acceptance database remained 221,184
+  bytes with SHA-256
+  `e4dc8e04cd49cbbd2ec683fb7f22346f87839f4ada223a4e9205d3799592bc88`,
+  integrity `ok`, no foreign-key violations, and unchanged counts and stable
+  ordered-row hashes.
+- The normal frontend remains stopped and the normal backend retained its
+  identity, start time, healthy status, and zero restart count. The active
+  database remained byte-for-byte unchanged at 221,184 bytes, mtime_ns
+  `1787540386457385549`, and SHA-256
+  `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`;
+  integrity is `ok`, foreign keys are clean, and established logical counts
+  remain unchanged.

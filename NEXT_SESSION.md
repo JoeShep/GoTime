@@ -36,6 +36,16 @@ safe-area-aware bottom accommodation keeps final route content and transient
 notices above the fixed bar. Human acceptance and normal deployment remain
 pending; the normal bind-mounted frontend is stopped.
 
+The focused spacing correction removes stacked mobile bottom contributions
+from the shell container, card body, route alert, and final Plan phase. The
+single shared formula is now a 4rem (64px) base bar plus the device safe-area
+inset plus a 1rem (16px) content gutter. The safe-area inset is included once
+inside the fixed bar and once in the matching page reserve, so it is not
+double-counted. At zero inset the targets remain at least 44px tall and the
+structural maximum-scroll clearance above the bar is 16px.
+The corrected isolated frontend is running at `http://localhost:20173`; its
+backend, network, disposable volume, and 48-Task data set were preserved.
+
 Human review is available at `http://localhost:20173` with isolated backend
 `http://localhost:20000`. Compose project `gotime_mobile_nav_acceptance` uses
 containers `gotime-mobile-nav-acceptance-frontend` and

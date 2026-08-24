@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router'
 import App from './App'
+import { mobileBottomContentGutter, mobileBottomNavigationHeight } from './mobileNavigationLayout'
 
 vi.mock('./NowPage', () => ({ NowPage: () => <h1>Now content</h1> }))
 vi.mock('./PlanPage', () => ({ PlanPage: () => <h1>Plan content</h1> }))
@@ -48,6 +49,21 @@ describe('persistent mobile bottom navigation', () => {
     expect(within(navigation).getByRole('button', { name: 'Find' })).toHaveAttribute('aria-expanded', 'false')
     expect(container.querySelector('.family-navigation-wrap')).not.toBeInTheDocument()
     expect(container.querySelector('.app-shell')).not.toHaveClass('pb-5')
+    expect(container.querySelector('.app-container')).not.toHaveClass('pb-4')
+    expect(container.querySelector('.next-step-card > .card-body')).not.toHaveClass('pb-4')
+  })
+
+  it('uses one safe-area-aware 64px accommodation with a small gutter and 44px targets', () => {
+    setMedia()
+    const { container } = render(<MemoryRouter initialEntries={['/now']}><App /></MemoryRouter>)
+    const shell = container.querySelector<HTMLElement>('.app-shell')!
+    const navigation = screen.getByRole('navigation', { name: 'Mobile primary' })
+
+    expect(mobileBottomNavigationHeight).toBe('4rem')
+    expect(mobileBottomContentGutter).toBe('1rem')
+    expect(shell.style.getPropertyValue('--mobile-bottom-navigation-height')).toBe('4rem')
+    expect(shell.style.getPropertyValue('--mobile-bottom-content-gutter')).toBe('1rem')
+    expect(navigation).toHaveClass('mobile-bottom-navigation')
   })
 
   it('retains only the accepted desktop header at the sm breakpoint and above', () => {
@@ -58,6 +74,8 @@ describe('persistent mobile bottom navigation', () => {
     expect(screen.getByRole('link', { name: 'Plan' })).toHaveAttribute('aria-current', 'page')
     expect(screen.queryByRole('navigation', { name: 'Mobile primary' })).not.toBeInTheDocument()
     expect(container.querySelector('.family-navigation-wrap')).toHaveClass('pt-sm-3', 'mb-sm-0')
+    expect(container.querySelector('.app-container')).toHaveClass('py-sm-4')
+    expect(container.querySelector('.next-step-card > .card-body')).toHaveClass('p-sm-4')
   })
 
   it('navigates normally while active taps scroll without adding history', async () => {

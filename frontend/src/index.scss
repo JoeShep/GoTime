@@ -8,7 +8,6 @@ body {
 }
 
 :root {
-  --mobile-bottom-navigation-height: 3.75rem;
   --mobile-bottom-safe-area: env(safe-area-inset-bottom, 0px);
 }
 
@@ -213,6 +212,7 @@ body {
 }
 
 .phase-card {
+  margin-bottom: 1rem;
   border-color: rgb(42 61 52 / 12%);
 
   .card-header {
@@ -374,7 +374,7 @@ body {
 
 @media (max-width: 575.98px) {
   .app-shell {
-    padding-bottom: calc(var(--mobile-bottom-navigation-height) + var(--mobile-bottom-safe-area) + 1rem);
+    padding-bottom: calc(var(--mobile-bottom-navigation-height) + var(--mobile-bottom-safe-area) + var(--mobile-bottom-content-gutter));
   }
 
   .app-container {
@@ -382,7 +382,11 @@ body {
   }
 
   .filter-clear-notice {
-    bottom: calc(var(--mobile-bottom-navigation-height) + var(--mobile-bottom-safe-area));
+    bottom: calc(var(--mobile-bottom-navigation-height) + var(--mobile-bottom-safe-area) + 0.75rem);
+  }
+
+  .relocation-plan > .phase-card:last-child {
+    margin-bottom: 0;
   }
 
   .completed-task-list-body {
@@ -428,7 +432,8 @@ body {
   left: 0;
   z-index: 1025;
   display: flex;
-  padding: 0.25rem 0.5rem var(--mobile-bottom-safe-area);
+  min-height: calc(var(--mobile-bottom-navigation-height) + var(--mobile-bottom-safe-area));
+  padding: 0.375rem 0.5rem calc(0.375rem + var(--mobile-bottom-safe-area));
   border-top: 1px solid rgb(23 61 48 / 25%);
   background: variables.$card;
   box-shadow: 0 -0.35rem 1rem rgb(42 61 52 / 10%);
@@ -438,7 +443,7 @@ body {
   display: flex;
   flex: 1 1 0;
   min-width: 0;
-  min-height: calc(var(--mobile-bottom-navigation-height) - 0.5rem);
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
   padding: 0.65rem 0.5rem;
