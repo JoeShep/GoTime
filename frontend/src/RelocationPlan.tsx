@@ -282,7 +282,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [taskEditorSaving, setTaskEditorSaving] = useState(false)
   const [pendingTaskStatusIds, setPendingTaskStatusIds] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
   const [filterNotice, setFilterNotice] = useState<string | null>(null)
   const [taskTitleError, setTaskTitleError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -525,7 +524,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setCreationType(type)
     setFilterNotice(null)
     setError(null)
-    setNotice(null)
     setTaskTitleError(null)
     if (type !== 'task') return
     setEditingId(null)
@@ -552,7 +550,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setDraft(draftFromTask(task))
     setDependencyQuery('')
     setError(null)
-    setNotice(null)
     setTaskTitleError(null)
   }
 
@@ -566,7 +563,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     }
     setTaskEditorSaving(true)
     setError(null)
-    setNotice(null)
     try {
       const write = writeFromDraft(draft)
       const createdId = editingId ?? generateTaskId(write.title)
@@ -577,7 +573,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       onPlanChanged?.()
       setDraft(null)
       setEditingId(null)
-      if (editingId) setNotice('Task updated.')
       if (!editingId) {
         setCreationType(null)
         const createdTask = updated.tasks.find((task) => task.id === createdId)
@@ -598,11 +593,9 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   async function updateStatus(task: RelocationTask, status: TaskStatus) {
     setPendingTaskStatusIds((current) => new Set(current).add(task.id))
     setError(null)
-    setNotice(null)
     try {
       acceptPlan(await changeTaskStatus(task.id, status))
       onPlanChanged?.()
-      setNotice(`Status updated for ${task.title}.`)
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Unable to update task status.')
     } finally {
@@ -702,7 +695,6 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
       {loading && <div className="py-4 text-center" role="status"><Spinner size="sm" /> <span>Loading relocation plan…</span></div>}
       {error && <Alert variant="danger">{error}</Alert>}
-      {notice && <Alert variant="success">{notice}</Alert>}
       {filterNotice && (
         <Alert
           className="filter-clear-notice position-fixed bottom-0 start-50 translate-middle-x mb-3 shadow-sm"

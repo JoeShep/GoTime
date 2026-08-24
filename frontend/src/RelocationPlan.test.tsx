@@ -571,7 +571,13 @@ describe('persistent relocation plan', () => {
   })
 
   it('edits with a complete replacement without losing untouched fields', async () => {
-    const fetchMock = mockPlanRequests()
+    const updatedPlan = {
+      ...plan,
+      tasks: plan.tasks.map((task) => task.id === 'choose-mover'
+        ? { ...task, title: 'Choose the mover' }
+        : task),
+    }
+    const fetchMock = mockPlanRequests(updatedPlan)
     render(<RelocationPlan />)
     await screen.findByRole('heading', { name: 'Choose a mover' })
 
@@ -580,6 +586,8 @@ describe('persistent relocation plan', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    expect(screen.getByRole('heading', { name: 'Choose the mover' })).toBeVisible()
+    expect(screen.queryByText('Task updated.')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add' })).toBeVisible()
     expect(screen.queryByRole('combobox', { name: 'Find a task' })).not.toBeInTheDocument()
     const [path, init] = fetchMock.mock.calls[1]
@@ -658,10 +666,28 @@ describe('persistent relocation plan', () => {
       target: { value: 'completed' },
     })
 
-    expect(await screen.findByText('Status updated for Choose a mover.')).toBeVisible()
-    expect(screen.queryByText('Blocked')).not.toBeInTheDocument()
+    expect(screen.queryByText('Status updated for Choose a mover.')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Blocked')).not.toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: 'Completed (1)' }))
     expect(screen.getByLabelText('Status for Choose a mover')).toHaveValue('completed')
+  })
+
+  it('keeps a failed status update visible without showing success feedback', async () => {
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(plan))
+      return Promise.resolve(response({ detail: 'Unable to change task status.' }, 500))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    render(<RelocationPlan />)
+    await screen.findByRole('heading', { name: 'Choose a mover' })
+
+    fireEvent.change(screen.getByLabelText('Status for Choose a mover'), {
+      target: { value: 'completed' },
+    })
+
+    expect(await screen.findByText('Unable to change task status.')).toBeVisible()
+    expect(screen.queryByText(/Status updated for/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Status for Choose a mover')).toHaveValue('not_started')
   })
 
   it('does not offer the edited task as its own dependency', async () => {

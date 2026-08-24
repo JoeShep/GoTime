@@ -1,6 +1,6 @@
 # NEXT_SESSION
 
-## Current objective: human acceptance of unified Add title uniqueness
+## Current objective: final focused human acceptance of unified Add
 
 The frontend-only unified Add candidate is ready for human acceptance at
 `http://localhost:19173` (isolated backend `http://localhost:19000`). Plan has
@@ -26,6 +26,13 @@ Complete the focused duplicate-title and notice retest before any deployment or
 closeout. Existing disposable duplicates remain untouched and unchanged
 canonical edits remain valid. Verify rejection has no reveal, filter, phase,
 highlight, or saved-scroll side effects.
+
+The final acceptance correction removes the redundant persistent success
+banners after a successful Task full edit or Task status change. The changed
+card, status placement, and counts remain the confirmation; validation,
+duplicate-title, request-error, and filter-cleared notice paths remain intact.
+Retest one Task edit and one status change, confirming the visible changes and
+the absence of generic success banners. Do not close or deploy the increment.
 Human-created acceptance records are disposable and must never be copied to the
 active family plan.
 

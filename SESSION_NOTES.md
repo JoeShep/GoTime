@@ -2358,3 +2358,30 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   `a9d82c974795715c2c89bd6030fd43a19ddf77842c9e06859cac9b727a9c513d`.
   The active database, normal backend, and stopped normal frontend were
   unchanged.
+
+# 2026-08-23 — Task success-banner acceptance correction
+
+- Removed only the redundant persistent success messages after successful Task
+  full edits and Task status changes. Successful edits still close the editor
+  and render returned Task data; status changes still move Tasks, update phase
+  and completed counts, refresh dependent state, and retain the established
+  Recommendation callback behavior.
+- Preserved validation and duplicate-title feedback, backend and unexpected
+  request errors, and the dismissible six-second filter-cleared informational
+  notice. Task creation, Milestone and Decision behavior, native date inputs,
+  workspace state, focus, and scrolling are unchanged.
+- Added focused assertions for successful edit rendering without a banner,
+  successful status movement without a banner, and visible failed-status
+  feedback. Stabilized the existing stale-conflict scroll assertion by waiting
+  for initial Plan restoration before capturing its rejection baseline.
+- Focused frontend verification passed 70 tests; the complete frontend suite
+  passed all 115 tests; the production frontend build passed. No backend,
+  schema, API, ADR, or database source files changed.
+- Before replacement, the preserved acceptance database had 58 unique Tasks,
+  three Milestones, two Decisions, and four Decision options, integrity `ok`,
+  no foreign-key violations, size 221,184 bytes, and SHA-256
+  `443410e44f1f8428946de41b7204dd55acc58affab453997e9f413d5ffd3bce4`.
+  Stable row hashes were recorded for post-replacement comparison. The normal
+  frontend remained stopped; the normal backend remained healthy and
+  unchanged; the active database remained byte-for-byte unchanged at SHA-256
+  `f7b533dec39ee57207928a92b61af4de87a4219791454dcc9ba78b1476e9d036`.

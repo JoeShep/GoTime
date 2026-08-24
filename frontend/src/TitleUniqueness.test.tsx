@@ -170,6 +170,7 @@ describe('plan item title uniqueness', () => {
     const title = screen.getByLabelText('Title')
     fireEvent.change(title, { target: { value: 'Apparently unique' } })
     fireEvent.change(screen.getByLabelText('Description (optional)'), { target: { value: 'Preserved' } })
+    await waitFor(() => expect(sessionStorage.getItem('gotime:plan:title-plan:scroll')).toContain('"y":0'))
     const scrollBeforeRejection = sessionStorage.getItem('gotime:plan:title-plan:scroll')
     fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
 
