@@ -45,6 +45,9 @@ double-counted. At zero inset the targets remain at least 44px tall and the
 structural maximum-scroll clearance above the bar is 16px.
 The corrected isolated frontend is running at `http://localhost:20173`; its
 backend, network, disposable volume, and 48-Task data set were preserved.
+The mobile PageFrame now also uses a `100dvh` flex height chain and a mobile-only
+white shell background, so short Now and not-found content reaches the fixed
+bar without changing the established Plan gutter or desktop body background.
 
 Human review is available at `http://localhost:20173` with isolated backend
 `http://localhost:20000`. Compose project `gotime_mobile_nav_acceptance` uses

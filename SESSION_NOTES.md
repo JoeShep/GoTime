@@ -2536,3 +2536,15 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`;
   integrity is `ok`, foreign keys are clean, and established logical counts
   remain unchanged.
+
+# 2026-08-23 — Short mobile content-surface correction
+
+- The remaining gray strip was not clearance padding: the PageFrame shell was
+  transparent over the gray body, and its short card/container height ended
+  before the fixed navigation. Below `sm`, the shell now forms a `100dvh`
+  column flex layout with the container and card stretching through the
+  available content region and a mobile-only card-color background.
+- The existing 64px navigation height, one-time safe-area calculation, and
+  16px Plan content gutter are unchanged. Long Plan content still determines
+  document height normally; desktop shell/body colors and spacing are
+  untouched.

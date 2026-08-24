@@ -374,11 +374,21 @@ body {
 
 @media (max-width: 575.98px) {
   .app-shell {
+    display: flex;
+    min-height: 100dvh;
+    flex-direction: column;
     padding-bottom: calc(var(--mobile-bottom-navigation-height) + var(--mobile-bottom-safe-area) + var(--mobile-bottom-content-gutter));
+    background: variables.$card;
   }
 
   .app-container {
+    display: flex;
+    flex: 1 0 auto;
     padding-inline: 0.5rem;
+  }
+
+  .next-step-card {
+    flex: 1 0 auto;
   }
 
   .filter-clear-notice {

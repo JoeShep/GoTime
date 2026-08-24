@@ -66,6 +66,19 @@ describe('persistent mobile bottom navigation', () => {
     expect(navigation).toHaveClass('mobile-bottom-navigation')
   })
 
+  it('uses the shared mobile page frame for short Now and not-found content', () => {
+    setMedia()
+    const now = render(<MemoryRouter initialEntries={['/now']}><App /></MemoryRouter>)
+
+    expect(now.container.querySelector('.app-shell > .app-container > .next-step-card')).toBeInTheDocument()
+    now.unmount()
+
+    const missing = render(<MemoryRouter initialEntries={['/missing']}><App /></MemoryRouter>)
+    expect(screen.getByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+    expect(missing.container.querySelector('.app-shell > .app-container > .next-step-card')).toBeInTheDocument()
+    expect(missing.container.querySelector('.app-shell .alert')).toHaveClass('mb-0', 'mb-sm-3')
+  })
+
   it('retains only the accepted desktop header at the sm breakpoint and above', () => {
     setMedia({ desktop: true })
     const { container } = render(<MemoryRouter initialEntries={['/plan']}><App /></MemoryRouter>)
