@@ -532,6 +532,9 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     const task = plan.tasks.find((candidate) => candidate.id === target.taskId)
     scrollRestoredRef.current = true
     if (task) selectFinderResult(task)
+    else if (target.source === 'recommendation') {
+      setFilterNotice('The recommended task is no longer available.')
+    }
     consumeTarget()
   }, [consumeTarget, expansionStateReady, plan, target])
 

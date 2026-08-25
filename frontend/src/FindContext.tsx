@@ -2,6 +2,7 @@ import { createContext, type ReactNode, useContext, useMemo, useState } from 're
 
 export interface FindTarget {
   taskId: string
+  source?: 'find' | 'recommendation'
 }
 
 interface FindContextValue {

@@ -1,9 +1,13 @@
 import { useEffect, useLayoutEffect, useState } from 'react'
 import { Alert, Spinner } from 'react-bootstrap'
+import { useNavigate } from 'react-router'
 import { NextTaskRecommendation } from './NextTaskRecommendation'
 import { fetchRelocationPlan } from './api/relocationPlan'
+import { useFind } from './FindContext'
 
 export function NowPage() {
+  const navigate = useNavigate()
+  const { selectTarget } = useFind()
   const [planTitle, setPlanTitle] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,7 +41,13 @@ export function NowPage() {
           {planTitle && <p className="goal-name mb-0">{planTitle}</p>}
         </section>
       </div>
-      <NextTaskRecommendation refreshKey={0} />
+      <NextTaskRecommendation
+        onViewTask={(taskId) => {
+          selectTarget({ taskId, source: 'recommendation' })
+          navigate('/plan')
+        }}
+        refreshKey={0}
+      />
     </>
   )
 }

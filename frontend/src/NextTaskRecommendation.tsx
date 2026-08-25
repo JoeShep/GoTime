@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react'
-import { Alert, Badge, ListGroup, Spinner } from 'react-bootstrap'
+import { Alert, Badge, Button, ListGroup, Spinner } from 'react-bootstrap'
 import {
   fetchRelocationTaskRecommendation,
   type RelocationTaskRecommendation,
 } from './api/relocationPlan'
 
-export function NextTaskRecommendation({ refreshKey }: { refreshKey: number }) {
+export function NextTaskRecommendation({
+  onViewTask,
+  refreshKey,
+}: {
+  onViewTask?: (taskId: string) => void
+  refreshKey: number
+}) {
   const [recommendation, setRecommendation] =
     useState<RelocationTaskRecommendation | null>(null)
   const [loading, setLoading] = useState(true)
@@ -65,6 +71,15 @@ export function NextTaskRecommendation({ refreshKey }: { refreshKey: number }) {
             ))}
           </ListGroup>
           <p className="mb-0"><strong>Why now:</strong> {recommendation.why_now}</p>
+          {recommendation.task_id && onViewTask && (
+            <Button
+              className="recommendation-task-link mt-3"
+              onClick={() => onViewTask(recommendation.task_id!)}
+              type="button"
+            >
+              View task
+            </Button>
+          )}
         </>
       )}
     </section>

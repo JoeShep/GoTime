@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { NowPage } from './NowPage'
+import { MemoryRouter } from 'react-router'
 
 const plan = { id: 'plan', title: 'Move our family', phases: [], tasks: [], milestones: [], decisions: [] }
 const recommendation = {
@@ -21,7 +22,7 @@ describe('Now page', () => {
       path === '/api/relocation-plan' ? plan : recommendation,
     )))
     vi.stubGlobal('fetch', fetchMock)
-    render(<NowPage />)
+    render(<MemoryRouter><NowPage /></MemoryRouter>)
 
     expect(await screen.findByText('Move our family')).toBeVisible()
     expect(screen.getByText('Our goal')).toBeVisible()
@@ -36,10 +37,10 @@ describe('Now page', () => {
       path === '/api/relocation-plan' ? plan : recommendation,
     )))
     vi.stubGlobal('fetch', fetchMock)
-    const first = render(<NowPage />)
+    const first = render(<MemoryRouter><NowPage /></MemoryRouter>)
     await screen.findByRole('heading', { name: 'Contact the realtor' })
     first.unmount()
-    render(<NowPage />)
+    render(<MemoryRouter><NowPage /></MemoryRouter>)
     await screen.findByRole('heading', { name: 'Contact the realtor' })
     expect(fetchMock.mock.calls.filter(([path]) => path === '/api/relocation-plan/recommendation')).toHaveLength(2)
   })

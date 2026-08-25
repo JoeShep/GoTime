@@ -294,6 +294,29 @@ polish remains deferred. Cross-route Recommendation targeting, unified Add,
 persistent mobile bottom navigation, secondary attention items, family-plan
 conversion, and derived-attention Increment 2 were not started.
 
+## Cross-route Recommendation targeting candidate
+
+The persisted Recommendation response already exposes a stable nullable
+`task_id`, so this increment requires no API-contract or backend change. When
+that ID is present, Now shows one compact **View task** button at the bottom of
+the Primary Recommendation card. The card itself remains noninteractive; a
+Recommendation without a Task ID has no action.
+
+Activation pushes one normal `/plan` history entry and places a
+Recommendation-origin target in the existing transient Find context. Plan
+consumes that target through the same reveal path used by shared Find: preserve
+a compatible category filter or clear and persist an incompatible filter with
+the established notice, open the destination phase and completed subsection,
+scroll, focus, highlight, and save the resulting Plan position. The target is
+consumed once and is neither persisted nor represented in a query string, so
+refresh and later navigation cannot replay focus or highlighting. Back returns
+to Now.
+
+If the ID is absent from the freshly loaded Plan aggregate, Plan consumes the
+target, remains on `/plan`, and shows the dismissible, approximately six-second
+notice **The recommended task is no longer available.** Recommendation ranking,
+refresh rules, derived attention, and all persisted data remain unchanged.
+
 ## Unified Plan Add candidate
 
 Plan now presents one prominent text-labeled **Add** dropdown beside the compact

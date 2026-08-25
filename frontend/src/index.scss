@@ -139,6 +139,21 @@ body {
   background: #e5f0e6;
 }
 
+.recommendation-task-link {
+  min-height: 2.75rem;
+  padding-inline: 1rem;
+  border-color: variables.$forest;
+  background: variables.$forest;
+  font-weight: 700;
+
+  &:hover,
+  &:focus-visible,
+  &:active {
+    border-color: #0f2f25;
+    background: #0f2f25;
+  }
+}
+
 .loading-state {
   color: variables.$muted-ink;
   font-size: 0.9rem;

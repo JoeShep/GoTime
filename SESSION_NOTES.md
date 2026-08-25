@@ -2576,3 +2576,35 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   `gotime_mobile_nav_acceptance_net_8559604`, and temporary directory
   `/tmp/gotime-mobile-nav-acceptance-8559604/`. Normal resources and unrelated
   Docker resources were preserved. No next increment was started.
+
+# 2026-08-25 — Cross-route Recommendation targeting candidate
+
+- Confirmed the existing persisted Recommendation contract already includes a
+  stable nullable `task_id`; no backend or API-contract work was necessary.
+  Added one content-width, dark-green **View task** button with a 44px minimum
+  target to recommended Task cards only. The card remains nonclickable.
+- Now marks the existing transient target as Recommendation-origin and pushes
+  `/plan` once. Plan reuses the accepted Find reveal path for filter
+  compatibility, phase/completed expansion, scroll, focus, temporary highlight,
+  and saved position, then consumes the target. A missing Task stays on Plan
+  with a dismissible, expiring **The recommended task is no longer available.**
+  notice. No query-string target or title lookup was introduced.
+- Focused Recommendation, Find, routing, and workspace coverage passed 28
+  tests; the complete frontend suite passed all 129 tests; the production build
+  with Experiments disabled passed; and `git diff --check` passed. Backend,
+  schema, API, ADR, Recommendation ranking, and database files were unchanged.
+- Because the normal frontend is source-bind-mounted, it was stopped before
+  isolated acceptance preparation. The normal backend retained container
+  identity, healthy status, original start time, and zero restarts. The active
+  database remained 221,184 bytes with SHA-256
+  `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`.
+- Left isolated project `gotime_recommendation_targeting_acceptance` running at
+  `http://localhost:21173` with backend `http://localhost:21000`, containers
+  `gotime-recommendation-targeting-acceptance-frontend` and
+  `gotime-recommendation-targeting-acceptance-backend`, disposable volume
+  `gotime_recommendation_targeting_acceptance_data_b14e2c9`, and network
+  `gotime_recommendation_targeting_acceptance_net_b14e2c9`. Its verified backup
+  baseline contains 49 Tasks and no Milestones, Decisions, or options;
+  integrity is `ok` and foreign keys are clean. Neither container mounts or
+  joins normal data/network resources. Human acceptance and deployment remain
+  pending.
