@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   formatMilestoneTiming,
   MilestoneDecisionFoundation,
@@ -28,11 +28,35 @@ const withDecision: RelocationPlan = {
   }],
 }
 
+const withPreparation: RelocationPlan = {
+  ...withDecision,
+  phases: [{ id: 'decide', title: 'Decide', position: 10 }],
+  tasks: [{
+    id: 'research', title: 'Research sale options', description: null, phase_id: 'decide',
+    categories: ['housing'], status: 'not_started', assignees: [], start_date: null,
+    due_date: null, priority: 'high', dependency_task_ids: [], blocked: false,
+  }],
+  decisions: [{
+    ...withDecision.decisions[0], preparation_task_ids: ['research'],
+    preparation_readiness: 'preparation_incomplete', completed_preparation_task_count: 0,
+  }],
+}
+
 function response(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as Response
 }
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
+beforeEach(() => sessionStorage.clear())
+
+function expandMilestone() {
+  fireEvent.click(screen.getByRole('button', { name: /Start selling our home/ }))
+}
+
+function expandDecision() {
+  expandMilestone()
+  fireEvent.click(screen.getByRole('button', { name: /Select the initial home-sale strategy/ }))
+}
 
 describe('Milestone and Decision foundation', () => {
   it('explains an open-ended target and changes achievement explicitly', async () => {
@@ -45,6 +69,7 @@ describe('Milestone and Decision foundation', () => {
 
     expect(screen.getByText('Target: on or after Jan 2, 2027')).toBeVisible()
     expect(screen.getByText('Pending')).toHaveClass('align-self-start', 'flex-shrink-0')
+    expandMilestone()
     fireEvent.click(screen.getByRole('button', { name: 'Mark achieved' }))
     await waitFor(() => expect(updated).toHaveBeenCalled())
     expect(fetchMock).toHaveBeenCalledWith(
@@ -60,6 +85,7 @@ describe('Milestone and Decision foundation', () => {
     })))
     vi.stubGlobal('fetch', fetchMock)
     render(<MilestoneDecisionFoundation plan={withDecision} onPlanUpdated={vi.fn()} />)
+    expandDecision()
 
     const selection = screen.getByRole('combobox', { name: 'Selection for Select the initial home-sale strategy' })
     expect(Array.from((selection as HTMLSelectElement).options).map((option) => option.text)).toEqual([
@@ -76,6 +102,7 @@ describe('Milestone and Decision foundation', () => {
   it('labels milestone timing as guidance rather than task timing', () => {
     vi.stubGlobal('fetch', vi.fn())
     render(<MilestoneDecisionFoundation plan={plan} onPlanUpdated={vi.fn()} />)
+    expandMilestone()
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByText('Planning guidance; not a task start date.')).toBeVisible()
     expect(screen.getByText('Leave blank for an open-ended “on or after” target.')).toBeVisible()
@@ -99,6 +126,7 @@ describe('Milestone and Decision foundation', () => {
   it('constrains the latest picker and shows invalid ranges inline', () => {
     vi.stubGlobal('fetch', vi.fn())
     render(<MilestoneDecisionFoundation plan={plan} onPlanUpdated={vi.fn()} />)
+    expandMilestone()
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
 
     const latest = screen.getByLabelText(/Latest target date/) as HTMLInputElement
@@ -117,6 +145,7 @@ describe('Milestone and Decision foundation', () => {
       resolveRequest = resolve
     })))
     render(<MilestoneDecisionFoundation plan={withDecision} onPlanUpdated={vi.fn()} />)
+    expandDecision()
 
     const achievement = screen.getByRole('button', { name: 'Mark achieved' })
     const selection = screen.getByRole('combobox', { name: 'Selection for Select the initial home-sale strategy' })
@@ -138,10 +167,45 @@ describe('Milestone and Decision foundation', () => {
     )
     expect(container.querySelector('.plan-foundation-title')).toBeInTheDocument()
     expect(container.querySelector('.plan-foundation-heading')).toHaveClass('px-2', 'px-sm-0')
+    expandMilestone()
     expect(container.querySelector('.decision-title')).toBeInTheDocument()
     expect(container.querySelector('.plan-foundation-metadata')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Select the initial home-sale strategy/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit decision' }))
     expect(container.querySelector('.decision-option-row')).toHaveClass('flex-wrap', 'flex-sm-nowrap')
     expect(container.querySelector('.decision-option-input')).toBeInTheDocument()
+  })
+
+  it('starts Milestones and Decisions collapsed with independent accessible expansion', () => {
+    render(<MilestoneDecisionFoundation plan={withDecision} onPlanUpdated={vi.fn()} />)
+    const milestoneToggle = screen.getByRole('button', { name: /Start selling our home/ })
+    expect(milestoneToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByText('1 Decision · 0 resolved')).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Select the initial home-sale strategy/ })).not.toBeInTheDocument()
+    fireEvent.click(milestoneToggle)
+    const decisionToggle = screen.getByRole('button', { name: /Select the initial home-sale strategy/ })
+    expect(decisionToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByLabelText('Selection for Select the initial home-sale strategy')).not.toBeInTheDocument()
+    fireEvent.click(decisionToggle)
+    expect(screen.getByLabelText('Selection for Select the initial home-sale strategy')).toBeVisible()
+    expect(JSON.parse(sessionStorage.getItem('gotime:milestone-expansion:family-relocation-plan:v1') ?? '[]')).toContain('start-selling-home')
+    expect(JSON.parse(sessionStorage.getItem('gotime:decision-expansion:family-relocation-plan:v1') ?? '[]')).toContain('sale-strategy')
+  })
+
+  it('uses the shared fixed-box SVG for preparation and keeps picker results query-driven', () => {
+    render(<MilestoneDecisionFoundation plan={withPreparation} onPlanUpdated={vi.fn()} />)
+    expandMilestone()
+    const progress = screen.getByRole('button', { name: /0 of 1 preparation task completed/ })
+    expect(progress).toHaveAttribute('aria-expanded', 'false')
+    expect(progress.querySelector('svg.expansion-chevron')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: /Select the initial home-sale strategy/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit decision' }))
+    expect(screen.getByLabelText('Selected preparation tasks')).toHaveTextContent('Research sale options')
+    expect(screen.queryByRole('group', { name: 'Preparation task search results' })).not.toBeInTheDocument()
+    const search = screen.getByRole('searchbox', { name: 'Work needed before deciding' })
+    fireEvent.change(search, { target: { value: 'Research' } })
+    expect(screen.getByRole('group', { name: 'Preparation task search results' })).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Research sale options' }))
+    expect(screen.queryByLabelText('Selected preparation tasks')).not.toBeInTheDocument()
   })
 })

@@ -2787,3 +2787,10 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   localhost inside the container and returned 500 while the backend returned
   200 directly. Dockerized frontends now default to the Compose `backend`
   service; local non-container Vite development retains its localhost default.
+- Refined the acceptance presentation without changing APIs or data: the exact
+  shared fixed-box chevron now serves preparation progress, Milestones and
+  Decisions start independently collapsed with versioned plan-scoped session
+  state, compact collapsed summaries preserve readiness context, and Task
+  targeting opens its containing controls before using the existing reveal.
+  The Decision editor now shows compact removable selections and exposes a
+  bounded candidate panel only during active nonempty search.

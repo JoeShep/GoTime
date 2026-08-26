@@ -9,6 +9,10 @@ while not ready uses explicit confirmation; returning unresolved does not.
 The additive normalized migration creates no relationships. Parent/subtask
 duplication is prevented during Decision editing and later hierarchy attachment.
 The candidate has not been deployed and the active database was not migrated.
+The current acceptance frontend also includes the focused density refinement:
+Milestones and Decisions are independently session-collapsed, all expansion
+controls share the fixed-box SVG chevron, and preparation selection uses compact
+chips plus an active-query-only bounded result panel.
 
 ## Previous objective: required-subtask increment closed
 

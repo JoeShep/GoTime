@@ -444,6 +444,51 @@ body {
   min-width: 0;
 }
 
+.foundation-expansion-toggle {
+  min-width: 0;
+  border: 0;
+  color: variables.$ink;
+  background: transparent;
+
+  &:focus-visible {
+    border-radius: 0.25rem;
+    outline: 0.2rem solid variables.$accent;
+    outline-offset: 0.15rem;
+  }
+}
+
+.milestone-title {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+
+.decision-preparation-picker {
+  max-height: 15rem;
+  overflow-y: auto;
+  background: variables.$card;
+}
+
+.selected-preparation-task {
+  max-width: 100%;
+  padding: 0.2rem 0.45rem 0.2rem 0.65rem;
+  background: rgb(23 61 48 / 10%);
+}
+
+.selected-preparation-task > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-preparation-remove {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 1.5rem;
+  color: variables.$forest;
+  line-height: 1;
+  text-decoration: none;
+}
+
 @media (max-width: 575.98px) {
   .app-shell {
     display: flex;
@@ -495,6 +540,10 @@ body {
   .plan-foundation-title {
     font-size: 1rem;
     line-height: 1.25;
+  }
+
+  .milestone-title {
+    font-size: 1.25rem;
   }
 
   .decision-title {
