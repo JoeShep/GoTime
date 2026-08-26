@@ -109,7 +109,7 @@ describe('cross-route Recommendation targeting', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'View task' }))
     const task = await screen.findByRole('article', { name: 'Pay deposit' })
-    expect(task).toHaveFocus()
+    await waitFor(() => expect(task).toHaveFocus())
     expect(screen.getByRole('button', { name: /Settle 0 remaining · 1 completed/ })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('button', { name: 'Completed (1)' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('button', { name: /Prepare 1 remaining/ })).toHaveAttribute('aria-expanded', 'false')

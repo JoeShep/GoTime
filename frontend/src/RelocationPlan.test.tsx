@@ -29,6 +29,8 @@ const plan: RelocationPlanData = {
       due_date: '2026-09-10',
       priority: 'high',
       dependency_task_ids: [],
+      parent_task_id: null,
+      subtask_position: null,
       blocked: false,
     },
     {
@@ -603,6 +605,8 @@ describe('persistent relocation plan', () => {
       due_date: '2026-09-10',
       priority: 'high',
       dependency_task_ids: [],
+      parent_task_id: null,
+      subtask_position: null,
     })
   })
 

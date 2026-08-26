@@ -5,6 +5,7 @@ import {
   createTask,
   fetchRelocationPlan,
   replaceTask,
+  returnParentToAutomaticStatus,
   PlanRequestError,
   type RelocationPlan as RelocationPlanData,
   type RelocationTask,
@@ -144,6 +145,8 @@ interface TaskDraft {
   dueDate: string
   priority: TaskPriority
   dependencies: string[]
+  parentTaskId: string
+  subtaskPosition: string
 }
 
 function emptyDraft(phaseId: string): TaskDraft {
@@ -158,6 +161,8 @@ function emptyDraft(phaseId: string): TaskDraft {
     dueDate: '',
     priority: 'medium',
     dependencies: [],
+    parentTaskId: '',
+    subtaskPosition: '',
   }
 }
 
@@ -173,6 +178,8 @@ function draftFromTask(task: RelocationTask): TaskDraft {
     dueDate: task.due_date ?? '',
     priority: task.priority,
     dependencies: [...task.dependency_task_ids],
+    parentTaskId: task.parent_task_id ?? '',
+    subtaskPosition: task.subtask_position?.toString() ?? '',
   }
 }
 
@@ -188,6 +195,8 @@ function writeFromDraft(draft: TaskDraft): TaskWrite {
     due_date: draft.dueDate || null,
     priority: draft.priority,
     dependency_task_ids: draft.dependencies,
+    parent_task_id: draft.parentTaskId || null,
+    subtask_position: draft.parentTaskId && draft.subtaskPosition !== '' ? Number(draft.subtaskPosition) : null,
   }
 }
 
@@ -290,6 +299,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [dependencyQuery, setDependencyQuery] = useState('')
   const [expandedPhaseIds, setExpandedPhaseIds] = useState<Set<string>>(new Set())
   const [expandedCompletedPhaseIds, setExpandedCompletedPhaseIds] = useState<Set<string>>(new Set())
+  const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set())
   const [expansionStateReady, setExpansionStateReady] = useState(false)
   const [pendingNavigationTaskId, setPendingNavigationTaskId] = useState<string | null>(null)
   const [foundTaskId, setFoundTaskId] = useState<string | null>(null)
@@ -392,6 +402,20 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     if (!plan || !expansionStateReady || initializedPlanIdRef.current !== plan.id) return
     writeCategoryFilters(plan.id, categoryFilters)
   }, [categoryFilters, expansionStateReady, plan])
+
+  useEffect(() => {
+    if (!plan) return
+    const key = `gotime:plan:${plan.id}:subtasks`
+    try {
+      const parsed = JSON.parse(sessionStorage.getItem(key) ?? '[]') as unknown
+      if (Array.isArray(parsed)) setExpandedParentIds(new Set(parsed.filter((id): id is string => typeof id === 'string')))
+    } catch { /* Subtask expansion remains usable without storage. */ }
+  }, [plan?.id])
+
+  useEffect(() => {
+    if (!plan) return
+    try { sessionStorage.setItem(`gotime:plan:${plan.id}:subtasks`, JSON.stringify([...expandedParentIds])) } catch { /* bounded session state only */ }
+  }, [expandedParentIds, plan?.id])
 
   useLayoutEffect(() => {
     if (!plan || !expansionStateReady || scrollRestoredRef.current || target) return
@@ -517,6 +541,8 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       setExpandedPhaseIds((expanded) => new Set(expanded).add(task.phase_id))
     }
     setFoundTaskId(task.id)
+    if (task.parent_task_id) setExpandedParentIds((expanded) => new Set(expanded).add(task.parent_task_id!))
+    if (task.is_parent) setExpandedParentIds((expanded) => new Set(expanded).add(task.id))
     if (task.status === 'completed') {
       setExpandedCompletedPhaseIds((expanded) => {
         const next = new Set(expanded)
@@ -551,6 +577,21 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setEditingId(null)
     setDraft(emptyDraft(plan.phases[0].id))
     setDependencyQuery('')
+  }
+
+  function beginSubtask(parent: RelocationTask) {
+    if (!plan || editorActive) return
+    closeFind()
+    preCreationScrollYRef.current = Math.max(0, window.scrollY)
+    setCreationType('task')
+    setEditingId(null)
+    const next = emptyDraft(parent.phase_id)
+    next.parentTaskId = parent.id
+    next.subtaskPosition = String(parent.subtask_count ?? 0)
+    setDraft(next)
+    setFilterNotice(null)
+    setError(null)
+    setTaskTitleError(null)
   }
 
   function cancelCreation() {
@@ -592,6 +633,13 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         ? await replaceTask(editingId, write)
         : await createTask(createdId, write)
       acceptPlan(updated)
+      let parentStatusNotice: string | null = null
+      if (write.parent_task_id) {
+        const parent = updated.tasks.find((task) => task.id === write.parent_task_id)
+        if (parent?.subtask_count === 1) {
+          parentStatusNotice = `“${parent.title}” is now ${statusLabels[parent.status].toLowerCase()} because its status is derived from required subtasks.`
+        }
+      }
       onPlanChanged?.()
       setDraft(null)
       setEditingId(null)
@@ -600,10 +648,16 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         const createdTask = updated.tasks.find((task) => task.id === createdId)
         if (createdTask) selectFinderResult(createdTask)
       }
+      if (parentStatusNotice) setFilterNotice(parentStatusNotice)
     } catch (requestError) {
       if (requestError instanceof PlanRequestError && requestError.code === 'duplicate_task_title') {
         setTaskTitleError(requestError.message)
         titleInputRef.current?.focus()
+      } else if (editingId && requestError instanceof PlanRequestError && requestError.code === 'parent_phase_move_confirmation_required' && window.confirm(requestError.message)) {
+        const updated = await replaceTask(editingId, { ...writeFromDraft(draft), confirm_parent_phase_move: true })
+        acceptPlan(updated)
+        setDraft(null)
+        setEditingId(null)
       } else {
         setError(requestError instanceof Error ? requestError.message : 'Unable to save the task.')
       }
@@ -619,7 +673,14 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       acceptPlan(await changeTaskStatus(task.id, status))
       onPlanChanged?.()
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Unable to update task status.')
+      if (requestError instanceof PlanRequestError && requestError.code === 'parent_status_override_confirmation_required' && window.confirm(requestError.message)) {
+        try {
+          acceptPlan(await changeTaskStatus(task.id, status, true))
+          onPlanChanged?.()
+        } catch (confirmedError) {
+          setError(confirmedError instanceof Error ? confirmedError.message : 'Unable to update task status.')
+        }
+      } else setError(requestError instanceof Error ? requestError.message : 'Unable to update task status.')
     } finally {
       setPendingTaskStatusIds((current) => {
         const next = new Set(current)
@@ -629,12 +690,18 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     }
   }
 
-  function renderTask(task: RelocationTask) {
+  async function returnToAutomaticStatus(task: RelocationTask) {
+    setError(null)
+    try { acceptPlan(await returnParentToAutomaticStatus(task.id)) }
+    catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to restore automatic status.') }
+  }
+
+  function renderTask(task: RelocationTask, isSubtask = false) {
     const titleId = `task-title-${task.id}`
     return (
       <article
         aria-labelledby={titleId}
-        className={`task-item rounded-3 p-2 p-sm-3 ${task.blocked ? 'is-blocked' : ''} ${foundTaskId === task.id ? 'is-found' : ''}`}
+        className={`task-item rounded-3 p-2 p-sm-3 ${isSubtask ? 'is-subtask' : ''} ${task.blocked ? 'is-blocked' : ''} ${foundTaskId === task.id ? 'is-found' : ''}`}
         id={`task-${task.id}`}
         key={task.id}
         ref={(element) => {
@@ -645,18 +712,37 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       >
         <div className="task-card-layout d-flex flex-wrap justify-content-between gap-2 gap-sm-3">
           <div>
-            <div className="task-heading-row d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
+            <div className="task-heading-row d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}{task.manual_status_override && <Badge bg="info" text="dark">Manual status</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
+            {task.parent_task_id && <p className="small text-muted mb-1">Part of: {taskById.get(task.parent_task_id)?.title ?? task.parent_task_id}</p>}
+            {task.is_parent && <p className="small fw-semibold mb-1">{task.completed_subtask_count ?? 0} of {task.subtask_count ?? 0} subtasks completed</p>}
             <div className="task-metadata d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-2"><CategoryLabels categories={task.categories} /><span className="text-muted">{task.assignees.length > 0 ? task.assignees.join(', ') : 'Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</span></div>
             {task.description && <p className="mb-2">{task.description}</p>}
             {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
           </div>
           <div className="task-actions d-flex flex-wrap align-items-start gap-2">
             <Form.Select aria-label={`Status for ${task.title}`} disabled={pendingTaskStatusIds.has(task.id)} value={task.status} onChange={(event) => void updateStatus(task, event.target.value as TaskStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select>
+            {task.is_parent && <Button variant="outline-primary" onClick={() => beginSubtask(task)}>Add subtask</Button>}
+            {task.manual_status_override && <Button variant="outline-secondary" onClick={() => void returnToAutomaticStatus(task)}>Return to automatic status</Button>}
             <Button variant="outline-secondary" onClick={() => beginEdit(task)}>Edit</Button>
           </div>
         </div>
       </article>
     )
+  }
+
+  function renderTaskGroup(task: RelocationTask, phaseTasks: RelocationTask[]) {
+    if (!task.is_parent) return renderTask(task)
+    const subtasks = phaseTasks
+      .filter((candidate) => candidate.parent_task_id === task.id)
+      .sort((left, right) => (left.subtask_position ?? 0) - (right.subtask_position ?? 0) || left.id.localeCompare(right.id))
+    const expanded = expandedParentIds.has(task.id)
+    return <div className="parent-task-group" key={task.id}>
+      <div className="d-flex align-items-center gap-2 mb-1">
+        <Button aria-expanded={expanded} className="subtask-toggle" onClick={() => setExpandedParentIds((current) => { const next = new Set(current); if (next.has(task.id)) next.delete(task.id); else next.add(task.id); return next })} size="sm" variant="link">{expanded ? 'Hide' : 'Show'} subtasks</Button>
+      </div>
+      {renderTask(task)}
+      {expanded && <Stack className="subtask-list gap-1 gap-sm-2 mt-2">{subtasks.map((subtask) => renderTask(subtask, true))}</Stack>}
+    </div>
   }
 
   return (
@@ -799,7 +885,9 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
               </Stack>
               <Row className="g-3">
                 <Col md={8}><Form.Group controlId="task-title"><Form.Label>Title</Form.Label><Form.Control aria-describedby="task-title-error" aria-invalid={Boolean(taskTitleError)} isInvalid={Boolean(taskTitleError)} ref={titleInputRef} required maxLength={200} value={draft.title} onChange={(event) => { const title = event.target.value; setDraft({ ...draft, title }); setTaskTitleError(plan && hasDuplicatePlanItemTitle(plan.tasks, title, editingId) ? 'A task with this title already exists in this plan.' : null) }} /><Form.Control.Feedback id="task-title-error" type="invalid">{taskTitleError}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={4}><Form.Group controlId="task-phase"><Form.Label>Phase</Form.Label><Form.Select value={draft.phaseId} onChange={(event) => setDraft({ ...draft, phaseId: event.target.value })}>{plan.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}</Form.Select></Form.Group></Col>
+                <Col md={4}><Form.Group controlId="task-phase"><Form.Label>Phase</Form.Label><Form.Select disabled={Boolean(draft.parentTaskId)} value={draft.phaseId} onChange={(event) => setDraft({ ...draft, phaseId: event.target.value })}>{plan.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}</Form.Select></Form.Group></Col>
+                <Col md={8}><Form.Group controlId="task-parent"><Form.Label>Part of <span className="text-muted">(optional)</span></Form.Label><Form.Select disabled={Boolean(editingId && plan.tasks.find((task) => task.id === editingId)?.is_parent)} value={draft.parentTaskId} onChange={(event) => { const parentTaskId = event.target.value; const parent = plan.tasks.find((task) => task.id === parentTaskId); setDraft({ ...draft, parentTaskId, phaseId: parent?.phase_id ?? draft.phaseId, subtaskPosition: parentTaskId ? draft.subtaskPosition || String(parent?.subtask_count ?? 0) : '' }) }}><option value="">Not a subtask</option>{plan.tasks.filter((task) => !task.parent_task_id && task.id !== editingId).map((task) => <option key={task.id} value={task.id}>{task.title}</option>)}</Form.Select></Form.Group></Col>
+                {draft.parentTaskId && <Col md={4}><Form.Group controlId="task-subtask-position"><Form.Label>Subtask order</Form.Label><Form.Control min={0} type="number" value={draft.subtaskPosition} onChange={(event) => setDraft({ ...draft, subtaskPosition: event.target.value })} /></Form.Group></Col>}
                 <Col xs={12}><Form.Group controlId="task-description"><Form.Label>Description <span className="text-muted">(optional)</span></Form.Label><Form.Control as="textarea" rows={2} maxLength={2000} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></Form.Group></Col>
                 <Col md={4}>
                   <Form.Group controlId="task-categories">
@@ -828,7 +916,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                   </Form.Group>
                 </Col>
                 <Col md={4}><Form.Group controlId="task-priority"><Form.Label>Priority</Form.Label><Form.Select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
-                <Col md={4}><Form.Group controlId="task-status"><Form.Label>Status</Form.Label><Form.Select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
+                <Col md={4}><Form.Group controlId="task-status"><Form.Label>Status</Form.Label><Form.Select disabled={Boolean(editingId && plan.tasks.find((task) => task.id === editingId)?.is_parent)} value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
                 <Col md={6}><Form.Group controlId="task-assignees"><Form.Label>Assignees <span className="text-muted">(optional)</span></Form.Label><Form.Control placeholder="Separate names with commas" value={draft.assignees} onChange={(event) => setDraft({ ...draft, assignees: event.target.value })} /></Form.Group></Col>
                 <Col md={3}><Form.Group controlId="task-start-date"><Form.Label>Start date <span className="text-muted">(optional)</span></Form.Label><Form.Control type="date" value={draft.startDate} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })} /></Form.Group></Col>
                 <Col md={3}><Form.Group controlId="task-due-date"><Form.Label>Due date <span className="text-muted">(optional)</span></Form.Label><Form.Control type="date" value={draft.dueDate} onChange={(event) => setDraft({ ...draft, dueDate: event.target.value })} /></Form.Group></Col>
@@ -900,10 +988,21 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       )}
 
       {plan?.phases.map((phase) => {
-        const phaseTasks = plan.tasks.filter((task) => task.phase_id === phase.id && categoryMatches(task))
-        if (categoryFilters.size > 0 && phaseTasks.length === 0) return null
-        const activeTasks = phaseTasks.filter((task) => task.status !== 'completed')
-        const completedTasks = phaseTasks.filter((task) => task.status === 'completed')
+        const allPhaseTasks = plan.tasks.filter((task) => task.phase_id === phase.id)
+        const matchingIds = new Set(allPhaseTasks.filter(categoryMatches).map((task) => task.id))
+        const visibleTopLevelTasks = allPhaseTasks.filter((task) => !task.parent_task_id && (
+          categoryFilters.size === 0 || matchingIds.has(task.id)
+          || allPhaseTasks.some((candidate) => candidate.parent_task_id === task.id && matchingIds.has(candidate.id))
+        ))
+        if (categoryFilters.size > 0 && visibleTopLevelTasks.length === 0) return null
+        const countableTasks = allPhaseTasks.filter((task) => !task.is_parent && categoryMatches(task))
+        const activeTasks = countableTasks.filter((task) => task.status !== 'completed')
+        const completedTasks = countableTasks.filter((task) => task.status === 'completed')
+        const groupCompleted = (task: RelocationTask) => task.status === 'completed' && (
+          !task.is_parent || allPhaseTasks.filter((candidate) => candidate.parent_task_id === task.id).every((child) => child.status === 'completed')
+        )
+        const activeGroups = visibleTopLevelTasks.filter((task) => !groupCompleted(task))
+        const completedGroups = visibleTopLevelTasks.filter(groupCompleted)
         const phaseExpanded = expandedPhaseIds.has(phase.id)
         const completedExpanded = expandedCompletedPhaseIds.has(phase.id)
         const bodyId = `phase-body-${phase.id}`
@@ -931,10 +1030,10 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
               </button>
             </Card.Header>
             {phaseExpanded && <Card.Body className="px-1 py-2 p-sm-3" id={bodyId}>
-              {phaseTasks.length === 0 && <p className="text-muted mb-0">No tasks in this phase yet.</p>}
+              {visibleTopLevelTasks.length === 0 && <p className="text-muted mb-0">No tasks in this phase yet.</p>}
               {activeTasks.length === 0 && completedTasks.length > 0 && <p className="text-muted mb-0">No active tasks in this phase.</p>}
               <Stack className="task-list gap-1 gap-sm-3">
-                {activeTasks.map(renderTask)}
+                {activeGroups.map((task) => renderTaskGroup(task, allPhaseTasks.filter((candidate) => categoryFilters.size === 0 || categoryMatches(candidate) || candidate.id === task.id)))}
               </Stack>
               {completedTasks.length > 0 && (
                 <Accordion
@@ -952,7 +1051,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                   <Accordion.Item eventKey="completed">
                     <Accordion.Header>Completed ({completedTasks.length})</Accordion.Header>
                     <Accordion.Body className="completed-task-list-body">
-                      {completedExpanded && <Stack className="task-list gap-1 gap-sm-3">{completedTasks.map(renderTask)}</Stack>}
+                      {completedExpanded && <Stack className="task-list gap-1 gap-sm-3">{completedGroups.map((task) => renderTaskGroup(task, allPhaseTasks.filter((candidate) => categoryFilters.size === 0 || categoryMatches(candidate) || candidate.id === task.id)))}</Stack>}
                     </Accordion.Body>
                   </Accordion.Item>
                 </Accordion>

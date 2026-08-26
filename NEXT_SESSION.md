@@ -1,6 +1,28 @@
 # NEXT_SESSION
 
-## Current objective: cross-route Recommendation targeting closed
+## Current objective: required-subtask candidate awaiting human acceptance
+
+The first derived-attention Increment 2 slice adds one level of required
+subtasks without converting family data. Parent/child membership and order are
+stored in an additive hierarchy table; confirmed manual parent status overrides
+use a second additive table. Automatic parent status is derived from children,
+dependencies use effective parent status, parent prerequisites block children,
+and parent summaries are excluded from counts and Recommendations.
+
+Plan now offers **Part of**, **Add subtask**, independently session-collapsed
+groups, completion summaries, visible manual overrides, and **Return to
+automatic status**. Finder and Recommendation targeting reveal a child inside
+its parent group. The candidate must remain isolated until human acceptance;
+Decision readiness, evidence links, contextual Recommendation work, and family
+conversion have not begun.
+
+Human acceptance is available at `http://localhost:22173` (isolated backend
+`http://localhost:22000`). The disposable database begins with the verified
+49-Task family-plan snapshot and empty hierarchy/override tables; human-created
+relationships remain disposable and must never be copied to active data. The
+normal frontend is stopped, the normal backend remains healthy and unchanged,
+and the active database checksum remains
+`9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`.
 
 The unified Add and plan-wide title-uniqueness increment passed complete human
 acceptance and is deployed to the normal stack at `http://localhost:5173`.
@@ -72,8 +94,8 @@ smoke verification. The active database remained logically and byte-for-byte
 unchanged. The disposable acceptance containers, volume, network, and temporary
 Compose directory were removed.
 
-Secondary attention items, family-plan conversion, and derived-attention
-Increment 2 have not begun.
+Secondary attention items and family-plan conversion have not begun. The
+remaining derived-attention Increment 2 slices have not begun.
 
 Desktop navigation is not sticky. Returning Plan to the top before leaving it
 correctly records the top as its latest saved position. Persistent access to

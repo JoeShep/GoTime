@@ -295,12 +295,14 @@ candidate. Its status is calculated from child status:
   incomplete.
 * Completed when every child is Completed.
 
-Do not maintain a separately editable parent status that can drift from the
-children. Existing storage may require a compatibility value during migration,
-but child state is authoritative wherever a parent has children. Adding a
-required child or reopening a child recalculates the parent; completing the
-last child completes it. A dependency pointing to the parent evaluates the
-derived parent status.
+Automatic status remains child-authoritative: adding a required child or
+reopening a child recalculates the parent, completing the last child completes
+it, and a dependency pointing to the parent evaluates that effective status.
+The implemented first slice also supports a user-confirmed manual override.
+A conflicting direct status change warns and may be confirmed; the override is
+visible, survives child changes, and is removed only through **Return to
+automatic status**. This approved authority boundary supersedes the earlier
+proposal to defer direct-parent overrides.
 
 The difficult case is reopening or extending a completed parent after a
 dependent Task has begun. The current engine would re-block every incomplete
@@ -308,7 +310,7 @@ dependent while leaving its progress status unchanged, and would leave a
 Completed dependent as history. Preserve that deterministic behavior, but show
 the affected downstream Tasks and require confirmation before the user reopens
 a child or adds required work. Never silently roll back another Task's status.
-The exact direct-parent override remains deferred.
+Manually completing a parent warns that downstream work may become unblocked.
 
 Use ordinary Task dependencies to sequence leaf work. In the reference
 scenario, those relationships make `Contact the realtor` the first actionable
@@ -616,6 +618,14 @@ reviewable state.
   unused, or restore the increment backup if records were created.
 
 ### Increment 2: Required subtasks, evidence link, and derived context
+
+The first bounded slice implements only required subtasks and effective parent
+status. It uses additive `task_hierarchy` and
+`task_parent_status_overrides` tables, leaves existing records unrelated, and
+does not begin evidence links, Decision readiness, or contextual Recommendation
+work. Parent groups collapse independently by browser session; phase counts
+exclude summaries; filtering retains a matching parent for context; targeting
+expands the phase, completed section, and parent group.
 
 * **User-visible outcome:** A parent groups one level of required subtasks;
   leaf progress derives parent status and advisory Decision readiness; the

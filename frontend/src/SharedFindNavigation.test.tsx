@@ -241,7 +241,7 @@ describe('shared Find', () => {
     fireEvent.click(screen.getByRole('option', { name: /Pay deposit/ }))
 
     const settle = await screen.findByRole('button', { name: /Settle 0 remaining · 1 completed/ })
-    expect(settle).toHaveAttribute('aria-expanded', 'true')
+    await waitFor(() => expect(settle).toHaveAttribute('aria-expanded', 'true'))
     expect(screen.getByRole('button', { name: 'Completed (1)' })).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('button', { name: /Prepare 1 remaining/ })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByRole('article', { name: 'Pay deposit' })).toHaveClass('is-found')

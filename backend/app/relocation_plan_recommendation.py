@@ -105,7 +105,8 @@ def recommend_relocation_task(
     actionable = tuple(
         task
         for task in plan.tasks
-        if task.status is not TaskStatus.COMPLETED
+        if not task.is_parent
+        and task.status is not TaskStatus.COMPLETED
         and not task.blocked
         and (task.start_date is None or task.start_date <= current_date)
     )

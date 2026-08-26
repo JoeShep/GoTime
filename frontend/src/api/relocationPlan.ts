@@ -27,6 +27,14 @@ export interface RelocationTask {
   priority: TaskPriority
   dependency_task_ids: string[]
   blocked: boolean
+  parent_task_id?: string | null
+  subtask_position?: number | null
+  stored_status?: TaskStatus | null
+  automatic_status?: TaskStatus | null
+  manual_status_override?: TaskStatus | null
+  is_parent?: boolean
+  subtask_count?: number
+  completed_subtask_count?: number
 }
 
 export interface Milestone {
@@ -78,6 +86,9 @@ export interface TaskWrite {
   due_date: string | null
   priority: TaskPriority
   dependency_task_ids: string[]
+  parent_task_id?: string | null
+  subtask_position?: number | null
+  confirm_parent_phase_move?: boolean
 }
 
 export interface RankingFactors {
@@ -105,6 +116,8 @@ export type PlanErrorCode =
   | 'duplicate_task_title'
   | 'duplicate_milestone_title'
   | 'duplicate_decision_title'
+  | 'parent_phase_move_confirmation_required'
+  | 'parent_status_override_confirmation_required'
 
 export class PlanRequestError extends Error {
   constructor(
@@ -175,15 +188,22 @@ export function replaceTask(id: string, task: TaskWrite): Promise<RelocationPlan
 export function changeTaskStatus(
   id: string,
   status: TaskStatus,
+  confirmManualOverride = false,
 ): Promise<RelocationPlan> {
   return planRequest(
     `/api/relocation-plan/tasks/${encodeURIComponent(id)}/status`,
     {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...(confirmManualOverride ? { confirm_manual_override: true } : {}) }),
     },
   )
+}
+
+export function returnParentToAutomaticStatus(id: string): Promise<RelocationPlan> {
+  return planRequest(`/api/relocation-plan/tasks/${encodeURIComponent(id)}/status-override`, {
+    method: 'DELETE',
+  })
 }
 
 export function createMilestone(id: string, milestone: MilestoneWrite) {

@@ -80,6 +80,8 @@ class TaskFields(PlanModel):
     due_date: date | None = None
     priority: TaskPriority = TaskPriority.MEDIUM
     dependency_task_ids: tuple[str, ...] = Field(default=(), max_length=50)
+    parent_task_id: str | None = Field(default=None, min_length=1, max_length=64)
+    subtask_position: int | None = Field(default=None, ge=0)
 
     @field_validator("title")
     @classmethod
@@ -151,6 +153,9 @@ class TaskUpdate(PlanModel):
     due_date: date | None
     priority: TaskPriority
     dependency_task_ids: tuple[str, ...] = Field(max_length=50)
+    parent_task_id: str | None = Field(default=None, min_length=1, max_length=64)
+    subtask_position: int | None = Field(default=None, ge=0)
+    confirm_parent_phase_move: bool = False
 
     _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
     _validate_description = field_validator("description")(
@@ -179,11 +184,18 @@ class TaskUpdate(PlanModel):
 
 class TaskStatusUpdate(PlanModel):
     status: TaskStatus
+    confirm_manual_override: bool = False
 
 
 class Task(TaskFields):
     id: str
     blocked: bool
+    stored_status: TaskStatus | None = None
+    automatic_status: TaskStatus | None = None
+    manual_status_override: TaskStatus | None = None
+    is_parent: bool = False
+    subtask_count: int = 0
+    completed_subtask_count: int = 0
 
 
 class MilestoneFields(PlanModel):

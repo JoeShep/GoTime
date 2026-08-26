@@ -33,10 +33,12 @@ from app.relocation_plan_repository import (
     DependencyCycleError,
     DuplicateTitleError,
     InvalidDependencyError,
+    InvalidHierarchyError,
     InvalidPhaseError,
     InvalidDecisionError,
     MilestoneNotFoundError,
     PlanItemAlreadyExistsError,
+    ParentChangeConfirmationRequired,
     SQLiteRelocationPlanRepository,
     TaskAlreadyExistsError,
     TaskNotFoundError,
@@ -100,9 +102,14 @@ def plan_error(error: ValueError) -> HTTPException:
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": error.code, "message": str(error)},
         )
+    if isinstance(error, ParentChangeConfirmationRequired):
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": error.code, "message": str(error)},
+        )
     if isinstance(error, (TaskAlreadyExistsError, PlanItemAlreadyExistsError)):
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error))
-    if isinstance(error, (InvalidPhaseError, InvalidDependencyError, DependencyCycleError, InvalidDecisionError)):
+    if isinstance(error, (InvalidPhaseError, InvalidDependencyError, InvalidHierarchyError, DependencyCycleError, InvalidDecisionError)):
         return HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(error)
         )
@@ -158,7 +165,23 @@ async def update_relocation_task_status(
     request: Request, task_id: str, update: TaskStatusUpdate
 ) -> RelocationPlan:
     try:
-        return get_plan_repository(request).update_task_status(task_id, update.status)
+        return get_plan_repository(request).update_task_status(
+            task_id, update.status,
+            confirm_manual_override=update.confirm_manual_override,
+        )
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.delete(
+    "/api/relocation-plan/tasks/{task_id}/status-override",
+    response_model=RelocationPlan,
+)
+async def return_parent_to_automatic_status(
+    request: Request, task_id: str,
+) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).return_parent_to_automatic_status(task_id)
     except ValueError as error:
         raise plan_error(error) from error
 

@@ -2638,3 +2638,45 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   `gotime_recommendation_targeting_acceptance_net_b14e2c9`, and temporary
   directory `/tmp/gotime-recommendation-targeting-acceptance-b14e2c9/`.
   No derived-attention or other feature work began.
+
+# 2026-08-25 — Required subtasks and derived parent status candidate
+
+- Began from clean closeout `de5ba863bfca686f2d1c32540899c2a3fd514b59`.
+  Recorded the persistent hierarchy/manual-status architecture in ADR-0010.
+  The migration is additive, transactional, and idempotent; it creates no
+  relationships automatically and requires no active-data conversion.
+- Added one-level same-phase required subtasks, user-controlled order,
+  confirmed parent phase moves, attach/detach preservation, reversible derived
+  status, visible confirmed manual overrides, dependency propagation, leaf-only
+  phase counts, and parent-summary Recommendation exclusion.
+- Plan reuses the Task editor for **Part of** and **Add subtask**. Groups are
+  collapsed independently by session; filtering preserves parent context; Find
+  and Recommendation targets reveal a child within its parent. No Decision
+  readiness, evidence-link, contextual Recommendation, or family conversion
+  work was started.
+- A fresh verified SQLite backup was made before source edits. Focused backend
+  hierarchy tests passed 6 tests and the complete backend suite passed 213.
+  Focused frontend coverage passed 58 tests, the complete frontend suite passed
+  132, and the production build passed.
+- Backup `/tmp/gotime-required-subtasks-backup-20260825/gotime-pre-required-subtasks.db`
+  is 221,184 bytes with SHA-256
+  `4d9b9ee0b849bf1a11b47d722464cb7608c04b1c2cbcbdb1a18d82a44b89b908`,
+  integrity `ok`, clean foreign keys, 49 Tasks, and no Milestones, Decisions,
+  options, hierarchy rows, or overrides. Migration on disposable rehearsal
+  volume `gotime_required_subtasks_rehearsal_data_c4a18d2` created the two
+  empty tables and ordering index without changing logical counts; restoring
+  the backup returned the disposable file to the exact backup checksum.
+- Isolated acceptance project `gotime_required_subtasks_acceptance` is running
+  at `http://localhost:22173` with backend `http://localhost:22000`, containers
+  `gotime-required-subtasks-acceptance-frontend` and
+  `gotime-required-subtasks-acceptance-backend`, volume
+  `gotime_required_subtasks_acceptance_data_c4a18d2`, and network
+  `gotime_required_subtasks_acceptance_net_c4a18d2`. Only those two containers
+  join the network; only the backend mounts the disposable volume. Integrity,
+  foreign keys, baseline counts, Plan, Recommendation, and proxy checks pass.
+  Both experiment flags are disabled.
+- The bind-mounted normal frontend remains stopped. The normal backend retains
+  container identity `4d13c8380a8a7de1e6754b317ab5e7ef851937bb716922b60afa6453807bab6a`,
+  its original start time, healthy status, and zero restarts. Active database
+  SHA-256 remains
+  `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`.

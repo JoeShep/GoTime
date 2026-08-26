@@ -56,6 +56,16 @@ class InvalidDependencyError(RelocationPlanError):
     pass
 
 
+class InvalidHierarchyError(RelocationPlanError):
+    pass
+
+
+class ParentChangeConfirmationRequired(RelocationPlanError):
+    def __init__(self, message: str, code: str):
+        super().__init__(message)
+        self.code = code
+
+
 class DependencyCycleError(RelocationPlanError):
     pass
 
@@ -186,6 +196,7 @@ class SQLiteRelocationPlanRepository:
             )
             self._migrate_task_categories(connection)
             self._migrate_milestone_decision_foundation(connection)
+            self._migrate_required_subtasks(connection)
             connection.execute(
                 "INSERT OR IGNORE INTO relocation_plans (id, title) VALUES (?, ?)",
                 (RELOCATION_PLAN_ID, RELOCATION_PLAN_TITLE),
@@ -208,6 +219,52 @@ class SQLiteRelocationPlanRepository:
                 ),
             )
 
+    @staticmethod
+    def _migrate_required_subtasks(connection: sqlite3.Connection) -> None:
+        expected = {"task_hierarchy", "task_parent_status_overrides"}
+        present = {
+            row["name"] for row in connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ) if row["name"] in expected
+        }
+        if present and present != expected:
+            raise RelocationPlanError(
+                "Incomplete required-subtask schema; missing: "
+                + ", ".join(sorted(expected - present)) + "."
+            )
+        if present == expected:
+            expected_columns = {
+                "task_hierarchy": {"child_task_id", "parent_task_id", "position"},
+                "task_parent_status_overrides": {"parent_task_id", "status"},
+            }
+            for table, columns in expected_columns.items():
+                actual = {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+                if actual != columns:
+                    raise RelocationPlanError(f"Unexpected columns in required-subtask table '{table}'.")
+            hierarchy_indexes = {
+                row["name"] for row in connection.execute("PRAGMA index_list(task_hierarchy)")
+            }
+            if "idx_task_hierarchy_parent_position" not in hierarchy_indexes:
+                raise RelocationPlanError("Required-subtask ordering index is missing.")
+            return
+        connection.executescript(
+            """
+            BEGIN IMMEDIATE;
+            CREATE TABLE task_hierarchy (
+                child_task_id TEXT PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+                parent_task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
+                position INTEGER NOT NULL CHECK (position >= 0),
+                CHECK (child_task_id <> parent_task_id)
+            );
+            CREATE INDEX idx_task_hierarchy_parent_position
+                ON task_hierarchy(parent_task_id, position, child_task_id);
+            CREATE TABLE task_parent_status_overrides (
+                parent_task_id TEXT PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+                status TEXT NOT NULL CHECK (status IN ('not_started', 'in_progress', 'completed'))
+            );
+            COMMIT;
+            """
+        )
     @staticmethod
     def _migrate_milestone_decision_foundation(
         connection: sqlite3.Connection,
@@ -461,6 +518,13 @@ class SQLiteRelocationPlanRepository:
                     """
                 ).fetchall()
             )
+            hierarchy_rows = connection.execute(
+                "SELECT child_task_id, parent_task_id, position FROM task_hierarchy "
+                "ORDER BY parent_task_id, position, child_task_id"
+            ).fetchall()
+            override_rows = connection.execute(
+                "SELECT parent_task_id, status FROM task_parent_status_overrides"
+            ).fetchall()
             milestone_rows = connection.execute(
                 """
                 SELECT id, title, description, target_earliest_date,
@@ -486,7 +550,24 @@ class SQLiteRelocationPlanRepository:
         if plan_row is None:
             raise RelocationPlanError("The singleton relocation plan is missing.")
 
-        status_by_id = {row["id"]: TaskStatus(row["status"]) for row in task_rows}
+        stored_status_by_id = {row["id"]: TaskStatus(row["status"]) for row in task_rows}
+        parent_by_child = {row["child_task_id"]: row["parent_task_id"] for row in hierarchy_rows}
+        position_by_child = {row["child_task_id"]: row["position"] for row in hierarchy_rows}
+        children_by_parent: dict[str, list[str]] = {}
+        for row in hierarchy_rows:
+            children_by_parent.setdefault(row["parent_task_id"], []).append(row["child_task_id"])
+        overrides = {row["parent_task_id"]: TaskStatus(row["status"]) for row in override_rows}
+        automatic_by_parent: dict[str, TaskStatus] = {}
+        for parent_id, child_ids in children_by_parent.items():
+            child_statuses = [stored_status_by_id[child_id] for child_id in child_ids]
+            automatic_by_parent[parent_id] = (
+                TaskStatus.COMPLETED if all(status is TaskStatus.COMPLETED for status in child_statuses)
+                else TaskStatus.IN_PROGRESS if any(status is not TaskStatus.NOT_STARTED for status in child_statuses)
+                else TaskStatus.NOT_STARTED
+            )
+        effective_status_by_id = dict(stored_status_by_id)
+        for parent_id, automatic in automatic_by_parent.items():
+            effective_status_by_id[parent_id] = overrides.get(parent_id, automatic)
         tasks = tuple(
             Task(
                 id=row["id"],
@@ -494,18 +575,32 @@ class SQLiteRelocationPlanRepository:
                 description=row["description"],
                 phase_id=row["phase_id"],
                 categories=categories.get(row["id"], ()),
-                status=row["status"],
+                status=effective_status_by_id[row["id"]],
                 assignees=assignees.get(row["id"], ()),
                 start_date=row["start_date"],
                 due_date=row["due_date"],
                 priority=row["priority"],
                 dependency_task_ids=dependencies.get(row["id"], ()),
+                parent_task_id=parent_by_child.get(row["id"]),
+                subtask_position=position_by_child.get(row["id"]),
                 blocked=(
-                    status_by_id[row["id"]] is not TaskStatus.COMPLETED
+                    effective_status_by_id[row["id"]] is not TaskStatus.COMPLETED
                     and any(
-                        status_by_id[dependency_id] is not TaskStatus.COMPLETED
-                        for dependency_id in dependencies.get(row["id"], ())
+                        effective_status_by_id[dependency_id] is not TaskStatus.COMPLETED
+                        for dependency_id in (
+                            dependencies.get(row["id"], ())
+                            + (dependencies.get(parent_by_child[row["id"]], ()) if row["id"] in parent_by_child else ())
+                        )
                     )
+                ),
+                stored_status=stored_status_by_id[row["id"]],
+                automatic_status=automatic_by_parent.get(row["id"]),
+                manual_status_override=overrides.get(row["id"]),
+                is_parent=row["id"] in children_by_parent,
+                subtask_count=len(children_by_parent.get(row["id"], ())),
+                completed_subtask_count=sum(
+                    stored_status_by_id[child_id] is TaskStatus.COMPLETED
+                    for child_id in children_by_parent.get(row["id"], ())
                 ),
             )
             for row in task_rows
@@ -578,7 +673,9 @@ class SQLiteRelocationPlanRepository:
             self._validate_task_bindings(
                 connection, task.id, task.phase_id, task.dependency_task_ids
             )
+            self._validate_hierarchy(connection, task.id, task.phase_id, task.parent_task_id)
             self._insert_task(connection, task.id, task)
+            self._set_hierarchy(connection, task.id, task.parent_task_id, task.subtask_position)
             self._reject_cycles(connection)
         return self.get_plan()
 
@@ -586,7 +683,7 @@ class SQLiteRelocationPlanRepository:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             existing = connection.execute(
-                "SELECT plan_id, title FROM tasks WHERE id = ?", (task_id,)
+                "SELECT plan_id, title, phase_id FROM tasks WHERE id = ?", (task_id,)
             ).fetchone()
             if existing is None:
                 raise TaskNotFoundError(f"Task '{task_id}' does not exist.")
@@ -612,6 +709,20 @@ class SQLiteRelocationPlanRepository:
                 task.dependency_task_ids,
                 allowed_completed_dependency_ids=existing_dependency_ids,
             )
+            self._validate_hierarchy(connection, task_id, task.phase_id, task.parent_task_id)
+            children = [row["child_task_id"] for row in connection.execute(
+                "SELECT child_task_id FROM task_hierarchy WHERE parent_task_id = ?", (task_id,)
+            )]
+            if children and task.phase_id != existing["phase_id"] and not task.confirm_parent_phase_move:
+                raise ParentChangeConfirmationRequired(
+                    "Moving this parent also moves all of its subtasks. Confirm the phase change to continue.",
+                    "parent_phase_move_confirmation_required",
+                )
+            previous_parent = connection.execute(
+                "SELECT parent_task_id FROM task_hierarchy WHERE child_task_id = ?", (task_id,)
+            ).fetchone()
+            previous_parent_id = previous_parent["parent_task_id"] if previous_parent else None
+            previous_parent_effective = self._effective_parent_status(connection, previous_parent_id) if previous_parent_id else None
             connection.execute(
                 """
                 UPDATE tasks SET phase_id = ?, title = ?, description = ?,
@@ -636,16 +747,47 @@ class SQLiteRelocationPlanRepository:
                 task.assignees,
                 task.dependency_task_ids,
             )
+            if children and task.phase_id != existing["phase_id"]:
+                connection.executemany(
+                    "UPDATE tasks SET phase_id = ? WHERE id = ?",
+                    ((task.phase_id, child_id) for child_id in children),
+                )
+            self._set_hierarchy(connection, task_id, task.parent_task_id, task.subtask_position)
+            if previous_parent_id and previous_parent_id != task.parent_task_id:
+                self._preserve_final_detached_parent_status(connection, previous_parent_id, previous_parent_effective)
             self._reject_cycles(connection)
         return self.get_plan()
 
-    def update_task_status(self, task_id: str, status: TaskStatus) -> RelocationPlan:
+    def update_task_status(self, task_id: str, status: TaskStatus, *, confirm_manual_override: bool = False) -> RelocationPlan:
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             if not self._task_exists(connection, task_id):
                 raise TaskNotFoundError(f"Task '{task_id}' does not exist.")
-            connection.execute(
-                "UPDATE tasks SET status = ? WHERE id = ?", (status.value, task_id)
-            )
+            automatic = self._automatic_parent_status(connection, task_id)
+            if automatic is not None:
+                if status is automatic:
+                    connection.execute("DELETE FROM task_parent_status_overrides WHERE parent_task_id = ?", (task_id,))
+                else:
+                    if not confirm_manual_override:
+                        suffix = " Manually completing it may unblock downstream work." if status is TaskStatus.COMPLETED else ""
+                        raise ParentChangeConfirmationRequired(
+                            "This status conflicts with the required subtasks." + suffix + " Confirm a visible manual override to continue.",
+                            "parent_status_override_confirmation_required",
+                        )
+                    connection.execute(
+                        "INSERT INTO task_parent_status_overrides(parent_task_id, status) VALUES (?, ?) "
+                        "ON CONFLICT(parent_task_id) DO UPDATE SET status = excluded.status",
+                        (task_id, status.value),
+                    )
+            else:
+                connection.execute("UPDATE tasks SET status = ? WHERE id = ?", (status.value, task_id))
+        return self.get_plan()
+
+    def return_parent_to_automatic_status(self, task_id: str) -> RelocationPlan:
+        with self._connect() as connection:
+            if self._automatic_parent_status(connection, task_id) is None:
+                raise InvalidHierarchyError("Only a Task with subtasks has automatic status.")
+            connection.execute("DELETE FROM task_parent_status_overrides WHERE parent_task_id = ?", (task_id,))
         return self.get_plan()
 
     def create_milestone(self, milestone: MilestoneCreate) -> RelocationPlan:
@@ -1003,6 +1145,89 @@ class SQLiteRelocationPlanRepository:
                 "Completed task(s) cannot be added as dependencies: "
                 f"{', '.join(sorted(newly_completed))}."
             )
+
+    def _validate_hierarchy(
+        self, connection: sqlite3.Connection, task_id: str, phase_id: str,
+        parent_task_id: str | None,
+    ) -> None:
+        if parent_task_id is None:
+            return
+        if parent_task_id == task_id:
+            raise InvalidHierarchyError("A Task cannot be part of itself.")
+        parent = connection.execute(
+            "SELECT phase_id FROM tasks WHERE id = ? AND plan_id = ?",
+            (parent_task_id, RELOCATION_PLAN_ID),
+        ).fetchone()
+        if parent is None:
+            raise InvalidHierarchyError(f"Parent Task '{parent_task_id}' does not exist in this Plan.")
+        if parent["phase_id"] != phase_id:
+            raise InvalidHierarchyError("A parent and its subtasks must share a phase.")
+        if connection.execute(
+            "SELECT 1 FROM task_hierarchy WHERE child_task_id = ?", (parent_task_id,)
+        ).fetchone():
+            raise InvalidHierarchyError("A subtask cannot be a parent.")
+        if connection.execute(
+            "SELECT 1 FROM task_hierarchy WHERE parent_task_id = ?", (task_id,)
+        ).fetchone():
+            raise InvalidHierarchyError("A parent cannot become a subtask.")
+
+    @staticmethod
+    def _set_hierarchy(
+        connection: sqlite3.Connection, task_id: str,
+        parent_task_id: str | None, position: int | None,
+    ) -> None:
+        connection.execute("DELETE FROM task_hierarchy WHERE child_task_id = ?", (task_id,))
+        if parent_task_id is None:
+            return
+        if position is None:
+            row = connection.execute(
+                "SELECT COALESCE(MAX(position), -1) + 1 AS next_position FROM task_hierarchy WHERE parent_task_id = ?",
+                (parent_task_id,),
+            ).fetchone()
+            position = row["next_position"]
+        connection.execute(
+            "INSERT INTO task_hierarchy(child_task_id, parent_task_id, position) VALUES (?, ?, ?)",
+            (task_id, parent_task_id, position),
+        )
+
+    @staticmethod
+    def _automatic_parent_status(connection: sqlite3.Connection, parent_task_id: str) -> TaskStatus | None:
+        rows = connection.execute(
+            "SELECT tasks.status FROM task_hierarchy JOIN tasks ON tasks.id = task_hierarchy.child_task_id "
+            "WHERE task_hierarchy.parent_task_id = ?",
+            (parent_task_id,),
+        ).fetchall()
+        if not rows:
+            return None
+        statuses = [TaskStatus(row["status"]) for row in rows]
+        if all(status is TaskStatus.COMPLETED for status in statuses):
+            return TaskStatus.COMPLETED
+        if any(status is not TaskStatus.NOT_STARTED for status in statuses):
+            return TaskStatus.IN_PROGRESS
+        return TaskStatus.NOT_STARTED
+
+    def _effective_parent_status(self, connection: sqlite3.Connection, parent_task_id: str) -> TaskStatus | None:
+        automatic = self._automatic_parent_status(connection, parent_task_id)
+        if automatic is None:
+            return None
+        row = connection.execute(
+            "SELECT status FROM task_parent_status_overrides WHERE parent_task_id = ?", (parent_task_id,)
+        ).fetchone()
+        return TaskStatus(row["status"]) if row else automatic
+
+    def _preserve_final_detached_parent_status(
+        self, connection: sqlite3.Connection, parent_task_id: str,
+        effective_status: TaskStatus | None,
+    ) -> None:
+        if self._automatic_parent_status(connection, parent_task_id) is not None:
+            return
+        if effective_status is not None:
+            connection.execute(
+                "UPDATE tasks SET status = ? WHERE id = ?", (effective_status.value, parent_task_id)
+            )
+        connection.execute(
+            "DELETE FROM task_parent_status_overrides WHERE parent_task_id = ?", (parent_task_id,)
+        )
 
     def _insert_task(
         self, connection: sqlite3.Connection, task_id: str, task: TaskCreate

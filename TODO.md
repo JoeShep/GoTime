@@ -20,9 +20,11 @@
   on test databases and an isolated restored volume.
 - [x] Complete human acceptance of Increment 1, deploy the accepted frontend
   to the normal stack, and remove the isolated acceptance environment safely.
-- [ ] Review and approve execution planning for Increment 2: required
-  subtasks, work-informs-Decision relationships, advisory Decision readiness,
-  and contextual Recommendations.
+- [x] Approve and implement the first Increment 2 slice: one-level required
+  subtasks, derived/manual parent status, dependency propagation, and isolated
+  migration rehearsal.
+- [ ] Plan the remaining Increment 2 work separately: work-informs-Decision
+  relationships, advisory Decision readiness, and contextual Recommendations.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting
   states as deterministic outputs rather than user-selected priorities.
 - [ ] Specify which existing plan facts contribute to each state without

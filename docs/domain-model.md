@@ -165,6 +165,15 @@ The completed manual walkthrough provisionally adds these semantics:
   has begun, In progress when at least one has begun but some remain
   incomplete, and Completed when all are complete. A completed parent satisfies
   dependencies that point to it.
+* A parent may have a visible, confirmed manual status override. Its effective
+  status is manual while overridden and otherwise derived. Child changes do not
+  erase an override; returning to automatic status is explicit.
+* A parent prerequisite blocks every child as well as the parent. A child's own
+  dependencies continue to apply. Parent summaries are not Recommendation
+  candidates, while incomplete children remain actionable.
+* Parent and children share one phase. A confirmed parent phase move carries
+  its children; an attached child cannot move independently. Detaching the
+  final child preserves the parent's effective status as an ordinary Task.
 * Decision readiness is advisory. Identified evidence work may make a Decision
   ready for consideration, but only the user can select an option.
 * Activation is independent of Task progress status. It describes whether work
