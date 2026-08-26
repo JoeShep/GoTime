@@ -27,6 +27,8 @@
   database verification, and isolated teardown for the required-subtask slice.
 - [x] Implement the isolated Increment 2 preparation relationship and advisory
   Decision-readiness candidate without changing Recommendations or family data.
+- [x] Complete human acceptance, additive active migration, normal deployment,
+  database verification, and isolated teardown for Decision preparation readiness.
 - [ ] Plan contextual Recommendations separately from preparation readiness.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting
   states as deterministic outputs rather than user-selected priorities.

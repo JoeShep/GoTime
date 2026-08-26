@@ -60,13 +60,14 @@ activate conditional branches only after the user's choice, preserve inactive
 work outside ordinary attention, and require explicit Milestone achievement.
 Review and approve the design and increment sequence before implementation.
 
-The first bounded Increment 2 slice is accepted and deployed. GoTime now
+The first two bounded Increment 2 slices are accepted and deployed. GoTime now
 supports one level of required subtasks, derived or visibly overridden parent
 status, parent-aware dependency blocking, leaf-only Recommendation eligibility,
-and explicit sibling ordering. The active migration added empty relationship
-structures only; the family plan was not converted. Decision evidence/readiness
-and contextual Recommendation reasoning remain later, separately approved
-work.
+and explicit sibling ordering. Ordinary Tasks may be linked to Decisions as
+preparation work, with readiness derived from effective Task status and option
+selection remaining under user authority. Both active migrations added empty
+relationship structures only; the family plan was not converted. Contextual
+Recommendation reasoning remains later, separately approved work.
 
 Before Increment 2 changes reasoning behavior, establish the approved
 [Now, Plan, and Experiments presentation boundary](technical-design/now-plan-experiments.md).

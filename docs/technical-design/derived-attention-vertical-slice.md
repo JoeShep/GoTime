@@ -796,9 +796,12 @@ The first bounded Increment 2 slice—required subtasks and effective parent
 status—passed complete human acceptance and was deployed on 2026-08-25. Its
 additive active migration created empty hierarchy and manual-override tables;
 all preexisting logical data remained identical and no family relationship was
-created. Evidence links, Decision readiness, contextual Recommendation
-reasoning, conditional activation, and family conversion remain unstarted and
-require separate approval.
+created. The second bounded slice—Decision preparation and advisory readiness—
+passed human acceptance and was deployed on 2026-08-26. Its additive active
+migration created an empty preparation relationship table; every preexisting
+logical row remained identical and the family plan was not converted.
+Contextual Recommendation reasoning, conditional activation, and family
+conversion remain unstarted and require separate approval.
 # Implemented preparation-readiness slice
 
 The second Increment 2 slice uses normalized `decision_preparation_tasks` rows

@@ -71,7 +71,11 @@ new card without persistent generic success feedback. Within a Plan, Task titles
 among Milestones, and Decision titles among Decisions using trimmed,
 whitespace-collapsed, Unicode-aware case-insensitive comparison; different item
 types may share a display title. Conflicts are enforced transactionally by the
-backend with stable HTTP 409 codes and shown inline by the frontend. The primary recommendation now selects one currently actionable stored
+backend with stable HTTP 409 codes and shown inline by the frontend. Ordinary
+Tasks may also be linked to Decisions as **Work needed before deciding**.
+Decision readiness is derived from those Tasks' effective statuses, remains
+advisory, and never selects an option. The active family plan was not converted
+and currently contains no preparation links or Decisions. The primary recommendation now selects one currently actionable stored
 task through an explicit deterministic order. The earlier employment-planning
 inputs remain in browser/request memory as a separate recommendation flow.
 There is no authentication or generalized multi-goal infrastructure.

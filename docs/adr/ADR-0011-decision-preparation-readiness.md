@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted for the second derived-attention Increment 2 slice.
+Accepted and deployed for the second derived-attention Increment 2 slice on
+2026-08-26.
 
 ## Context
 

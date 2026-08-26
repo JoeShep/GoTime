@@ -2809,3 +2809,48 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   exact pre-search expansion set, including multiple open phases and selections
   that were filtered from view. No browser-session persistence, eligibility,
   ordering, validation, API, backend, schema, or data behavior changed.
+
+# 2026-08-26 — Decision preparation readiness acceptance, deployment, and closeout
+
+- Human acceptance passed for Decision preparation readiness and the final
+  dependency-picker review. Accepted product candidate was
+  `bab82c40f879ddca780241186bfeb2a944e5c524`; test-only commit
+  `0afc4c3bb2d738860716c619e2ed766d57c63e5f` updated two stale collapsed-state
+  interactions without changing production behavior.
+- Focused frontend coverage passed 45 tests; the complete frontend suite passed
+  144 tests; the production build and `git diff --check` passed. The complete
+  backend suite passed 220 tests with pinned development dependencies, and
+  backend compilation passed.
+- Recreated and verified backup
+  `/tmp/gotime-decision-preparation-backup-20260826/gotime-pre-decision-preparation.db`
+  at SHA-256 `6642cbf28dcbaf1c569411468b4891dac698f011fb37d3859c229dcc084420d6`;
+  manifest SHA-256 is
+  `2b09098639ffa765996e89e90db1343daf989ab5c05fb145b1b06185f85ce538`.
+  Isolated migration created one empty preparation table, preserved all prior
+  stable hashes, and exact restore returned to the backup checksum.
+- Rebuilt and recreated normal containers with Experiments explicitly false.
+  Backend container `452240df2bb316c6ee9d37ca50e41f525a328650bf3217c0c9364f835d29ec87`
+  runs image `305c28d1ef866146a2014ce3e761830c6787a802d82f045cb6a41d4a12d139e2`;
+  frontend container `da08f557c19dd8396a5f1ef23bf0d8b4fdfcaff4e6efa2123500b8b809418f2a`
+  runs image `0178ff7616bd95d9bef191c523c568093ca8b47b5a8ee59f57e9320df0fd8e05`.
+  Both had zero restarts; backend health was healthy.
+- The additive migration added `decision_preparation_tasks` with zero rows.
+  Before/after counts and stable hashes matched for all preexisting tables: 49
+  Tasks, 76 assignees, 50 category assignments, 45 dependencies, four phases,
+  one plan, and zero Milestones, Decisions, options, hierarchy links, or parent
+  overrides. Integrity remained `ok` and foreign keys clean. Expected SQLite
+  bytes changed from SHA-256
+  `2dbb364950d30009a0ff9b76dac91cec8dac5b65a870426faa282646afeb8531`
+  to `da902f7617f983db404657bc22d410a435d4775bd02d1d68f706ddbfae60854c`.
+- `/now`, `/plan`, direct and proxied Plan and Recommendation reads, readiness
+  UI/API contracts, normal rendering, and disabled experimental endpoints
+  passed without live probe records. No family-plan Decision or relationship
+  was created.
+- Removed exactly acceptance containers
+  `gotime-decision-preparation-acceptance-frontend` and
+  `gotime-decision-preparation-acceptance-backend`, volume
+  `gotime_decision_preparation_acceptance_data_a11`, and network
+  `gotime_decision_preparation_acceptance_net_a11`. The referenced temporary
+  Compose directory was already absent after the environment interruption.
+  Preserved the verified backup and manifest. Contextual Recommendations and
+  later Increment 2 work were not started.

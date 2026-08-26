@@ -1,18 +1,29 @@
 # NEXT_SESSION
 
-## Current objective: Decision preparation candidate awaiting human acceptance
+## Current objective: Decision preparation readiness closed
 
-The second derived-attention Increment 2 slice links ordinary Tasks to Decisions
+The accepted and deployed second derived-attention Increment 2 slice links ordinary Tasks to Decisions
 as **Work needed before deciding**. Readiness is derived from current links and
 effective Task status, remains advisory, and never selects an option. Selection
 while not ready uses explicit confirmation; returning unresolved does not.
-The additive normalized migration creates no relationships. Parent/subtask
+The additive normalized migration created no relationships. Parent/subtask
 duplication is prevented during Decision editing and later hierarchy attachment.
-The candidate has not been deployed and the active database was not migrated.
-The current acceptance frontend also includes the focused density refinement:
+Complete human acceptance passed, including the dependency-picker review, and
+the normal application is deployed at `http://localhost:5173`. The accepted
+frontend also includes the focused density refinement:
 Milestones and Decisions are independently session-collapsed, all expansion
 controls share the fixed-box SVG chevron, and preparation selection uses compact
 chips plus an active-query-only bounded result panel.
+
+The active migration added `decision_preparation_tasks` with zero rows. All 49
+Tasks and every preexisting table count and stable row hash remained identical;
+integrity is `ok` and foreign keys are clean. No Decision, option, preparation
+link, hierarchy link, or parent-status override was created. The verified
+backup and manifest remain under
+`/tmp/gotime-decision-preparation-backup-20260826/`, and the isolated port-23173
+acceptance containers, volume, and network were removed.
+
+Contextual Recommendations and all later Increment 2 work remain unstarted.
 
 Deferred—not the next increment: simplify the Plan header around **Our goal**
 and the persisted user-defined goal title only after plan creation, renaming,
