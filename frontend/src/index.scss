@@ -434,6 +434,28 @@ body {
   font-weight: 700;
 }
 
+.dependency-phase-toggle {
+  border: 0;
+  color: variables.$forest;
+  font: inherit;
+  background: rgb(23 61 48 / 6%);
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: rgb(23 61 48 / 11%);
+  }
+
+  &:focus-visible {
+    outline: 0.2rem solid variables.$accent;
+    outline-offset: 0.1rem;
+  }
+
+  &:disabled {
+    color: variables.$forest;
+    opacity: 1;
+  }
+}
+
 .dependency-context {
   color: variables.$muted-ink;
   font-size: 0.9rem;

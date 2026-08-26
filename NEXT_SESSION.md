@@ -139,3 +139,9 @@ Minor unrelated mobile-spacing inconsistencies remain deferred visual polish. Na
 date-picker reliability still needs validation on a real mobile browser, and
 eliminating SQLite byte changes from no-op backend initialization remains
 deferred operational cleanup.
+
+The current Decision-readiness acceptance candidate also presents Task
+dependencies in compact, independently collapsible phase groups. Creation
+starts collapsed; editing opens phases with selected dependencies; count-aware
+headings preserve checked selections. Search opens only matching phases and
+Tasks, then restores the exact editor-local expansion state when cleared.

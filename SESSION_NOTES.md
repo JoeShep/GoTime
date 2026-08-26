@@ -2799,3 +2799,13 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   explains all readiness badges through focus or click with Escape/outside
   dismissal and focus return; expanded empty Decisions prompt the user to add
   preparation Tasks.
+- Compacted the Task editor dependency picker into independently collapsible
+  phase groups using the shared fixed-box chevron. New Task editors start with
+  every phase collapsed; edit sessions initially open phases containing saved
+  dependencies. Phase headings report selected counts, and collapsing never
+  clears selections.
+- Dependency search temporarily derives visibility and expansion from matches
+  without mutating the editor's local phase state. Clearing search restores the
+  exact pre-search expansion set, including multiple open phases and selections
+  that were filtered from view. No browser-session persistence, eligibility,
+  ordering, validation, API, backend, schema, or data behavior changed.

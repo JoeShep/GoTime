@@ -499,6 +499,7 @@ describe('persistent relocation plan', () => {
     await beginTaskCreation()
     fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Pack the kitchen' } })
     fireEvent.change(screen.getByLabelText(/^Assignees/), { target: { value: 'Joe, Sarah' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare for the move · 0 selected' }))
     fireEvent.click(screen.getByLabelText('Choose a mover (Not started)'))
     fireEvent.click(screen.getByRole('button', { name: 'Create task' }))
 
@@ -701,6 +702,7 @@ describe('persistent relocation plan', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0])
 
     expect(screen.queryByLabelText('Choose a mover (Not started)')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare for the move · 0 selected' }))
     expect(screen.getByLabelText('Pay the mover deposit (Not started)')).toBeVisible()
   })
 
@@ -718,6 +720,7 @@ describe('persistent relocation plan', () => {
     await beginTaskCreation()
 
     expect(screen.queryByLabelText('Choose a mover (Completed)')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Prepare for the move · 0 selected' }))
     expect(screen.getByLabelText('Pay the mover deposit (Not started)')).toBeVisible()
   })
 
@@ -756,6 +759,78 @@ describe('persistent relocation plan', () => {
     expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(
       expect.objectContaining({ dependency_task_ids: [] }),
     )
+  })
+
+  it('keeps dependency phase expansion local, independent, and selection-safe', async () => {
+    const groupedPlan: RelocationPlanData = {
+      ...plan,
+      tasks: [
+        { ...plan.tasks[0], id: 'choose-region', title: 'Choose a region', phase_id: 'decide' },
+        ...plan.tasks,
+        { ...plan.tasks[0], id: 'book-travel', title: 'Book family travel', phase_id: 'move' },
+      ],
+    }
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(groupedPlan))))
+    render(<RelocationPlan />)
+    await screen.findByRole('heading', { name: 'Choose a mover' })
+    await beginTaskCreation()
+
+    const decide = screen.getByRole('button', { name: 'Decide where and how to move · 0 selected' })
+    const prepare = screen.getByRole('button', { name: 'Prepare for the move · 0 selected' })
+    expect(decide).toHaveAttribute('aria-expanded', 'false')
+    expect(prepare).toHaveAttribute('aria-expanded', 'false')
+    expect(decide.querySelector('svg.expansion-chevron')).toBeVisible()
+    fireEvent.click(decide)
+    fireEvent.click(prepare)
+    expect(decide).toHaveAttribute('aria-expanded', 'true')
+    expect(prepare).toHaveAttribute('aria-expanded', 'true')
+
+    fireEvent.click(screen.getByLabelText('Choose a region (Not started)'))
+    expect(screen.getByRole('button', { name: 'Decide where and how to move · 1 selected' })).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Decide where and how to move · 1 selected' }))
+    expect(screen.queryByLabelText('Choose a region (Not started)')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Decide where and how to move · 1 selected' }))
+    expect(screen.getByLabelText('Choose a region (Not started)')).toBeChecked()
+  })
+
+  it('searches matching dependency phases and restores the exact prior expansion', async () => {
+    const groupedPlan: RelocationPlanData = {
+      ...plan,
+      tasks: [
+        { ...plan.tasks[0], id: 'choose-region', title: 'Choose a region', phase_id: 'decide' },
+        ...plan.tasks,
+      ],
+    }
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(groupedPlan))))
+    render(<RelocationPlan />)
+    await screen.findByRole('heading', { name: 'Choose a mover' })
+    await beginTaskCreation()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Decide where and how to move · 0 selected' }))
+    fireEvent.click(screen.getByLabelText('Choose a region (Not started)'))
+    fireEvent.change(screen.getByLabelText('Search dependencies'), { target: { value: 'mover' } })
+    expect(screen.queryByRole('button', { name: 'Decide where and how to move · 1 selected' })).not.toBeInTheDocument()
+    const searchPhase = screen.getByRole('button', { name: 'Prepare for the move · 0 selected' })
+    expect(searchPhase).toHaveAttribute('aria-expanded', 'true')
+    expect(searchPhase).toBeDisabled()
+    expect(screen.getByLabelText('Choose a mover (Not started)')).toBeVisible()
+    expect(screen.queryByLabelText('Choose a region (Not started)')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Search dependencies'), { target: { value: '' } })
+    expect(screen.getByRole('button', { name: 'Decide where and how to move · 1 selected' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('Choose a region (Not started)')).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Prepare for the move · 0 selected' })).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('initially expands dependency phases containing selections while editing', async () => {
+    mockPlanRequests()
+    render(<RelocationPlan />)
+    const dependentHeading = await screen.findByRole('heading', { name: 'Pay the mover deposit' })
+    fireEvent.click(within(dependentHeading.closest('article')!).getByRole('button', { name: 'Edit' }))
+
+    const selectedPhase = screen.getByRole('button', { name: 'Prepare for the move · 1 selected' })
+    expect(selectedPhase).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('Choose a mover (Not started)')).toBeChecked()
   })
 
   it('separates completed tasks in a collapsed per-phase section and reopens them', async () => {
@@ -832,8 +907,9 @@ describe('persistent relocation plan', () => {
     await screen.findByRole('heading', { name: 'Pay the mover deposit' })
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[2])
 
-    const decideGroup = screen.getByRole('group', { name: 'Decide where and how to move' })
-    const prepareGroup = screen.getByRole('group', { name: 'Prepare for the move' })
+    fireEvent.click(screen.getByRole('button', { name: 'Decide where and how to move · 0 selected' }))
+    const decideGroup = screen.getByRole('group', { name: 'Decide where and how to move · 0 selected' })
+    const prepareGroup = screen.getByRole('group', { name: 'Prepare for the move · 1 selected' })
     expect(within(decideGroup).getByLabelText('Choose a region (Not started)')).toBeVisible()
     expect(within(prepareGroup).getByLabelText('Choose a mover (Not started)')).toBeChecked()
     expect(screen.queryByLabelText('Pay the mover deposit (Not started)')).not.toBeInTheDocument()
@@ -871,6 +947,7 @@ describe('persistent relocation plan', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[2])
 
     fireEvent.click(screen.getByLabelText('Choose a mover (Not started)'))
+    fireEvent.click(screen.getByRole('button', { name: 'Decide where and how to move · 0 selected' }))
     fireEvent.click(screen.getByLabelText('Choose a region (Not started)'))
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 

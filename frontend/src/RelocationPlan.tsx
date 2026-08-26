@@ -314,6 +314,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft | null>(null)
   const [dependencyQuery, setDependencyQuery] = useState('')
+  const [expandedDependencyPhaseIds, setExpandedDependencyPhaseIds] = useState<Set<string>>(new Set())
   const [parentQuery, setParentQuery] = useState('')
   const [parentPickerOpen, setParentPickerOpen] = useState(false)
   const [parentError, setParentError] = useState<string | null>(null)
@@ -384,6 +385,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       ),
     })).filter((group) => group.tasks.length > 0)
   }, [dependencyQuery, draft?.dependencies, editingId, plan])
+  const dependencySearchActive = Boolean(dependencyQuery.trim())
   const categoryMatches = (task: RelocationTask) => (
     taskMatchesCategoryFilters(task, categoryFilters)
   )
@@ -617,6 +619,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setEditingId(null)
     setDraft(emptyDraft(plan.phases[0].id))
     setDependencyQuery('')
+    setExpandedDependencyPhaseIds(new Set())
   }
 
   function beginSubtask(parent: RelocationTask) {
@@ -636,6 +639,8 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setParentError(null)
     setParentPickerOpen(false)
     setParentQuery('')
+    setDependencyQuery('')
+    setExpandedDependencyPhaseIds(new Set())
   }
 
   function cancelCreation() {
@@ -644,6 +649,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setDraft(null)
     setEditingId(null)
     setDependencyQuery('')
+    setExpandedDependencyPhaseIds(new Set())
     setParentQuery('')
     setParentPickerOpen(false)
     setParentError(null)
@@ -659,6 +665,9 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setEditingId(task.id)
     setDraft(draftFromTask(task))
     setDependencyQuery('')
+    setExpandedDependencyPhaseIds(new Set(plan?.tasks
+      .filter((candidate) => task.dependency_task_ids.includes(candidate.id))
+      .map((candidate) => candidate.phase_id) ?? []))
     setError(null)
     setTaskTitleError(null)
     setParentError(null)
@@ -996,7 +1005,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                 </Button>
                 <Button type="button" variant="outline-secondary" disabled={taskEditorSaving} onClick={() => {
                   if (!editingId && creationType === 'task') cancelCreation()
-                  else { setDraft(null); setEditingId(null); setDependencyQuery('') }
+                  else { setDraft(null); setEditingId(null); setDependencyQuery(''); setExpandedDependencyPhaseIds(new Set()) }
                 }}>Cancel</Button>
               </Stack>
               <Row className="g-3">
@@ -1078,14 +1087,30 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                       onChange={(event) => setDependencyQuery(event.target.value)}
                     />
                     <div className="dependency-options rounded-3 p-3">
-                      {dependencyGroups.map(({ phase, tasks }) => (
-                        <fieldset className="dependency-phase mb-3" key={phase.id}>
-                          <legend className="dependency-phase-title mb-1">{phase.title}</legend>
-                          {tasks.map((task) => (
-                            <Form.Check key={task.id} id={`dependency-${task.id}`} label={`${task.title} (${statusLabels[task.status]})`} checked={draft.dependencies.includes(task.id)} onChange={(event) => setDraft({ ...draft, dependencies: event.target.checked ? [...draft.dependencies, task.id] : draft.dependencies.filter((id) => id !== task.id) })} />
-                          ))}
+                      {dependencyGroups.map(({ phase, tasks }) => {
+                        const expanded = dependencySearchActive || expandedDependencyPhaseIds.has(phase.id)
+                        const selectedCount = plan.tasks.filter((task) => task.phase_id === phase.id && draft.dependencies.includes(task.id)).length
+                        return <fieldset className="dependency-phase mb-2" key={phase.id}>
+                          <legend className="dependency-phase-title mb-0 w-100">
+                            <button
+                              aria-controls={`dependency-phase-options-${phase.id}`}
+                              aria-expanded={expanded}
+                              className="dependency-phase-toggle d-flex w-100 align-items-center justify-content-between gap-2 rounded-2 px-2 py-2 text-start"
+                              disabled={dependencySearchActive}
+                              onClick={() => setExpandedDependencyPhaseIds((current) => { const next = new Set(current); if (next.has(phase.id)) next.delete(phase.id); else next.add(phase.id); return next })}
+                              type="button"
+                            >
+                              <span>{phase.title} · {selectedCount} selected</span>
+                              <ExpansionChevron expanded={expanded} />
+                            </button>
+                          </legend>
+                          {expanded && <div className="dependency-phase-options px-2 pt-1" id={`dependency-phase-options-${phase.id}`}>
+                            {tasks.map((task) => (
+                              <Form.Check key={task.id} id={`dependency-${task.id}`} label={`${task.title} (${statusLabels[task.status]})`} checked={draft.dependencies.includes(task.id)} onChange={(event) => setDraft({ ...draft, dependencies: event.target.checked ? [...draft.dependencies, task.id] : draft.dependencies.filter((id) => id !== task.id) })} />
+                            ))}
+                          </div>}
                         </fieldset>
-                      ))}
+                      })}
                       {!plan.tasks.some((task) => task.id !== editingId && (task.status !== 'completed' || draft.dependencies.includes(task.id))) && <p className="text-muted mb-0">No other tasks are available.</p>}
                       {plan.tasks.some((task) => task.id !== editingId && (task.status !== 'completed' || draft.dependencies.includes(task.id))) && dependencyGroups.length === 0 && <p className="text-muted mb-0">No tasks match your search.</p>}
                     </div>
