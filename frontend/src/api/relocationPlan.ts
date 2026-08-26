@@ -61,6 +61,9 @@ export interface Decision {
   options: DecisionOption[]
   status: 'unresolved' | 'resolved'
   selected_option_id: string | null
+  preparation_task_ids?: string[]
+  preparation_readiness?: 'no_preparation_tracked' | 'preparation_incomplete' | 'ready_to_decide'
+  completed_preparation_task_count?: number
 }
 
 export interface RelocationPlan {
@@ -73,7 +76,7 @@ export interface RelocationPlan {
 }
 
 export type MilestoneWrite = Omit<Milestone, 'id' | 'status' | 'achieved_at'>
-export type DecisionWrite = Omit<Decision, 'id' | 'status' | 'selected_option_id'>
+export type DecisionWrite = Pick<Decision, 'title' | 'description' | 'milestone_id' | 'options'> & { preparation_task_ids: string[] }
 
 export interface TaskWrite {
   title: string
@@ -118,6 +121,8 @@ export type PlanErrorCode =
   | 'duplicate_decision_title'
   | 'parent_phase_move_confirmation_required'
   | 'parent_status_override_confirmation_required'
+  | 'decision_preparation_confirmation_required'
+  | 'decision_preparation_hierarchy_conflict'
 
 export class PlanRequestError extends Error {
   constructor(
@@ -249,9 +254,9 @@ export function replaceDecision(id: string, decision: DecisionWrite) {
   })
 }
 
-export function changeDecisionSelection(id: string, selectedOptionId: string | null) {
+export function changeDecisionSelection(id: string, selectedOptionId: string | null, confirmNotReady = false) {
   return planRequest(`/api/relocation-plan/decisions/${encodeURIComponent(id)}/selection`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ selected_option_id: selectedOptionId }),
+    body: JSON.stringify({ selected_option_id: selectedOptionId, confirm_not_ready: confirmNotReady }),
   })
 }

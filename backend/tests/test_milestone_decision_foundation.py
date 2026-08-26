@@ -11,6 +11,9 @@ from app.relocation_plan_models import (
     DecisionUpdate,
     MilestoneCreate,
     MilestoneUpdate,
+    TaskCreate,
+    TaskUpdate,
+    TaskStatus,
 )
 from app.relocation_plan_repository import (
     InvalidDecisionError,
@@ -124,10 +127,10 @@ def test_decision_options_are_ordered_and_selection_is_user_controlled(tmp_path)
     assert [option.id for option in created.options] == ["as-is", "builder"]
     assert created.status == "unresolved"
 
-    selected = repository.select_decision_option(created.id, "builder").decisions[0]
+    selected = repository.select_decision_option(created.id, "builder", True).decisions[0]
     assert selected.status == "resolved"
     assert selected.selected_option_id == "builder"
-    revised = repository.select_decision_option(created.id, "as-is").decisions[0]
+    revised = repository.select_decision_option(created.id, "as-is", True).decisions[0]
     assert revised.selected_option_id == "as-is"
     unresolved = repository.select_decision_option(created.id, None).decisions[0]
     assert unresolved.status == "unresolved"
@@ -189,7 +192,7 @@ def test_foundation_endpoints_and_validation(tmp_path) -> None:
     assert body["decisions"][0]["selected_option_id"] is None
     status, body = asyncio.run(api_request(
         path, "PATCH", "/api/relocation-plan/decisions/select-sale-strategy/selection",
-        {"selected_option_id": "builder"},
+        {"selected_option_id": "builder", "confirm_not_ready": True},
     ))
     assert status == 200
     assert body["decisions"][0]["selected_option_id"] == "builder"
@@ -199,3 +202,43 @@ def test_foundation_endpoints_and_validation(tmp_path) -> None:
     ))
     assert status == 200
     assert body["milestones"][0]["status"] == "achieved"
+
+
+def task(item_id: str, status: str = "not_started", parent_task_id: str | None = None) -> TaskCreate:
+    return TaskCreate.model_validate({
+        "id": item_id, "title": item_id.replace("-", " ").title(), "phase_id": "decide",
+        "categories": ["housing"], "status": status, "assignees": [], "priority": "medium",
+        "dependency_task_ids": [], "parent_task_id": parent_task_id,
+    })
+
+
+def test_decision_preparation_readiness_and_relationship_validation(tmp_path) -> None:
+    repository = SQLiteRelocationPlanRepository(tmp_path / "gotime.db")
+    repository.create_task(task("research"))
+    repository.create_task(task("review", "completed"))
+    repository.create_milestone(milestone())
+    created = repository.create_decision(decision(preparation_task_ids=["research", "review"])).decisions[0]
+    assert created.preparation_readiness == "preparation_incomplete"
+    assert created.completed_preparation_task_count == 1
+    repository.update_task_status("research", TaskStatus.COMPLETED)
+    ready = repository.get_plan().decisions[0]
+    assert ready.preparation_readiness == "ready_to_decide"
+    repository.update_task_status("research", TaskStatus.IN_PROGRESS)
+    assert repository.get_plan().decisions[0].preparation_readiness == "preparation_incomplete"
+
+
+def test_parent_and_child_cannot_prepare_same_decision_or_be_linked_later(tmp_path) -> None:
+    repository = SQLiteRelocationPlanRepository(tmp_path / "gotime.db")
+    repository.create_task(task("parent"))
+    repository.create_task(task("child"))
+    repository.create_milestone(milestone())
+    repository.create_decision(decision(preparation_task_ids=["parent", "child"]))
+    current = next(item for item in repository.get_plan().tasks if item.id == "child")
+    update = current.model_dump(exclude={"id", "blocked", "stored_status", "automatic_status", "manual_status_override", "is_parent", "subtask_count", "completed_subtask_count", "subtask_position"})
+    update["parent_task_id"] = "parent"
+    try:
+        repository.update_task("child", TaskUpdate.model_validate(update))
+    except Exception as error:
+        assert "Select the initial home-sale strategy" in str(error)
+    else:
+        raise AssertionError("Hierarchy conflict should be rejected")

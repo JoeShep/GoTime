@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Badge, Button, Card, Col, Form, Row, Stack } from 'react-bootstrap'
+import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Stack } from 'react-bootstrap'
 import {
   changeDecisionSelection,
   changeMilestoneAchievement,
@@ -12,6 +12,7 @@ import {
   type DecisionOption,
   type Milestone,
   type RelocationPlan,
+  type RelocationTask,
 } from './api/relocationPlan'
 import { hasDuplicatePlanItemTitle } from './titleUniqueness'
 
@@ -23,10 +24,11 @@ interface Props {
   onCreationSaved?: () => void
   onEditorOpenChange?: (open: boolean) => void
   onItemRevealed?: () => void
+  onTaskTargeted?: (task: RelocationTask) => void
 }
 
 type MilestoneDraft = Pick<Milestone, 'title' | 'description' | 'target_earliest_date' | 'target_latest_date'>
-type DecisionDraft = Pick<Decision, 'title' | 'description' | 'milestone_id' | 'options'>
+type DecisionDraft = Pick<Decision, 'title' | 'description' | 'milestone_id' | 'options'> & { preparation_task_ids: string[] }
 
 const emptyMilestone = (): MilestoneDraft => ({
   title: '', description: '', target_earliest_date: null, target_latest_date: null,
@@ -82,6 +84,7 @@ export function MilestoneDecisionFoundation({
   onCreationSaved,
   onEditorOpenChange,
   onItemRevealed,
+  onTaskTargeted,
 }: Props) {
   const [milestoneDraft, setMilestoneDraft] = useState<MilestoneDraft | null>(null)
   const [milestoneId, setMilestoneId] = useState<string | null>(null)
@@ -91,6 +94,12 @@ export function MilestoneDecisionFoundation({
   const [error, setError] = useState<string | null>(null)
   const [milestoneTitleError, setMilestoneTitleError] = useState<string | null>(null)
   const [decisionTitleError, setDecisionTitleError] = useState<string | null>(null)
+  const [preparationQuery, setPreparationQuery] = useState('')
+  const [expandedPreparation, setExpandedPreparation] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(sessionStorage.getItem(`gotime:decision-preparation:${plan.id}:v1`) ?? '[]') as string[]) }
+    catch { return new Set() }
+  })
+  const [selectionConfirmation, setSelectionConfirmation] = useState<{ decisionId: string; optionId: string; returnFocus: HTMLElement } | null>(null)
   const [foundItem, setFoundItem] = useState<{ type: 'milestone' | 'decision'; id: string } | null>(null)
   const [pendingReveal, setPendingReveal] = useState<{ type: 'milestone' | 'decision'; id: string } | null>(null)
   const milestoneTitleRef = useRef<HTMLInputElement>(null)
@@ -109,11 +118,15 @@ export function MilestoneDecisionFoundation({
       setMilestoneDraft(null)
       setMilestoneId(null)
       setDecisionId(null)
-      setDecisionDraft({ title: '', description: '', milestone_id: plan.milestones[0].id, options: [newOption(), newOption()] })
+      setDecisionDraft({ title: '', description: '', milestone_id: plan.milestones[0].id, options: [newOption(), newOption()], preparation_task_ids: [] })
       setError(null)
       setDecisionTitleError(null)
     }
   }, [creationType, plan.milestones])
+
+  useEffect(() => {
+    sessionStorage.setItem(`gotime:decision-preparation:${plan.id}:v1`, JSON.stringify([...expandedPreparation]))
+  }, [expandedPreparation, plan.id])
 
   useEffect(() => {
     onEditorOpenChange?.(Boolean(milestoneDraft || decisionDraft))
@@ -233,6 +246,20 @@ export function MilestoneDecisionFoundation({
     && milestoneDraft.target_latest_date
     && milestoneDraft.target_latest_date < milestoneDraft.target_earliest_date,
   )
+  const phaseById = new Map(plan.phases.map((phase) => [phase.id, phase]))
+  const taskById = new Map(plan.tasks.map((task) => [task.id, task]))
+  const preparationCandidates = [...plan.tasks].sort((left, right) =>
+    (phaseById.get(left.phase_id)?.position ?? 0) - (phaseById.get(right.phase_id)?.position ?? 0)
+      || left.title.localeCompare(right.title),
+  ).filter((task) => {
+    const query = preparationQuery.trim().toLocaleLowerCase()
+    return !query || task.title.toLocaleLowerCase().includes(query)
+  })
+  const readinessLabel = (decision: Decision) => decision.preparation_readiness === 'ready_to_decide'
+    ? 'Ready to decide'
+    : decision.preparation_readiness === 'preparation_incomplete'
+      ? 'Preparation incomplete'
+      : 'No preparation tracked'
 
   return (
     <section className="plan-foundation mb-4" aria-labelledby="plan-foundation-heading">
@@ -261,6 +288,29 @@ export function MilestoneDecisionFoundation({
             <Col md={8}><Form.Group controlId="decision-title"><Form.Label>Decision</Form.Label><Form.Control aria-describedby="decision-title-error" aria-invalid={Boolean(decisionTitleError)} isInvalid={Boolean(decisionTitleError)} ref={decisionTitleRef} required maxLength={200} value={decisionDraft.title} onChange={(event) => { const title = event.target.value; setDecisionDraft({ ...decisionDraft, title }); setDecisionTitleError(hasDuplicatePlanItemTitle(plan.decisions, title, decisionId) ? 'A decision with this title already exists in this plan.' : null) }} /><Form.Control.Feedback id="decision-title-error" type="invalid">{decisionTitleError}</Form.Control.Feedback></Form.Group></Col>
             <Col md={4}><Form.Group controlId="decision-milestone"><Form.Label>Milestone</Form.Label><Form.Select value={decisionDraft.milestone_id} onChange={(event) => setDecisionDraft({ ...decisionDraft, milestone_id: event.target.value })}>{plan.milestones.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</Form.Select></Form.Group></Col>
             <Col xs={12}><Form.Group controlId="decision-description"><Form.Label>Context <span className="text-muted">(optional)</span></Form.Label><Form.Control as="textarea" maxLength={2000} value={decisionDraft.description ?? ''} onChange={(event) => setDecisionDraft({ ...decisionDraft, description: event.target.value })} /></Form.Group></Col>
+            <Col xs={12}><Form.Group controlId="decision-preparation-search">
+              <Form.Label>Work needed before deciding</Form.Label>
+              <Form.Control placeholder="Search tasks" type="search" value={preparationQuery} onChange={(event) => setPreparationQuery(event.target.value)} />
+              <div className="decision-preparation-picker border rounded mt-2 p-2" role="group" aria-label="Preparation tasks">
+                {preparationCandidates.map((task) => {
+                  const parent = task.parent_task_id ? taskById.get(task.parent_task_id) : null
+                  const checked = decisionDraft.preparation_task_ids.includes(task.id)
+                  const paired = decisionDraft.preparation_task_ids.some((selectedId) => {
+                    const selected = taskById.get(selectedId)
+                    return selected?.parent_task_id === task.id || task.parent_task_id === selectedId
+                  })
+                  return <Form.Check
+                    checked={checked}
+                    disabled={!checked && paired}
+                    id={`decision-preparation-${task.id}`}
+                    key={task.id}
+                    label={<><strong>{task.title}</strong><span className="d-block small text-muted">{phaseById.get(task.phase_id)?.title} · {task.status.replace('_', ' ')} · {task.categories.length ? task.categories.join(', ') : 'Uncategorized'}{parent ? ` · Part of ${parent.title}` : ''}</span></>}
+                    onChange={(event) => setDecisionDraft({ ...decisionDraft, preparation_task_ids: event.target.checked ? [...decisionDraft.preparation_task_ids, task.id] : decisionDraft.preparation_task_ids.filter((id) => id !== task.id) })}
+                  />
+                })}
+              </div>
+              <Form.Text>Readiness reflects the current effective status of the selected work; it never selects an option.</Form.Text>
+            </Form.Group></Col>
             <Col xs={12}><Form.Label>Options</Form.Label>{decisionDraft.options.map((option, index) => <div className="decision-option-row d-flex flex-wrap flex-sm-nowrap gap-2 mb-2" key={option.id}><Form.Control className="decision-option-input" aria-label={`Option ${index + 1}`} required maxLength={200} value={option.title} onChange={(event) => setDecisionDraft({ ...decisionDraft, options: decisionDraft.options.map((item, itemIndex) => itemIndex === index ? { ...item, title: event.target.value } : item) })} /><Button aria-label={`Move option ${index + 1} up`} disabled={index === 0} variant="outline-secondary" onClick={() => { const options = [...decisionDraft.options]; [options[index - 1], options[index]] = [options[index], options[index - 1]]; setDecisionDraft({ ...decisionDraft, options }) }}>↑</Button><Button aria-label={`Remove option ${index + 1}`} disabled={decisionDraft.options.length <= 2 || option.id === plan.decisions.find((item) => item.id === decisionId)?.selected_option_id} variant="outline-secondary" onClick={() => setDecisionDraft({ ...decisionDraft, options: decisionDraft.options.filter((_, itemIndex) => itemIndex !== index) })}>Remove</Button></div>)}</Col>
           </Row>
           <Button size="sm" variant="outline-secondary" onClick={() => setDecisionDraft({ ...decisionDraft, options: [...decisionDraft.options, newOption()] })}>Add option</Button>
@@ -292,8 +342,25 @@ export function MilestoneDecisionFoundation({
             else itemRefs.current.delete(`decision:${decision.id}`)
           }}
           tabIndex={-1}
-        ><Card.Body><div className="d-flex flex-wrap align-items-start justify-content-between gap-2"><Card.Title className="decision-title" as="h5" id={`decision-title-${decision.id}`}>{decision.title}</Card.Title><Badge className="align-self-start flex-shrink-0" bg={decision.status === 'resolved' ? 'success' : 'warning'} text={decision.status === 'resolved' ? undefined : 'dark'}>{decision.status === 'resolved' ? 'Resolved' : 'Unresolved'}</Badge></div>{decision.description && <p className="plan-foundation-metadata">{decision.description}</p>}<Form.Group><Form.Label>Select an option</Form.Label><Form.Select aria-label={`Selection for ${decision.title}`} disabled={pendingActions.has(`decision-selection-${decision.id}`)} value={decision.selected_option_id ?? ''} onChange={(event) => void perform(`decision-selection-${decision.id}`, () => changeDecisionSelection(decision.id, event.target.value || null))}><option value="">Unresolved</option>{decision.options.map((option) => <option key={option.id} value={option.id}>{option.title}</option>)}</Form.Select></Form.Group><Button className="mt-2" size="sm" variant="outline-secondary" onClick={() => { setMilestoneDraft(null); setMilestoneId(null); setDecisionId(decision.id); setDecisionDraft({ title: decision.title, description: decision.description, milestone_id: decision.milestone_id, options: decision.options }) }}>Edit decision</Button></Card.Body></Card>)}
+        ><Card.Body>
+          <div className="d-flex flex-wrap align-items-start justify-content-between gap-2"><Card.Title className="decision-title" as="h5" id={`decision-title-${decision.id}`}>{decision.title}</Card.Title><span className="d-flex flex-wrap gap-1"><Badge bg={decision.status === 'resolved' ? 'success' : 'warning'} text={decision.status === 'resolved' ? undefined : 'dark'}>{decision.status === 'resolved' ? 'Resolved' : 'Unresolved'}</Badge><Badge bg={decision.preparation_readiness === 'ready_to_decide' ? 'success' : 'secondary'}>{readinessLabel(decision)}</Badge></span></div>
+          {decision.description && <p className="plan-foundation-metadata">{decision.description}</p>}
+          {decision.status === 'resolved' && decision.preparation_readiness === 'preparation_incomplete' && <Alert variant="warning">This decision is resolved, but its preparation is incomplete. Review the selected option if needed.</Alert>}
+          {(decision.preparation_task_ids?.length ?? 0) > 0 && <>
+            <Button aria-controls={`decision-preparation-list-${decision.id}`} aria-expanded={expandedPreparation.has(decision.id)} className="subtask-progress-toggle d-inline-flex align-items-center gap-1 p-0 mb-2" variant="link" onClick={() => setExpandedPreparation((current) => { const next = new Set(current); if (next.has(decision.id)) next.delete(decision.id); else next.add(decision.id); return next })}>
+              <span>{decision.completed_preparation_task_count ?? 0} of {decision.preparation_task_ids?.length ?? 0} preparation {(decision.preparation_task_ids?.length ?? 0) === 1 ? 'task' : 'tasks'} completed</span><span aria-hidden="true" className={`expansion-chevron ${expandedPreparation.has(decision.id) ? 'is-expanded' : ''}`}>›</span>
+            </Button>
+            {expandedPreparation.has(decision.id) && <div id={`decision-preparation-list-${decision.id}`} className="mb-2">{(decision.preparation_task_ids ?? []).map((taskId) => taskById.get(taskId)).filter((task): task is RelocationTask => Boolean(task)).map((task) => <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top py-2" key={task.id}><span><strong className="d-block">{task.title}</strong><small className="text-muted">{phaseById.get(task.phase_id)?.title} · {task.status.replace('_', ' ')}</small></span><Button size="sm" variant="outline-secondary" onClick={() => onTaskTargeted?.(task)}>View task</Button></div>)}</div>}
+          </>}
+          <Form.Group><Form.Label>Select an option</Form.Label><Form.Select aria-label={`Selection for ${decision.title}`} disabled={pendingActions.has(`decision-selection-${decision.id}`)} value={decision.selected_option_id ?? ''} onChange={(event) => { const optionId = event.target.value; if (!optionId) { void perform(`decision-selection-${decision.id}`, () => changeDecisionSelection(decision.id, null)); return } if (decision.preparation_readiness !== 'ready_to_decide') { setSelectionConfirmation({ decisionId: decision.id, optionId, returnFocus: event.currentTarget }); return } void perform(`decision-selection-${decision.id}`, () => changeDecisionSelection(decision.id, optionId)) }}><option value="">Unresolved</option>{decision.options.map((option) => <option key={option.id} value={option.id}>{option.title}</option>)}</Form.Select></Form.Group>
+          <Button className="mt-2" size="sm" variant="outline-secondary" onClick={() => { setMilestoneDraft(null); setMilestoneId(null); setDecisionId(decision.id); setDecisionDraft({ title: decision.title, description: decision.description, milestone_id: decision.milestone_id, options: decision.options, preparation_task_ids: decision.preparation_task_ids ?? [] }) }}>Edit decision</Button>
+        </Card.Body></Card>)}
       </Card.Body></Card></Col>)}</Row>
+      <Modal centered onHide={() => { const focus = selectionConfirmation?.returnFocus; setSelectionConfirmation(null); window.requestAnimationFrame(() => focus?.focus()) }} show={Boolean(selectionConfirmation)}>
+        <Modal.Header closeButton><Modal.Title as="h2">Decide before preparation is complete?</Modal.Title></Modal.Header>
+        <Modal.Body>Some tracked preparation work is incomplete. Selecting an option is still allowed, but readiness does not endorse the choice.</Modal.Body>
+        <Modal.Footer><Button variant="outline-secondary" onClick={() => { const focus = selectionConfirmation?.returnFocus; setSelectionConfirmation(null); window.requestAnimationFrame(() => focus?.focus()) }}>Cancel</Button><Button onClick={() => { if (!selectionConfirmation) return; const request = selectionConfirmation; setSelectionConfirmation(null); void perform(`decision-selection-${request.decisionId}`, () => changeDecisionSelection(request.decisionId, request.optionId, true)) }}>Select option anyway</Button></Modal.Footer>
+      </Modal>
     </section>
   )
 }

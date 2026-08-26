@@ -953,6 +953,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             writeScrollPosition(plan.id, lastPlanScrollYRef.current)
           })
         }}
+        onTaskTargeted={selectFinderResult}
         onPlanUpdated={acceptPlan}
         plan={plan}
       />}

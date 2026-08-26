@@ -31,6 +31,8 @@ from app.relocation_plan_models import (
 )
 from app.relocation_plan_repository import (
     DecisionNotFoundError,
+    DecisionPreparationConfirmationRequired,
+    DecisionPreparationHierarchyConflict,
     DependencyCycleError,
     DuplicateTitleError,
     InvalidDependencyError,
@@ -108,6 +110,10 @@ def plan_error(error: ValueError) -> HTTPException:
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": error.code, "message": str(error)},
         )
+    if isinstance(error, DecisionPreparationConfirmationRequired):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": error.code, "message": str(error)})
+    if isinstance(error, DecisionPreparationHierarchyConflict):
+        return HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": error.code, "message": str(error)})
     if isinstance(error, (TaskAlreadyExistsError, PlanItemAlreadyExistsError)):
         return HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error))
     if isinstance(error, (InvalidPhaseError, InvalidDependencyError, InvalidHierarchyError, DependencyCycleError, InvalidDecisionError)):
@@ -274,7 +280,7 @@ async def select_decision_option(
 ) -> RelocationPlan:
     try:
         return get_plan_repository(request).select_decision_option(
-            decision_id, update.selected_option_id
+            decision_id, update.selected_option_id, update.confirm_not_ready
         )
     except ValueError as error:
         raise plan_error(error) from error

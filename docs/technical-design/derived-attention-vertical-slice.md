@@ -799,3 +799,13 @@ all preexisting logical data remained identical and no family relationship was
 created. Evidence links, Decision readiness, contextual Recommendation
 reasoning, conditional activation, and family conversion remain unstarted and
 require separate approval.
+# Implemented preparation-readiness slice
+
+The second Increment 2 slice uses normalized `decision_preparation_tasks` rows
+and derives advisory Decision readiness from linked Tasks' effective statuses.
+Decision writes validate complete relationship sets transactionally, and
+hierarchy writes reject later parent/child duplication. The Plan aggregate
+returns linked IDs, readiness, and completed count. The Decision editor is the
+only relationship editor; card expansion is versioned session state and View
+task reuses the existing transient Plan targeting path. Recommendation ranking
+and contextual explanation remain unchanged.

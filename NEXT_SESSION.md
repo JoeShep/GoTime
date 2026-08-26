@@ -1,6 +1,16 @@
 # NEXT_SESSION
 
-## Current objective: required-subtask increment closed
+## Current objective: Decision preparation candidate awaiting human acceptance
+
+The second derived-attention Increment 2 slice links ordinary Tasks to Decisions
+as **Work needed before deciding**. Readiness is derived from current links and
+effective Task status, remains advisory, and never selects an option. Selection
+while not ready uses explicit confirmation; returning unresolved does not.
+The additive normalized migration creates no relationships. Parent/subtask
+duplication is prevented during Decision editing and later hierarchy attachment.
+The candidate has not been deployed and the active database was not migrated.
+
+## Previous objective: required-subtask increment closed
 
 The first derived-attention Increment 2 slice adds one level of required
 subtasks without converting family data. Parent/child membership and order are

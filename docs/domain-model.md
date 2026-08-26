@@ -175,7 +175,10 @@ The completed manual walkthrough provisionally adds these semantics:
   its children; an attached child cannot move independently. Detaching the
   final child preserves the parent's effective status as an ordinary Task.
 * Decision readiness is advisory. Identified evidence work may make a Decision
-  ready for consideration, but only the user can select an option.
+  ready for consideration, but only the user can select an option. A Decision
+  may link ordinary Tasks as **Work needed before deciding**. Advisory readiness
+  derives from their effective statuses; links do not create dependencies or
+  mutate Tasks, and one Decision cannot link both a parent and its subtask.
 * Activation is independent of Task progress status. It describes whether work
   currently belongs to the active plan; inactive work remains preserved and is
   excluded from ordinary attention and Recommendations.

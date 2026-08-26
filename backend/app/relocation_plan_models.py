@@ -45,6 +45,12 @@ class DecisionStatus(StrEnum):
     RESOLVED = "resolved"
 
 
+class DecisionPreparationReadiness(StrEnum):
+    NO_PREPARATION_TRACKED = "no_preparation_tracked"
+    PREPARATION_INCOMPLETE = "preparation_incomplete"
+    READY_TO_DECIDE = "ready_to_decide"
+
+
 def _trimmed(value: str, field_name: str) -> str:
     stripped = value.strip()
     if not stripped:
@@ -277,6 +283,7 @@ class DecisionFields(PlanModel):
     description: str | None = Field(default=None, max_length=2_000)
     milestone_id: str = Field(min_length=1, max_length=64)
     options: tuple[DecisionOptionFields, ...] = Field(min_length=2, max_length=20)
+    preparation_task_ids: tuple[str, ...] = ()
 
     _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
     _validate_description = field_validator("description")(
@@ -296,6 +303,13 @@ class DecisionFields(PlanModel):
             raise ValueError("Decision option titles must be unique.")
         return values
 
+    @field_validator("preparation_task_ids")
+    @classmethod
+    def validate_preparation_task_ids(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        if len(set(values)) != len(values):
+            raise ValueError("Preparation Task IDs must be unique.")
+        return values
+
 
 class DecisionCreate(DecisionFields):
     id: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9][a-z0-9-]*$")
@@ -306,6 +320,7 @@ class DecisionUpdate(PlanModel):
     description: str | None = Field(max_length=2_000)
     milestone_id: str = Field(min_length=1, max_length=64)
     options: tuple[DecisionOptionFields, ...] = Field(min_length=2, max_length=20)
+    preparation_task_ids: tuple[str, ...] = ()
 
     _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
     _validate_description = field_validator("description")(
@@ -314,16 +329,22 @@ class DecisionUpdate(PlanModel):
     _validate_options = field_validator("options")(
         DecisionFields.validate_options.__func__
     )
+    _validate_preparation_task_ids = field_validator("preparation_task_ids")(
+        DecisionFields.validate_preparation_task_ids.__func__
+    )
 
 
 class DecisionSelectionUpdate(PlanModel):
     selected_option_id: str | None
+    confirm_not_ready: bool = False
 
 
 class Decision(DecisionFields):
     id: str
     status: DecisionStatus
     selected_option_id: str | None
+    preparation_readiness: DecisionPreparationReadiness
+    completed_preparation_task_count: int
 
 
 class RelocationPlan(PlanModel):

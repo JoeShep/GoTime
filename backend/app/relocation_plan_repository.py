@@ -10,6 +10,7 @@ from app.relocation_plan_models import (
     Decision,
     DecisionCreate,
     DecisionOptionFields,
+    DecisionPreparationReadiness,
     DecisionStatus,
     DecisionUpdate,
     Milestone,
@@ -122,6 +123,17 @@ class InvalidDecisionError(RelocationPlanError):
     pass
 
 
+class DecisionPreparationConfirmationRequired(RelocationPlanError):
+    code = "decision_preparation_confirmation_required"
+
+    def __init__(self):
+        super().__init__("Preparation is not complete. You may still select this option after confirming.")
+
+
+class DecisionPreparationHierarchyConflict(RelocationPlanError):
+    code = "decision_preparation_hierarchy_conflict"
+
+
 class SQLiteRelocationPlanRepository:
     def __init__(self, database_path: str | Path):
         self.database_path = Path(database_path)
@@ -197,6 +209,7 @@ class SQLiteRelocationPlanRepository:
             self._migrate_task_categories(connection)
             self._migrate_milestone_decision_foundation(connection)
             self._migrate_required_subtasks(connection)
+            self._migrate_decision_preparation(connection)
             connection.execute(
                 "INSERT OR IGNORE INTO relocation_plans (id, title) VALUES (?, ?)",
                 (RELOCATION_PLAN_ID, RELOCATION_PLAN_TITLE),
@@ -218,6 +231,31 @@ class SQLiteRelocationPlanRepository:
                     for phase in DEFAULT_PHASES
                 ),
             )
+
+    @staticmethod
+    def _migrate_decision_preparation(connection: sqlite3.Connection) -> None:
+        table = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='decision_preparation_tasks'"
+        ).fetchone()
+        if table:
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(decision_preparation_tasks)")}
+            if columns != {"decision_id", "task_id"}:
+                raise RelocationPlanError("Unexpected Decision preparation schema.")
+            indexes = {row["name"] for row in connection.execute("PRAGMA index_list(decision_preparation_tasks)")}
+            if "idx_decision_preparation_task_id" not in indexes:
+                raise RelocationPlanError("Decision preparation lookup index is missing.")
+            return
+        connection.executescript("""
+            BEGIN IMMEDIATE;
+            CREATE TABLE decision_preparation_tasks (
+                decision_id TEXT NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
+                task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
+                PRIMARY KEY (decision_id, task_id)
+            );
+            CREATE INDEX idx_decision_preparation_task_id
+                ON decision_preparation_tasks(task_id, decision_id);
+            COMMIT;
+        """)
 
     @staticmethod
     def _migrate_required_subtasks(connection: sqlite3.Connection) -> None:
@@ -546,6 +584,9 @@ class SQLiteRelocationPlanRepository:
                 FROM decision_options ORDER BY decision_id, position
                 """
             ).fetchall()
+            preparation_rows = connection.execute(
+                "SELECT decision_id, task_id FROM decision_preparation_tasks ORDER BY decision_id, task_id"
+            ).fetchall()
 
         if plan_row is None:
             raise RelocationPlanError("The singleton relocation plan is missing.")
@@ -630,6 +671,9 @@ class SQLiteRelocationPlanRepository:
                     description=row["description"],
                 )
             )
+        preparation_by_decision: dict[str, list[str]] = {}
+        for row in preparation_rows:
+            preparation_by_decision.setdefault(row["decision_id"], []).append(row["task_id"])
         decisions = tuple(
             Decision(
                 id=row["id"],
@@ -643,6 +687,18 @@ class SQLiteRelocationPlanRepository:
                     else DecisionStatus.UNRESOLVED
                 ),
                 selected_option_id=row["selected_option_id"],
+                preparation_task_ids=tuple(preparation_by_decision.get(row["id"], ())),
+                preparation_readiness=(
+                    DecisionPreparationReadiness.NO_PREPARATION_TRACKED
+                    if not preparation_by_decision.get(row["id"])
+                    else DecisionPreparationReadiness.READY_TO_DECIDE
+                    if all(effective_status_by_id[task_id] is TaskStatus.COMPLETED for task_id in preparation_by_decision[row["id"]])
+                    else DecisionPreparationReadiness.PREPARATION_INCOMPLETE
+                ),
+                completed_preparation_task_count=sum(
+                    effective_status_by_id[task_id] is TaskStatus.COMPLETED
+                    for task_id in preparation_by_decision.get(row["id"], ())
+                ),
             )
             for row in decision_rows
         )
@@ -932,6 +988,7 @@ class SQLiteRelocationPlanRepository:
             )
             self._validate_milestone(connection, decision.milestone_id)
             self._validate_option_ids_available(connection, decision.options)
+            self._validate_preparation_tasks(connection, decision.preparation_task_ids)
             connection.execute(
                 """
                 INSERT INTO decisions (
@@ -947,6 +1004,7 @@ class SQLiteRelocationPlanRepository:
                 ),
             )
             self._insert_decision_options(connection, decision.id, decision.options)
+            self._set_decision_preparation(connection, decision.id, decision.preparation_task_ids)
         return self.get_plan()
 
     def update_decision(
@@ -981,6 +1039,7 @@ class SQLiteRelocationPlanRepository:
             self._validate_option_ids_available(
                 connection, decision.options, decision_id=decision_id
             )
+            self._validate_preparation_tasks(connection, decision.preparation_task_ids)
             connection.execute(
                 """
                 UPDATE decisions SET milestone_id = ?, title = ?, description = ?
@@ -997,12 +1056,15 @@ class SQLiteRelocationPlanRepository:
                 "DELETE FROM decision_options WHERE decision_id = ?", (decision_id,)
             )
             self._insert_decision_options(connection, decision_id, decision.options)
+            self._set_decision_preparation(connection, decision_id, decision.preparation_task_ids)
         return self.get_plan()
 
     def select_decision_option(
-        self, decision_id: str, selected_option_id: str | None
+        self, decision_id: str, selected_option_id: str | None,
+        confirm_not_ready: bool = False,
     ) -> RelocationPlan:
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             if not self._decision_exists(connection, decision_id):
                 raise DecisionNotFoundError(
                     f"Decision '{decision_id}' does not exist."
@@ -1020,11 +1082,54 @@ class SQLiteRelocationPlanRepository:
                         f"Option '{selected_option_id}' does not belong to "
                         f"Decision '{decision_id}'."
                     )
+                if not confirm_not_ready and not self._decision_is_ready(connection, decision_id):
+                    raise DecisionPreparationConfirmationRequired()
             connection.execute(
                 "UPDATE decisions SET selected_option_id = ? WHERE id = ?",
                 (selected_option_id, decision_id),
             )
         return self.get_plan()
+
+    def _decision_is_ready(self, connection: sqlite3.Connection, decision_id: str) -> bool:
+        task_ids = [row["task_id"] for row in connection.execute(
+            "SELECT task_id FROM decision_preparation_tasks WHERE decision_id = ?", (decision_id,)
+        )]
+        statuses = []
+        for task_id in task_ids:
+            effective = self._effective_parent_status(connection, task_id)
+            if effective is None:
+                effective = TaskStatus(connection.execute(
+                    "SELECT status FROM tasks WHERE id = ?", (task_id,)
+                ).fetchone()["status"])
+            statuses.append(effective)
+        return bool(statuses) and all(status is TaskStatus.COMPLETED for status in statuses)
+
+    def _validate_preparation_tasks(self, connection: sqlite3.Connection, task_ids: tuple[str, ...]) -> None:
+        if len(set(task_ids)) != len(task_ids):
+            raise InvalidDecisionError("Preparation Tasks must be unique.")
+        if not task_ids:
+            return
+        rows = connection.execute(
+            f"SELECT id FROM tasks WHERE plan_id = ? AND id IN ({','.join('?' for _ in task_ids)})",
+            (RELOCATION_PLAN_ID, *task_ids),
+        ).fetchall()
+        if {row["id"] for row in rows} != set(task_ids):
+            raise InvalidDecisionError("Every preparation Task must belong to this Plan.")
+        selected = set(task_ids)
+        conflict = connection.execute(
+            f"SELECT child_task_id, parent_task_id FROM task_hierarchy WHERE child_task_id IN ({','.join('?' for _ in task_ids)}) AND parent_task_id IN ({','.join('?' for _ in task_ids)}) LIMIT 1",
+            (*task_ids, *task_ids),
+        ).fetchone()
+        if conflict:
+            raise InvalidDecisionError("A Decision cannot track both a parent Task and its subtask.")
+
+    @staticmethod
+    def _set_decision_preparation(connection: sqlite3.Connection, decision_id: str, task_ids: tuple[str, ...]) -> None:
+        connection.execute("DELETE FROM decision_preparation_tasks WHERE decision_id = ?", (decision_id,))
+        connection.executemany(
+            "INSERT INTO decision_preparation_tasks(decision_id, task_id) VALUES (?, ?)",
+            ((decision_id, task_id) for task_id in task_ids),
+        )
 
     @staticmethod
     def _plan_item_id_exists(connection: sqlite3.Connection, item_id: str) -> bool:
@@ -1215,6 +1320,17 @@ class SQLiteRelocationPlanRepository:
             "SELECT 1 FROM task_hierarchy WHERE parent_task_id = ?", (task_id,)
         ).fetchone():
             raise InvalidHierarchyError("A parent cannot become a subtask.")
+        conflict = connection.execute(
+            """SELECT decisions.title FROM decision_preparation_tasks child_link
+               JOIN decision_preparation_tasks parent_link ON parent_link.decision_id = child_link.decision_id
+               JOIN decisions ON decisions.id = child_link.decision_id
+               WHERE child_link.task_id = ? AND parent_link.task_id = ? LIMIT 1""",
+            (task_id, parent_task_id),
+        ).fetchone()
+        if conflict:
+            raise DecisionPreparationHierarchyConflict(
+                f'Edit “{conflict["title"]}” first: it cannot track both this Task and its proposed parent.'
+            )
 
     @staticmethod
     def _set_hierarchy(

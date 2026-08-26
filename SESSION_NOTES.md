@@ -2773,3 +2773,12 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   `/tmp/gotime-required-subtasks-acceptance-c4a18d2/`. Preserved the verified
   backup and manifest. Decision readiness, contextual Recommendation work, and
   family-data conversion were not started.
+# 2026-08-25 — Decision preparation and advisory readiness candidate
+
+- Began from clean closeout `adbc3b0d4f9ef664363c42bc6edfb7a044bd00af`.
+- Recorded ADR-0011 for normalized preparation links, effective-status
+  readiness, advisory confirmation, and hierarchy safeguards.
+- Added Decision-editor plan-wide preparation selection, readiness/progress
+  cards, session-collapsed work rows, and shared Plan Task targeting.
+- Created a fresh SQLite online backup before edits; stopped the normal
+  bind-mounted frontend; candidate code never used the active database.

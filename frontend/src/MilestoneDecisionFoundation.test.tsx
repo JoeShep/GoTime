@@ -66,9 +66,10 @@ describe('Milestone and Decision foundation', () => {
       'Unresolved', 'Public listing as-is', 'Builder outreach',
     ])
     fireEvent.change(selection, { target: { value: 'builder' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Select option anyway' }))
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
       '/api/relocation-plan/decisions/sale-strategy/selection',
-      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ selected_option_id: 'builder' }) }),
+      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ selected_option_id: 'builder', confirm_not_ready: true }) }),
     ))
   })
 
@@ -120,6 +121,7 @@ describe('Milestone and Decision foundation', () => {
     const achievement = screen.getByRole('button', { name: 'Mark achieved' })
     const selection = screen.getByRole('combobox', { name: 'Selection for Select the initial home-sale strategy' })
     fireEvent.change(selection, { target: { value: 'builder' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Select option anyway' }))
     expect(selection).toBeDisabled()
     expect(achievement).not.toBeDisabled()
     expect(screen.getByRole('heading', { name: 'Start selling our home' })).toBeVisible()

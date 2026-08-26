@@ -25,8 +25,9 @@
   migration rehearsal.
 - [x] Complete human acceptance, additive active migration, normal deployment,
   database verification, and isolated teardown for the required-subtask slice.
-- [ ] Plan the remaining Increment 2 work separately: work-informs-Decision
-  relationships, advisory Decision readiness, and contextual Recommendations.
+- [x] Implement the isolated Increment 2 preparation relationship and advisory
+  Decision-readiness candidate without changing Recommendations or family data.
+- [ ] Plan contextual Recommendations separately from preparation readiness.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting
   states as deterministic outputs rather than user-selected priorities.
 - [ ] Specify which existing plan facts contribute to each state without
