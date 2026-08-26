@@ -1,6 +1,6 @@
 # NEXT_SESSION
 
-## Current objective: required-subtask candidate awaiting human acceptance
+## Current objective: required-subtask increment closed
 
 The first derived-attention Increment 2 slice adds one level of required
 subtasks without converting family data. Parent/child membership and order are
@@ -12,9 +12,8 @@ and parent summaries are excluded from counts and Recommendations.
 Plan now offers **Part of**, **Add subtask**, independently session-collapsed
 groups, completion summaries, visible manual overrides, and **Return to
 automatic status**. Finder and Recommendation targeting reveal a child inside
-its parent group. The candidate must remain isolated until human acceptance;
-Decision readiness, evidence links, contextual Recommendation work, and family
-conversion have not begun.
+its parent group. Complete human acceptance passed and the accepted backend and
+frontend are deployed to the normal stack at `http://localhost:5173`.
 
 The consolidated UX correction replaces the separate subtask visibility link
 with a count-aware progress button and rotating chevron. Expanded children have
@@ -28,14 +27,17 @@ The focused visual follow-up uses one fixed-box SVG chevron for phase and
 subtask expansion controls and scopes confirmation-modal titles to a
 conventional 1.25rem size with natural narrow-screen wrapping.
 
-Human acceptance is available at `http://localhost:22173` (isolated backend
-`http://localhost:22000`). The disposable database begins with the verified
-snapshot and preserves all human-created records; before this correction it
-contained 52 Tasks and empty hierarchy/override tables. Human-created
-relationships remain disposable and must never be copied to active data. The
-normal frontend is stopped, the normal backend remains healthy and unchanged,
-and the active database checksum remains
-`9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`.
+The approved additive migration created empty `task_hierarchy` and
+`task_parent_status_overrides` structures in the active database. All 49 Tasks
+and every preexisting table count and stable row hash remained identical;
+integrity is `ok` and foreign keys are clean. No family-plan hierarchy or
+manual override was created. The verified pre-increment backup and manifest
+remain preserved under `/tmp/gotime-required-subtasks-backup-20260825/`, and
+the isolated acceptance containers, volume, network, and Compose directory
+were removed after successful normal verification.
+
+Decision readiness, evidence links, contextual Recommendation work, secondary
+attention, and family conversion have not begun.
 
 The unified Add and plan-wide title-uniqueness increment passed complete human
 acceptance and is deployed to the normal stack at `http://localhost:5173`.

@@ -23,6 +23,8 @@
 - [x] Approve and implement the first Increment 2 slice: one-level required
   subtasks, derived/manual parent status, dependency propagation, and isolated
   migration rehearsal.
+- [x] Complete human acceptance, additive active migration, normal deployment,
+  database verification, and isolated teardown for the required-subtask slice.
 - [ ] Plan the remaining Increment 2 work separately: work-informs-Decision
   relationships, advisory Decision readiness, and contextual Recommendations.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting

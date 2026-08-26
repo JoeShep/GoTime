@@ -2729,3 +2729,47 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   The backend identity stayed unchanged, and the acceptance database remained
   byte-for-byte at SHA-256 `d7d6d16d10f4b45a6395fbfb5d3f87c5ee563ede350fe2f631dfd3e7e69fee7d`
   with 52 Tasks, one hierarchy row, integrity `ok`, and clean foreign keys.
+
+# 2026-08-25 — Required-subtask acceptance, deployment, and closeout
+
+- Complete human acceptance passed for required-subtask hierarchy, derived and
+  manual parent status, dependency behavior, targeting, editor/picker flows,
+  atomic ordering, accessible confirmation modals, and the final chevron/title
+  visual corrections. Accepted HEAD was
+  `57f22235eb8f7cbf2b15660b026b0ab9dd103f8f` with a clean worktree.
+- Verified the preserved 221,184-byte backup at
+  `/tmp/gotime-required-subtasks-backup-20260825/gotime-pre-required-subtasks.db`
+  with SHA-256
+  `4d9b9ee0b849bf1a11b47d722464cb7608c04b1c2cbcbdb1a18d82a44b89b908`;
+  its manifest remained intact with SHA-256
+  `f3ca3656e3b3dd525ecb3b73e938c001172cdcd999471a43ff15fe6028a9c6e9`.
+- Backend compilation passed; the complete backend suite passed 218 tests; the
+  complete frontend suite passed 137 tests; the production frontend build and
+  `git diff --check` passed.
+- Rebuilt and recreated normal containers `gotime-backend-1` and
+  `gotime-frontend-1` with both experiment flags explicitly false. Backend
+  container `ab1c4d9615bc4807a430cee0c08e1c3bd695d31e3c3ab4137d440dfeca87fa9f`
+  runs image `b21f6d6addafcf92d6d57f957f82f5d612823d956eb04fb0a577a39607494559`;
+  frontend container `566d268f207e91fc0f082354250eafb331f74aae6288bb82e75b4466c1500393`
+  runs image `7615e07177f8420a37e060615defe8b22e0ca93e5f1eeebaf5137bea5ba11fd5`.
+- The active migration added `task_hierarchy` and
+  `task_parent_status_overrides`, both with zero rows. Before/after counts and
+  stable row hashes matched for every preexisting table: 49 Tasks, 76
+  assignees, 50 category assignments, 45 dependencies, four phases, one plan,
+  and zero Milestones, Decisions, or options. Integrity remained `ok`; foreign
+  keys remained clean. Expected SQLite bytes changed from SHA-256
+  `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`
+  to `2dbb364950d30009a0ff9b76dac91cec8dac5b65a870426faa282646afeb8531`;
+  no logical content changed and no family relationship was created.
+- `/now`, `/plan`, direct and proxied Plan APIs, Recommendation, and disabled
+  experimental endpoints passed normal smoke verification. Complete automated
+  coverage confirms parent summaries are excluded from Recommendations; no live
+  hierarchy probe was created.
+- Removed exactly acceptance containers
+  `gotime-required-subtasks-acceptance-frontend` and
+  `gotime-required-subtasks-acceptance-backend`, volume
+  `gotime_required_subtasks_acceptance_data_c4a18d2`, network
+  `gotime_required_subtasks_acceptance_net_c4a18d2`, and directory
+  `/tmp/gotime-required-subtasks-acceptance-c4a18d2/`. Preserved the verified
+  backup and manifest. Decision readiness, contextual Recommendation work, and
+  family-data conversion were not started.
