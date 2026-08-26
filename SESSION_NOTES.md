@@ -2680,3 +2680,38 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   its original start time, healthy status, and zero restarts. Active database
   SHA-256 remains
   `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`.
+
+# 2026-08-25 — Required-subtask consolidated UX correction
+
+- Added a narrow `PUT /api/relocation-plan/tasks/{parent_task_id}/subtasks/order`
+  mutation. It rejects duplicate IDs, requires the exact current child set,
+  verifies the parent, performs one transactional CASE update, is a write-free
+  no-op for an already-current order, and returns the updated Plan. No schema,
+  migration, hierarchy, dependency, or derived-status semantics changed.
+- Replaced the separate Show/Hide link with the count-aware progress/chevron
+  button. Expanded subtasks now have bounded Move up/down actions with immediate
+  persistence, disabled boundaries, preserved expansion/scroll state, and
+  focus retention on the moved Task.
+- Replaced the native **Part of** select with **This task is a subtask**, a
+  searchable alphabetical phase-scoped eligible-parent picker, category/status
+  context, selected-parent summary and Change action, and inline required-parent
+  validation. Unchecking persists detachment through the existing full editor.
+- Replaced candidate-introduced browser confirmations with one accessible
+  React-Bootstrap modal using specific consequences and actions for conflicting
+  parent status, manual completion/downstream unblocking, parent phase moves,
+  and first-child derived-status changes. Cancel/Escape restore trigger focus;
+  ordinary errors remain inline or in the established error path.
+- Focused backend coverage passed 11 tests. Affected frontend coverage passed
+  46 tests and the production build passed. Complete suites are intentionally
+  deferred until final acceptance/closeout. Before replacing isolated
+  containers, the preserved acceptance volume contained 52 Tasks, zero
+  hierarchy/override rows, integrity `ok`, clean foreign keys, and Task row hash
+  `25d7ca8b815869af610dd2026a9af885a57aebb5e1fce1fc60eab424b03f2a75`.
+- Rebuilt and recreated only the isolated acceptance backend/frontend. Every
+  count and stable row hash matched afterward; integrity remained `ok` and
+  foreign keys clean. The SQLite file checksum changed from `7cb4c3bf...` to
+  `98209210...` from the already-known no-op repository initialization write,
+  with no logical mutation. The active database remained byte-for-byte at
+  `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`,
+  and the normal backend retained its identity, health, start time, and zero
+  restarts.

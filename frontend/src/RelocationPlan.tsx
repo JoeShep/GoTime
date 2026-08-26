@@ -1,10 +1,11 @@
 import { type KeyboardEvent, type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Accordion, Alert, Badge, Button, Card, Col, Dropdown, Form, Row, Spinner, Stack } from 'react-bootstrap'
+import { Accordion, Alert, Badge, Button, Card, Col, Dropdown, Form, Modal, Row, Spinner, Stack } from 'react-bootstrap'
 import {
   changeTaskStatus,
   createTask,
   fetchRelocationPlan,
   replaceTask,
+  reorderSubtasks,
   returnParentToAutomaticStatus,
   PlanRequestError,
   type RelocationPlan as RelocationPlanData,
@@ -145,6 +146,7 @@ interface TaskDraft {
   dueDate: string
   priority: TaskPriority
   dependencies: string[]
+  isSubtask: boolean
   parentTaskId: string
   subtaskPosition: string
 }
@@ -161,6 +163,7 @@ function emptyDraft(phaseId: string): TaskDraft {
     dueDate: '',
     priority: 'medium',
     dependencies: [],
+    isSubtask: false,
     parentTaskId: '',
     subtaskPosition: '',
   }
@@ -178,6 +181,7 @@ function draftFromTask(task: RelocationTask): TaskDraft {
     dueDate: task.due_date ?? '',
     priority: task.priority,
     dependencies: [...task.dependency_task_ids],
+    isSubtask: Boolean(task.parent_task_id),
     parentTaskId: task.parent_task_id ?? '',
     subtaskPosition: task.subtask_position?.toString() ?? '',
   }
@@ -195,9 +199,21 @@ function writeFromDraft(draft: TaskDraft): TaskWrite {
     due_date: draft.dueDate || null,
     priority: draft.priority,
     dependency_task_ids: draft.dependencies,
-    parent_task_id: draft.parentTaskId || null,
-    subtask_position: draft.parentTaskId && draft.subtaskPosition !== '' ? Number(draft.subtaskPosition) : null,
+    parent_task_id: draft.isSubtask ? draft.parentTaskId || null : null,
+    subtask_position: draft.isSubtask && draft.parentTaskId && draft.subtaskPosition !== '' ? Number(draft.subtaskPosition) : null,
   }
+}
+
+interface ConfirmationRequest {
+  heading: string
+  consequence: string
+  confirmLabel: string
+  action: () => Promise<void>
+  returnFocus: HTMLElement | null
+}
+
+function requiredSubtaskText(count: number) {
+  return `${count} required ${count === 1 ? 'subtask' : 'subtasks'}`
 }
 
 export function generateTaskId(title: string): string {
@@ -297,6 +313,12 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft | null>(null)
   const [dependencyQuery, setDependencyQuery] = useState('')
+  const [parentQuery, setParentQuery] = useState('')
+  const [parentPickerOpen, setParentPickerOpen] = useState(false)
+  const [parentError, setParentError] = useState<string | null>(null)
+  const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null)
+  const [confirmationPending, setConfirmationPending] = useState(false)
+  const [reorderingParentIds, setReorderingParentIds] = useState<Set<string>>(new Set())
   const [expandedPhaseIds, setExpandedPhaseIds] = useState<Set<string>>(new Set())
   const [expandedCompletedPhaseIds, setExpandedCompletedPhaseIds] = useState<Set<string>>(new Set())
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set())
@@ -311,6 +333,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const editorRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const taskRefs = useRef(new Map<string, HTMLElement>())
+  const moveButtonRefs = useRef(new Map<string, HTMLButtonElement>())
   const initializedPlanIdRef = useRef<string | null>(null)
   const preFilterExpandedPhaseIdsRef = useRef<Set<string> | null>(null)
   const scrollRestoredRef = useRef(false)
@@ -363,6 +386,19 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const categoryMatches = (task: RelocationTask) => (
     taskMatchesCategoryFilters(task, categoryFilters)
   )
+  const eligibleParents = useMemo(() => {
+    if (!plan || !draft) return []
+    const query = parentQuery.trim().toLocaleLowerCase()
+    return plan.tasks
+      .filter((task) => (
+        task.phase_id === draft.phaseId
+        && !task.parent_task_id
+        && task.id !== editingId
+        && !((editingId && plan.tasks.find((candidate) => candidate.id === editingId)?.is_parent))
+        && task.title.toLocaleLowerCase().includes(query)
+      ))
+      .sort((left, right) => left.title.localeCompare(right.title))
+  }, [draft, editingId, parentQuery, plan])
 
   useEffect(() => {
     if (!plan || initializedPlanIdRef.current === plan.id) return
@@ -573,6 +609,9 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setFilterNotice(null)
     setError(null)
     setTaskTitleError(null)
+    setParentError(null)
+    setParentPickerOpen(false)
+    setParentQuery('')
     if (type !== 'task') return
     setEditingId(null)
     setDraft(emptyDraft(plan.phases[0].id))
@@ -586,12 +625,16 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setCreationType('task')
     setEditingId(null)
     const next = emptyDraft(parent.phase_id)
+    next.isSubtask = true
     next.parentTaskId = parent.id
     next.subtaskPosition = String(parent.subtask_count ?? 0)
     setDraft(next)
     setFilterNotice(null)
     setError(null)
     setTaskTitleError(null)
+    setParentError(null)
+    setParentPickerOpen(false)
+    setParentQuery('')
   }
 
   function cancelCreation() {
@@ -600,6 +643,9 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setDraft(null)
     setEditingId(null)
     setDependencyQuery('')
+    setParentQuery('')
+    setParentPickerOpen(false)
+    setParentError(null)
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: restoreY, left: 0, behavior: 'auto' })
       lastPlanScrollYRef.current = restoreY
@@ -614,32 +660,32 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setDependencyQuery('')
     setError(null)
     setTaskTitleError(null)
+    setParentError(null)
+    setParentPickerOpen(false)
+    setParentQuery('')
   }
 
-  async function saveTask() {
+  function requestConfirmation(request: Omit<ConfirmationRequest, 'returnFocus'>, returnFocus?: HTMLElement | null) {
+    setConfirmation({ ...request, returnFocus: returnFocus ?? document.activeElement as HTMLElement | null })
+  }
+
+  function closeConfirmation() {
+    const returnFocus = confirmation?.returnFocus
+    setConfirmation(null)
+    window.requestAnimationFrame(() => returnFocus?.focus())
+  }
+
+  async function persistTask(confirmParentPhaseMove = false) {
     if (!draft || taskEditorSaving) return
-    if (plan && hasDuplicatePlanItemTitle(plan.tasks, draft.title, editingId)) {
-      setError(null)
-      setTaskTitleError('A task with this title already exists in this plan.')
-      titleInputRef.current?.focus()
-      return
-    }
     setTaskEditorSaving(true)
     setError(null)
     try {
-      const write = writeFromDraft(draft)
+      const write = { ...writeFromDraft(draft), ...(confirmParentPhaseMove ? { confirm_parent_phase_move: true } : {}) }
       const createdId = editingId ?? generateTaskId(write.title)
       const updated = editingId
         ? await replaceTask(editingId, write)
         : await createTask(createdId, write)
       acceptPlan(updated)
-      let parentStatusNotice: string | null = null
-      if (write.parent_task_id) {
-        const parent = updated.tasks.find((task) => task.id === write.parent_task_id)
-        if (parent?.subtask_count === 1) {
-          parentStatusNotice = `“${parent.title}” is now ${statusLabels[parent.status].toLowerCase()} because its status is derived from required subtasks.`
-        }
-      }
       onPlanChanged?.()
       setDraft(null)
       setEditingId(null)
@@ -648,16 +694,17 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         const createdTask = updated.tasks.find((task) => task.id === createdId)
         if (createdTask) selectFinderResult(createdTask)
       }
-      if (parentStatusNotice) setFilterNotice(parentStatusNotice)
     } catch (requestError) {
       if (requestError instanceof PlanRequestError && requestError.code === 'duplicate_task_title') {
         setTaskTitleError(requestError.message)
         titleInputRef.current?.focus()
-      } else if (editingId && requestError instanceof PlanRequestError && requestError.code === 'parent_phase_move_confirmation_required' && window.confirm(requestError.message)) {
-        const updated = await replaceTask(editingId, { ...writeFromDraft(draft), confirm_parent_phase_move: true })
-        acceptPlan(updated)
-        setDraft(null)
-        setEditingId(null)
+      } else if (editingId && requestError instanceof PlanRequestError && requestError.code === 'parent_phase_move_confirmation_required') {
+        requestConfirmation({
+          heading: `Move parent and ${requiredSubtaskText(plan?.tasks.find((task) => task.id === editingId)?.subtask_count ?? 0)}?`,
+          consequence: 'Every required subtask will move to the selected phase with this parent. Their other fields and current progress will stay unchanged.',
+          confirmLabel: 'Move parent and subtasks',
+          action: () => persistTask(true),
+        })
       } else {
         setError(requestError instanceof Error ? requestError.message : 'Unable to save the task.')
       }
@@ -666,20 +713,58 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     }
   }
 
-  async function updateStatus(task: RelocationTask, status: TaskStatus) {
+  function saveTask(returnFocus?: HTMLElement | null) {
+    if (!draft || taskEditorSaving) return
+    if (plan && hasDuplicatePlanItemTitle(plan.tasks, draft.title, editingId)) {
+      setError(null)
+      setTaskTitleError('A task with this title already exists in this plan.')
+      titleInputRef.current?.focus()
+      return
+    }
+    if (draft.isSubtask && !draft.parentTaskId) {
+      setParentError('Select the parent Task for this required subtask.')
+      return
+    }
+    const parent = plan?.tasks.find((task) => task.id === draft.parentTaskId)
+    const existing = plan?.tasks.find((task) => task.id === editingId)
+    const firstAttachmentChangesStatus = Boolean(
+      draft.isSubtask
+      && parent
+      && (parent.subtask_count ?? 0) === 0
+      && existing?.parent_task_id !== parent.id
+      && parent.status !== draft.status
+    )
+    if (firstAttachmentChangesStatus && parent) {
+      requestConfirmation({
+        heading: 'Attach the first required subtask?',
+        consequence: `“${parent.title}” will become ${statusLabels[draft.status].toLowerCase()} because its status will now be derived from this required subtask.`,
+        confirmLabel: 'Attach required subtask',
+        action: () => persistTask(),
+      }, returnFocus)
+      return
+    }
+    void persistTask()
+  }
+
+  async function updateStatus(task: RelocationTask, status: TaskStatus, returnFocus?: HTMLElement | null) {
     setPendingTaskStatusIds((current) => new Set(current).add(task.id))
     setError(null)
     try {
       acceptPlan(await changeTaskStatus(task.id, status))
       onPlanChanged?.()
     } catch (requestError) {
-      if (requestError instanceof PlanRequestError && requestError.code === 'parent_status_override_confirmation_required' && window.confirm(requestError.message)) {
-        try {
-          acceptPlan(await changeTaskStatus(task.id, status, true))
-          onPlanChanged?.()
-        } catch (confirmedError) {
-          setError(confirmedError instanceof Error ? confirmedError.message : 'Unable to update task status.')
-        }
+      if (requestError instanceof PlanRequestError && requestError.code === 'parent_status_override_confirmation_required') {
+        requestConfirmation({
+          heading: status === 'completed' ? 'Complete this parent manually?' : 'Override automatic parent status?',
+          consequence: status === 'completed'
+            ? 'Required subtasks are still incomplete. Completing the parent manually may unblock downstream work, and later subtask changes will not replace this override.'
+            : `The parent will show ${statusLabels[status].toLowerCase()} even though its required subtasks imply ${statusLabels[task.automatic_status ?? task.status].toLowerCase()}. Later subtask changes will not replace this override.`,
+          confirmLabel: status === 'completed' ? 'Complete parent manually' : 'Use manual status',
+          action: async () => {
+            acceptPlan(await changeTaskStatus(task.id, status, true))
+            onPlanChanged?.()
+          },
+        }, returnFocus)
       } else setError(requestError instanceof Error ? requestError.message : 'Unable to update task status.')
     } finally {
       setPendingTaskStatusIds((current) => {
@@ -696,7 +781,36 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to restore automatic status.') }
   }
 
-  function renderTask(task: RelocationTask, isSubtask = false) {
+  async function moveSubtask(parent: RelocationTask, orderedChildren: RelocationTask[], task: RelocationTask, direction: -1 | 1) {
+    const index = orderedChildren.findIndex((candidate) => candidate.id === task.id)
+    const destination = index + direction
+    if (index < 0 || destination < 0 || destination >= orderedChildren.length || reorderingParentIds.has(parent.id)) return
+    const next = [...orderedChildren]
+    ;[next[index], next[destination]] = [next[destination], next[index]]
+    const scrollY = window.scrollY
+    setReorderingParentIds((current) => new Set(current).add(parent.id))
+    setError(null)
+    try {
+      acceptPlan(await reorderSubtasks(parent.id, next.map((child) => child.id)))
+      const nextIndex = destination
+      const preferredDirection = direction === -1 && nextIndex === 0 ? 1 : direction === 1 && nextIndex === next.length - 1 ? -1 : direction
+      window.requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollY, left: 0, behavior: 'auto' })
+        moveButtonRefs.current.get(`${task.id}:${preferredDirection}`)?.focus({ preventScroll: true })
+      })
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : 'Unable to reorder required subtasks.')
+    } finally {
+      setReorderingParentIds((current) => { const nextIds = new Set(current); nextIds.delete(parent.id); return nextIds })
+    }
+  }
+
+  function renderTask(
+    task: RelocationTask,
+    isSubtask = false,
+    parentExpansion?: { expanded: boolean; toggle: () => void },
+    movement?: { parent: RelocationTask; children: RelocationTask[]; index: number },
+  ) {
     const titleId = `task-title-${task.id}`
     return (
       <article
@@ -714,13 +828,14 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
           <div>
             <div className="task-heading-row d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}{task.manual_status_override && <Badge bg="info" text="dark">Manual status</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
             {task.parent_task_id && <p className="small text-muted mb-1">Part of: {taskById.get(task.parent_task_id)?.title ?? task.parent_task_id}</p>}
-            {task.is_parent && <p className="small fw-semibold mb-1">{task.completed_subtask_count ?? 0} of {task.subtask_count ?? 0} subtasks completed</p>}
+            {task.is_parent && parentExpansion && <Button aria-controls={`subtask-list-${task.id}`} aria-expanded={parentExpansion.expanded} className="subtask-progress-toggle d-inline-flex align-items-center gap-1 p-0 mb-1" onClick={parentExpansion.toggle} variant="link"><span>{task.completed_subtask_count ?? 0} of {requiredSubtaskText(task.subtask_count ?? 0)} completed</span><span aria-hidden="true" className={`subtask-chevron ${parentExpansion.expanded ? 'is-expanded' : ''}`}>›</span></Button>}
             <div className="task-metadata d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-2"><CategoryLabels categories={task.categories} /><span className="text-muted">{task.assignees.length > 0 ? task.assignees.join(', ') : 'Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</span></div>
             {task.description && <p className="mb-2">{task.description}</p>}
             {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
           </div>
           <div className="task-actions d-flex flex-wrap align-items-start gap-2">
-            <Form.Select aria-label={`Status for ${task.title}`} disabled={pendingTaskStatusIds.has(task.id)} value={task.status} onChange={(event) => void updateStatus(task, event.target.value as TaskStatus)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select>
+            {movement && <div className="d-flex gap-1" aria-label={`Order ${task.title}`} role="group"><Button disabled={movement.index === 0 || reorderingParentIds.has(movement.parent.id)} onClick={() => void moveSubtask(movement.parent, movement.children, task, -1)} ref={(element) => { if (element) moveButtonRefs.current.set(`${task.id}:-1`, element); else moveButtonRefs.current.delete(`${task.id}:-1`) }} size="sm" variant="outline-secondary">Move up</Button><Button disabled={movement.index === movement.children.length - 1 || reorderingParentIds.has(movement.parent.id)} onClick={() => void moveSubtask(movement.parent, movement.children, task, 1)} ref={(element) => { if (element) moveButtonRefs.current.set(`${task.id}:1`, element); else moveButtonRefs.current.delete(`${task.id}:1`) }} size="sm" variant="outline-secondary">Move down</Button></div>}
+            <Form.Select aria-label={`Status for ${task.title}`} disabled={pendingTaskStatusIds.has(task.id)} value={task.status} onChange={(event) => void updateStatus(task, event.target.value as TaskStatus, event.currentTarget)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select>
             {task.is_parent && <Button variant="outline-primary" onClick={() => beginSubtask(task)}>Add subtask</Button>}
             {task.manual_status_override && <Button variant="outline-secondary" onClick={() => void returnToAutomaticStatus(task)}>Return to automatic status</Button>}
             <Button variant="outline-secondary" onClick={() => beginEdit(task)}>Edit</Button>
@@ -732,16 +847,15 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
   function renderTaskGroup(task: RelocationTask, phaseTasks: RelocationTask[]) {
     if (!task.is_parent) return renderTask(task)
-    const subtasks = phaseTasks
+    const allSubtasks = (plan?.tasks ?? [])
       .filter((candidate) => candidate.parent_task_id === task.id)
       .sort((left, right) => (left.subtask_position ?? 0) - (right.subtask_position ?? 0) || left.id.localeCompare(right.id))
+    const visibleIds = new Set(phaseTasks.map((candidate) => candidate.id))
+    const subtasks = allSubtasks.filter((candidate) => visibleIds.has(candidate.id))
     const expanded = expandedParentIds.has(task.id)
     return <div className="parent-task-group" key={task.id}>
-      <div className="d-flex align-items-center gap-2 mb-1">
-        <Button aria-expanded={expanded} className="subtask-toggle" onClick={() => setExpandedParentIds((current) => { const next = new Set(current); if (next.has(task.id)) next.delete(task.id); else next.add(task.id); return next })} size="sm" variant="link">{expanded ? 'Hide' : 'Show'} subtasks</Button>
-      </div>
-      {renderTask(task)}
-      {expanded && <Stack className="subtask-list gap-1 gap-sm-2 mt-2">{subtasks.map((subtask) => renderTask(subtask, true))}</Stack>}
+      {renderTask(task, false, { expanded, toggle: () => setExpandedParentIds((current) => { const next = new Set(current); if (next.has(task.id)) next.delete(task.id); else next.add(task.id); return next }) })}
+      {expanded && <Stack className="subtask-list gap-1 gap-sm-2 mt-2" id={`subtask-list-${task.id}`}>{subtasks.map((subtask) => renderTask(subtask, true, undefined, { parent: task, children: allSubtasks, index: allSubtasks.findIndex((candidate) => candidate.id === subtask.id) }))}</Stack>}
     </div>
   }
 
@@ -873,7 +987,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
           <Card className="task-editor mb-4">
             <Card.Body>
               <Card.Title as="h3">{editingId ? 'Edit task' : 'Add task'}</Card.Title>
-              <Form onSubmit={(event) => { event.preventDefault(); void saveTask() }}>
+              <Form onSubmit={(event) => { event.preventDefault(); saveTask((event.nativeEvent as SubmitEvent).submitter as HTMLElement | null) }}>
               <Stack direction="horizontal" gap={2} className="task-editor-actions sticky-top flex-wrap py-3 mb-3">
                 <Button type="submit" disabled={taskEditorSaving}>
                   {taskEditorSaving ? (editingId ? 'Saving…' : 'Creating…') : (editingId ? 'Save changes' : 'Create task')}
@@ -885,9 +999,39 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
               </Stack>
               <Row className="g-3">
                 <Col md={8}><Form.Group controlId="task-title"><Form.Label>Title</Form.Label><Form.Control aria-describedby="task-title-error" aria-invalid={Boolean(taskTitleError)} isInvalid={Boolean(taskTitleError)} ref={titleInputRef} required maxLength={200} value={draft.title} onChange={(event) => { const title = event.target.value; setDraft({ ...draft, title }); setTaskTitleError(plan && hasDuplicatePlanItemTitle(plan.tasks, title, editingId) ? 'A task with this title already exists in this plan.' : null) }} /><Form.Control.Feedback id="task-title-error" type="invalid">{taskTitleError}</Form.Control.Feedback></Form.Group></Col>
-                <Col md={4}><Form.Group controlId="task-phase"><Form.Label>Phase</Form.Label><Form.Select disabled={Boolean(draft.parentTaskId)} value={draft.phaseId} onChange={(event) => setDraft({ ...draft, phaseId: event.target.value })}>{plan.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}</Form.Select></Form.Group></Col>
-                <Col md={8}><Form.Group controlId="task-parent"><Form.Label>Part of <span className="text-muted">(optional)</span></Form.Label><Form.Select disabled={Boolean(editingId && plan.tasks.find((task) => task.id === editingId)?.is_parent)} value={draft.parentTaskId} onChange={(event) => { const parentTaskId = event.target.value; const parent = plan.tasks.find((task) => task.id === parentTaskId); setDraft({ ...draft, parentTaskId, phaseId: parent?.phase_id ?? draft.phaseId, subtaskPosition: parentTaskId ? draft.subtaskPosition || String(parent?.subtask_count ?? 0) : '' }) }}><option value="">Not a subtask</option>{plan.tasks.filter((task) => !task.parent_task_id && task.id !== editingId).map((task) => <option key={task.id} value={task.id}>{task.title}</option>)}</Form.Select></Form.Group></Col>
-                {draft.parentTaskId && <Col md={4}><Form.Group controlId="task-subtask-position"><Form.Label>Subtask order</Form.Label><Form.Control min={0} type="number" value={draft.subtaskPosition} onChange={(event) => setDraft({ ...draft, subtaskPosition: event.target.value })} /></Form.Group></Col>}
+                <Col md={4}><Form.Group controlId="task-phase"><Form.Label>Phase</Form.Label><Form.Select disabled={draft.isSubtask && Boolean(draft.parentTaskId)} value={draft.phaseId} onChange={(event) => { setDraft({ ...draft, phaseId: event.target.value, parentTaskId: '' }); setParentError(null); setParentPickerOpen(draft.isSubtask) }}>{plan.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}</Form.Select></Form.Group></Col>
+                <Col xs={12}>
+                  <Form.Group>
+                    <Form.Check
+                      checked={draft.isSubtask}
+                      disabled={Boolean(editingId && plan.tasks.find((task) => task.id === editingId)?.is_parent)}
+                      id="task-is-subtask"
+                      label="This task is a subtask"
+                      onChange={(event) => {
+                        const isSubtask = event.target.checked
+                        setDraft({ ...draft, isSubtask, parentTaskId: isSubtask ? draft.parentTaskId : '', subtaskPosition: isSubtask ? draft.subtaskPosition : '' })
+                        setParentError(null)
+                        setParentPickerOpen(isSubtask && !draft.parentTaskId)
+                      }}
+                    />
+                    {draft.isSubtask && draft.parentTaskId && !parentPickerOpen && (() => {
+                      const selectedParent = plan.tasks.find((task) => task.id === draft.parentTaskId)
+                      return selectedParent ? <div className="selected-parent d-flex flex-wrap align-items-center justify-content-between gap-2 mt-2 p-2 rounded-2">
+                        <span><strong>Part of {selectedParent.title}</strong><span className="d-block small text-muted"><CategoryLabels categories={selectedParent.categories} /> · {statusLabels[selectedParent.status]}</span></span>
+                        <Button onClick={() => { setParentPickerOpen(true); setParentQuery('') }} size="sm" type="button" variant="outline-secondary">Change</Button>
+                      </div> : null
+                    })()}
+                    {draft.isSubtask && (parentPickerOpen || !draft.parentTaskId) && <div className="parent-picker mt-2 p-2 rounded-2">
+                      <Form.Label htmlFor="parent-search">Parent Task</Form.Label>
+                      <Form.Control autoFocus id="parent-search" onChange={(event) => setParentQuery(event.target.value)} placeholder="Search eligible Tasks in this phase" type="search" value={parentQuery} />
+                      <div aria-label="Eligible parent Tasks" className="parent-picker-results d-grid gap-1 mt-2" role="listbox">
+                        {eligibleParents.map((candidate) => <button aria-selected={candidate.id === draft.parentTaskId} className="parent-picker-option text-start rounded-2 p-2" key={candidate.id} onClick={() => { setDraft({ ...draft, isSubtask: true, parentTaskId: candidate.id, phaseId: candidate.phase_id, subtaskPosition: draft.subtaskPosition || String(candidate.subtask_count ?? 0) }); setParentError(null); setParentPickerOpen(false); setParentQuery('') }} role="option" type="button"><strong className="d-block">{candidate.title}</strong><span className="small text-muted"><CategoryLabels categories={candidate.categories} /> · {statusLabels[candidate.status]}</span></button>)}
+                        {eligibleParents.length === 0 && <p className="small text-muted mb-0">No eligible parent Tasks match this search in the selected phase.</p>}
+                      </div>
+                    </div>}
+                    {parentError && <div className="invalid-feedback d-block" role="alert">{parentError}</div>}
+                  </Form.Group>
+                </Col>
                 <Col xs={12}><Form.Group controlId="task-description"><Form.Label>Description <span className="text-muted">(optional)</span></Form.Label><Form.Control as="textarea" rows={2} maxLength={2000} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></Form.Group></Col>
                 <Col md={4}>
                   <Form.Group controlId="task-categories">
@@ -1061,6 +1205,38 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         )
       })}
     </section>
+    <Modal
+      aria-labelledby="task-confirmation-title"
+      backdrop="static"
+      centered
+      onHide={() => { if (!confirmationPending) closeConfirmation() }}
+      restoreFocus={false}
+      show={Boolean(confirmation)}
+    >
+      <Modal.Header closeButton={!confirmationPending}>
+        <Modal.Title as="h2" id="task-confirmation-title">{confirmation?.heading}</Modal.Title>
+      </Modal.Header>
+      <Modal.Body><p className="mb-0">{confirmation?.consequence}</p></Modal.Body>
+      <Modal.Footer>
+        <Button disabled={confirmationPending} onClick={closeConfirmation} variant="outline-secondary">Cancel</Button>
+        <Button disabled={confirmationPending} onClick={() => {
+          if (!confirmation) return
+          const request = confirmation
+          setConfirmationPending(true)
+          void request.action()
+            .then(() => {
+              setConfirmation(null)
+              window.requestAnimationFrame(() => request.returnFocus?.focus())
+            })
+            .catch((requestError) => {
+              setError(requestError instanceof Error ? requestError.message : 'Unable to complete the requested change.')
+              setConfirmation(null)
+              window.requestAnimationFrame(() => request.returnFocus?.focus())
+            })
+            .finally(() => setConfirmationPending(false))
+        }}>{confirmationPending ? 'Saving…' : confirmation?.confirmLabel}</Button>
+      </Modal.Footer>
+    </Modal>
     </>
   )
 }

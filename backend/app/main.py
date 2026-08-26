@@ -24,6 +24,7 @@ from app.relocation_plan_models import (
     MilestoneCreate,
     MilestoneUpdate,
     RelocationPlan,
+    SubtaskOrderUpdate,
     TaskCreate,
     TaskStatusUpdate,
     TaskUpdate,
@@ -182,6 +183,21 @@ async def return_parent_to_automatic_status(
 ) -> RelocationPlan:
     try:
         return get_plan_repository(request).return_parent_to_automatic_status(task_id)
+    except ValueError as error:
+        raise plan_error(error) from error
+
+
+@router.put(
+    "/api/relocation-plan/tasks/{parent_task_id}/subtasks/order",
+    response_model=RelocationPlan,
+)
+async def reorder_relocation_subtasks(
+    request: Request, parent_task_id: str, update: SubtaskOrderUpdate
+) -> RelocationPlan:
+    try:
+        return get_plan_repository(request).reorder_subtasks(
+            parent_task_id, update.child_task_ids
+        )
     except ValueError as error:
         raise plan_error(error) from error
 

@@ -16,9 +16,19 @@ its parent group. The candidate must remain isolated until human acceptance;
 Decision readiness, evidence links, contextual Recommendation work, and family
 conversion have not begun.
 
+The consolidated UX correction replaces the separate subtask visibility link
+with a count-aware progress button and rotating chevron. Expanded children have
+keyboard-accessible Move up/down controls backed by one transactional complete-
+sibling reorder endpoint. **Part of** is now a checkbox plus searchable,
+phase-scoped eligible-parent picker with category/status context and an inline
+missing-parent error. Candidate-introduced browser confirmations are replaced
+by one focus-contained application modal for parent phase moves, manual parent
+status, downstream-unblocking completion, and first-child status changes.
+
 Human acceptance is available at `http://localhost:22173` (isolated backend
 `http://localhost:22000`). The disposable database begins with the verified
-49-Task family-plan snapshot and empty hierarchy/override tables; human-created
+snapshot and preserves all human-created records; before this correction it
+contained 52 Tasks and empty hierarchy/override tables. Human-created
 relationships remain disposable and must never be copied to active data. The
 normal frontend is stopped, the normal backend remains healthy and unchanged,
 and the active database checksum remains

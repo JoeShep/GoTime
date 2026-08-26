@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sqlite3
+
 import pytest
 
 from app.relocation_plan_models import TaskCreate, TaskStatus, TaskUpdate
@@ -8,6 +10,7 @@ from app.relocation_plan_repository import (
     InvalidHierarchyError,
     ParentChangeConfirmationRequired,
     SQLiteRelocationPlanRepository,
+    TaskNotFoundError,
 )
 
 
@@ -108,3 +111,75 @@ def test_detaching_final_child_preserves_effective_parent_status(tmp_path) -> No
     parent = by_id(plan, "parent")
     assert parent.is_parent is False
     assert parent.status is TaskStatus.IN_PROGRESS
+
+
+def ordered_children(plan, parent_id: str) -> list[str]:
+    return [
+        item.id for item in sorted(
+            (task for task in plan.tasks if task.parent_task_id == parent_id),
+            key=lambda task: task.subtask_position or 0,
+        )
+    ]
+
+
+def repository_with_three_children(tmp_path):
+    repository = SQLiteRelocationPlanRepository(tmp_path / "plan.db")
+    repository.create_task(task("parent"))
+    for position, task_id in enumerate(("first", "second", "third")):
+        repository.create_task(
+            task(task_id, parent_task_id="parent", subtask_position=position)
+        )
+    return repository
+
+
+def test_reorder_subtasks_atomically_returns_the_requested_order(tmp_path) -> None:
+    repository = repository_with_three_children(tmp_path)
+    plan = repository.reorder_subtasks("parent", ("third", "first", "second"))
+    assert ordered_children(plan, "parent") == ["third", "first", "second"]
+    assert [by_id(plan, task_id).subtask_position for task_id in ("third", "first", "second")] == [0, 1, 2]
+
+
+def test_reorder_rejects_duplicate_missing_and_extra_ids(tmp_path) -> None:
+    repository = repository_with_three_children(tmp_path)
+    for submitted in (
+        ("first", "first", "third"),
+        ("first", "second"),
+        ("first", "second", "third", "missing"),
+    ):
+        with pytest.raises(InvalidHierarchyError):
+            repository.reorder_subtasks("parent", submitted)
+    assert ordered_children(repository.get_plan(), "parent") == ["first", "second", "third"]
+
+
+def test_reorder_rejects_wrong_parent_membership_and_missing_parent(tmp_path) -> None:
+    repository = repository_with_three_children(tmp_path)
+    repository.create_task(task("other-parent"))
+    repository.create_task(task("other-child", parent_task_id="other-parent"))
+    with pytest.raises(InvalidHierarchyError):
+        repository.reorder_subtasks("parent", ("first", "second", "other-child"))
+    with pytest.raises(TaskNotFoundError, match="does not exist"):
+        repository.reorder_subtasks("missing-parent", ())
+
+
+def test_reorder_is_idempotent_without_writing_positions(tmp_path) -> None:
+    repository = repository_with_three_children(tmp_path)
+    with repository._connect() as connection:
+        connection.execute(
+            """CREATE TRIGGER reject_position_update BEFORE UPDATE OF position
+               ON task_hierarchy BEGIN SELECT RAISE(ABORT, 'unexpected write'); END"""
+        )
+    plan = repository.reorder_subtasks("parent", ("first", "second", "third"))
+    assert ordered_children(plan, "parent") == ["first", "second", "third"]
+
+
+def test_reorder_rolls_back_every_position_when_one_update_fails(tmp_path) -> None:
+    repository = repository_with_three_children(tmp_path)
+    with repository._connect() as connection:
+        connection.execute(
+            """CREATE TRIGGER reject_second_position BEFORE UPDATE OF position
+               ON task_hierarchy WHEN NEW.child_task_id = 'second'
+               BEGIN SELECT RAISE(ABORT, 'forced failure'); END"""
+        )
+    with pytest.raises(sqlite3.IntegrityError, match="forced failure"):
+        repository.reorder_subtasks("parent", ("third", "second", "first"))
+    assert ordered_children(repository.get_plan(), "parent") == ["first", "second", "third"]

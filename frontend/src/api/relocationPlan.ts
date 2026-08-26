@@ -206,6 +206,14 @@ export function returnParentToAutomaticStatus(id: string): Promise<RelocationPla
   })
 }
 
+export function reorderSubtasks(parentId: string, childTaskIds: string[]): Promise<RelocationPlan> {
+  return planRequest(`/api/relocation-plan/tasks/${encodeURIComponent(parentId)}/subtasks/order`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ child_task_ids: childTaskIds }),
+  })
+}
+
 export function createMilestone(id: string, milestone: MilestoneWrite) {
   return planRequest('/api/relocation-plan/milestones', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

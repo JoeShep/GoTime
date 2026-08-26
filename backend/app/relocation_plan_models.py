@@ -187,6 +187,17 @@ class TaskStatusUpdate(PlanModel):
     confirm_manual_override: bool = False
 
 
+class SubtaskOrderUpdate(PlanModel):
+    child_task_ids: tuple[str, ...]
+
+    @field_validator("child_task_ids")
+    @classmethod
+    def reject_duplicate_child_ids(cls, child_task_ids: tuple[str, ...]) -> tuple[str, ...]:
+        if len(set(child_task_ids)) != len(child_task_ids):
+            raise ValueError("Subtask order cannot contain duplicate Task IDs.")
+        return child_task_ids
+
+
 class Task(TaskFields):
     id: str
     blocked: bool

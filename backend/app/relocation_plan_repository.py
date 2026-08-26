@@ -790,6 +790,51 @@ class SQLiteRelocationPlanRepository:
             connection.execute("DELETE FROM task_parent_status_overrides WHERE parent_task_id = ?", (task_id,))
         return self.get_plan()
 
+    def reorder_subtasks(
+        self, parent_task_id: str, child_task_ids: tuple[str, ...]
+    ) -> RelocationPlan:
+        if len(set(child_task_ids)) != len(child_task_ids):
+            raise InvalidHierarchyError(
+                "Subtask order cannot contain duplicate Task IDs."
+            )
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            if not self._task_exists(connection, parent_task_id):
+                raise TaskNotFoundError(f"Task '{parent_task_id}' does not exist.")
+            current_rows = connection.execute(
+                """
+                SELECT child_task_id, position
+                FROM task_hierarchy
+                WHERE parent_task_id = ?
+                ORDER BY position, child_task_id
+                """,
+                (parent_task_id,),
+            ).fetchall()
+            current_ids = tuple(row["child_task_id"] for row in current_rows)
+            if (
+                set(child_task_ids) != set(current_ids)
+                or len(child_task_ids) != len(current_ids)
+            ):
+                raise InvalidHierarchyError(
+                    "Submitted subtask IDs must exactly match this parent's current subtasks."
+                )
+            if child_task_ids != current_ids:
+                cases = " ".join("WHEN ? THEN ?" for _ in child_task_ids)
+                placeholders = ", ".join("?" for _ in child_task_ids)
+                values: list[object] = []
+                for position, child_task_id in enumerate(child_task_ids):
+                    values.extend((child_task_id, position))
+                values.extend((parent_task_id, *child_task_ids))
+                connection.execute(
+                    f"""
+                    UPDATE task_hierarchy
+                    SET position = CASE child_task_id {cases} ELSE position END
+                    WHERE parent_task_id = ? AND child_task_id IN ({placeholders})
+                    """,
+                    values,
+                )
+        return self.get_plan()
+
     def create_milestone(self, milestone: MilestoneCreate) -> RelocationPlan:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")

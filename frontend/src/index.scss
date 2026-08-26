@@ -299,10 +299,47 @@ body {
   background: variables.$card;
 }
 
-.subtask-toggle {
-  min-height: 2.75rem;
+.subtask-progress-toggle {
   color: variables.$forest;
   font-weight: 700;
+  text-align: start;
+  text-decoration: none;
+}
+
+.subtask-chevron {
+  display: inline-block;
+  font-size: 1.35rem;
+  line-height: 1;
+  transition: transform 160ms ease;
+
+  &.is-expanded {
+    transform: rotate(90deg);
+  }
+}
+
+.selected-parent,
+.parent-picker {
+  border: 1px solid rgb(42 61 52 / 18%);
+  background: rgb(247 250 247);
+}
+
+.parent-picker-results {
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.parent-picker-option {
+  border: 1px solid transparent;
+  color: variables.$ink;
+  background: variables.$card;
+
+  &:hover,
+  &:focus-visible,
+  &[aria-selected='true'] {
+    border-color: variables.$accent;
+    outline: none;
+    background: #edf4ee;
+  }
 }
 
 .task-item.is-blocked {
@@ -337,6 +374,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .subtask-chevron {
+    transition: none;
+  }
+
   .task-item.is-found,
   .plan-foundation-item.is-found {
     animation: none;
