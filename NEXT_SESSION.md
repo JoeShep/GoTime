@@ -14,6 +14,12 @@ Milestones and Decisions are independently session-collapsed, all expansion
 controls share the fixed-box SVG chevron, and preparation selection uses compact
 chips plus an active-query-only bounded result panel.
 
+Deferred—not the next increment: simplify the Plan header around **Our goal**
+and the persisted user-defined goal title only after plan creation, renaming,
+and possible multi-plan selection have a defined lifecycle. The complete
+direction is preserved in `docs/parking-lot.md`; no current header redesign is
+authorized.
+
 ## Previous objective: required-subtask increment closed
 
 The first derived-attention Increment 2 slice adds one level of required

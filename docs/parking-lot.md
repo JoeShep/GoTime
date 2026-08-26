@@ -83,6 +83,25 @@ Keep these observations separate from the selected derived-attention milestone:
 These remain useful candidates, but none is part of the current product-design
 objective.
 
+### Plan header and future plan management
+
+The current Plan header repeats navigation context and uses generic or
+implementation-oriented wording: **Plan** is already communicated by
+navigation, **Family plan** is generic while only one plan exists, and
+**Persistent plan** does not help the user. The persisted goal title is the
+meaningful content.
+
+Future direction is to simplify the header around a generic **Our goal** label
+and the persisted, user-defined goal title. A proper plan lifecycle should let
+the user create and later rename that goal, display it consistently on Now and
+Plan, and may add a compact dynamic summary such as remaining, in-progress, and
+completed work. Reserve a plan name such as **Family plan** for a future plan
+selector if GoTime supports multiple plans.
+
+Do not redesign the current header until plan lifecycle and multi-plan
+direction are defined; avoid polishing the interface around incomplete
+assumptions. This is deferred product/UX direction, not the next increment.
+
 ### Operational cleanup
 
 * Eliminate SQLite byte-level writes from no-op backend repository
