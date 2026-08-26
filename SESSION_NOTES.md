@@ -2782,3 +2782,8 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   cards, session-collapsed work rows, and shared Plan Task targeting.
 - Created a fresh SQLite online backup before edits; stopped the normal
   bind-mounted frontend; candidate code never used the active database.
+- Corrected an acceptance-only blocking Plan-load failure: the disposable
+  frontend omitted `VITE_API_PROXY_TARGET`, so its Vite proxy attempted
+  localhost inside the container and returned 500 while the backend returned
+  200 directly. Dockerized frontends now default to the Compose `backend`
+  service; local non-container Vite development retains its localhost default.
