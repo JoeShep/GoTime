@@ -489,6 +489,15 @@ body {
   text-decoration: none;
 }
 
+.readiness-help-button {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: 0 0 1.35rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
 @media (max-width: 575.98px) {
   .app-shell {
     display: flex;

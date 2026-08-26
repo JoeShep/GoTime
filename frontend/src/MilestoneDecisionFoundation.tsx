@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, Badge, Button, Card, Col, Form, Modal, Row, Stack } from 'react-bootstrap'
+import { Alert, Badge, Button, Card, Col, Form, Modal, Overlay, Popover, Row, Stack } from 'react-bootstrap'
 import {
   changeDecisionSelection,
   changeMilestoneAchievement,
@@ -110,11 +110,14 @@ export function MilestoneDecisionFoundation({
     catch { return new Set() }
   })
   const [selectionConfirmation, setSelectionConfirmation] = useState<{ decisionId: string; optionId: string; returnFocus: HTMLElement } | null>(null)
+  const [readinessHelpDecisionId, setReadinessHelpDecisionId] = useState<string | null>(null)
   const [foundItem, setFoundItem] = useState<{ type: 'milestone' | 'decision'; id: string } | null>(null)
   const [pendingReveal, setPendingReveal] = useState<{ type: 'milestone' | 'decision'; id: string } | null>(null)
   const milestoneTitleRef = useRef<HTMLInputElement>(null)
   const decisionTitleRef = useRef<HTMLInputElement>(null)
   const itemRefs = useRef(new Map<string, HTMLElement>())
+  const readinessHelpRefs = useRef(new Map<string, HTMLButtonElement>())
+  const suppressReadinessHelpFocusRef = useRef(false)
 
   useEffect(() => {
     if (creationType === 'milestone') {
@@ -164,6 +167,29 @@ export function MilestoneDecisionFoundation({
     setPendingReveal(null)
     onItemRevealed?.()
   }, [onItemRevealed, pendingReveal, plan])
+
+  useEffect(() => {
+    if (!readinessHelpDecisionId) return
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      const button = readinessHelpRefs.current.get(readinessHelpDecisionId)
+      setReadinessHelpDecisionId(null)
+      suppressReadinessHelpFocusRef.current = true
+      button?.focus()
+      window.requestAnimationFrame(() => { suppressReadinessHelpFocusRef.current = false })
+    }
+    document.addEventListener('keydown', dismiss)
+    return () => document.removeEventListener('keydown', dismiss)
+  }, [readinessHelpDecisionId])
+
+  function closeReadinessHelp(decisionId: string) {
+    const button = readinessHelpRefs.current.get(decisionId)
+    setReadinessHelpDecisionId(null)
+    suppressReadinessHelpFocusRef.current = true
+    button?.focus()
+    window.requestAnimationFrame(() => { suppressReadinessHelpFocusRef.current = false })
+  }
 
   async function perform(
     key: string,
@@ -280,7 +306,7 @@ export function MilestoneDecisionFoundation({
     ? 'Ready to decide'
     : decision.preparation_readiness === 'preparation_incomplete'
       ? 'Preparation incomplete'
-      : 'No preparation tracked'
+      : 'No preparation tasks'
 
   return (
     <section className="plan-foundation mb-4" aria-labelledby="plan-foundation-heading">
@@ -383,7 +409,22 @@ export function MilestoneDecisionFoundation({
         ><Card.Body>
           <div className="d-flex flex-wrap align-items-start justify-content-between gap-2">
             <button aria-controls={`decision-body-${decision.id}`} aria-expanded={decisionExpanded} className="foundation-expansion-toggle d-inline-flex align-items-center gap-2 p-0 text-start" onClick={() => setExpandedDecisions((current) => { const next = new Set(current); if (next.has(decision.id)) next.delete(decision.id); else next.add(decision.id); return next })} type="button"><Card.Title className="decision-title mb-0" as="h5" id={`decision-title-${decision.id}`}>{decision.title}</Card.Title><ExpansionChevron expanded={decisionExpanded} /></button>
-            <span className="d-flex flex-wrap gap-1"><Badge bg={decision.status === 'resolved' ? 'success' : 'warning'} text={decision.status === 'resolved' ? undefined : 'dark'}>{decision.status === 'resolved' ? 'Resolved' : 'Unresolved'}</Badge><Badge bg={decision.preparation_readiness === 'ready_to_decide' ? 'success' : 'secondary'}>{readinessLabel(decision)}</Badge></span>
+            <span className="d-flex flex-wrap align-items-center gap-1"><Badge bg={decision.status === 'resolved' ? 'success' : 'warning'} text={decision.status === 'resolved' ? undefined : 'dark'}>{decision.status === 'resolved' ? 'Resolved' : 'Unresolved'}</Badge><Badge bg={decision.preparation_readiness === 'ready_to_decide' ? 'success' : 'secondary'}>{readinessLabel(decision)}</Badge><Button
+              aria-expanded={readinessHelpDecisionId === decision.id}
+              aria-label={`About ${readinessLabel(decision)}`}
+              className="readiness-help-button d-inline-flex align-items-center justify-content-center rounded-circle p-0"
+              onClick={() => readinessHelpDecisionId === decision.id ? closeReadinessHelp(decision.id) : setReadinessHelpDecisionId(decision.id)}
+              onFocus={() => { if (!suppressReadinessHelpFocusRef.current) setReadinessHelpDecisionId(decision.id) }}
+              ref={(element: HTMLButtonElement | null) => { if (element) readinessHelpRefs.current.set(decision.id, element); else readinessHelpRefs.current.delete(decision.id) }}
+              size="sm"
+              variant="outline-secondary"
+            >i</Button><Overlay
+              onHide={() => closeReadinessHelp(decision.id)}
+              placement="bottom"
+              rootClose
+              show={readinessHelpDecisionId === decision.id}
+              target={() => readinessHelpRefs.current.get(decision.id) ?? null}
+            ><Popover id={`readiness-help-${decision.id}`}><Popover.Body>Preparation tasks are work you want completed before making this decision. GoTime uses their current status to estimate whether the decision is ready.</Popover.Body></Popover></Overlay></span>
           </div>
           {(decision.preparation_task_ids?.length ?? 0) > 0 && <>
             <Button aria-controls={`decision-preparation-list-${decision.id}`} aria-expanded={preparationExpanded} className="subtask-progress-toggle d-inline-flex align-items-center gap-1 p-0 mt-1 mb-1" variant="link" onClick={() => { setExpandedDecisions((current) => new Set(current).add(decision.id)); setExpandedPreparation((current) => { const next = new Set(current); if (next.has(decision.id)) next.delete(decision.id); else next.add(decision.id); return next }) }}>
@@ -391,6 +432,7 @@ export function MilestoneDecisionFoundation({
             </Button>
           </>}
           {decisionExpanded && <div id={`decision-body-${decision.id}`}>
+          {(decision.preparation_task_ids?.length ?? 0) === 0 && <p className="small text-muted mt-2 mb-2">Add tasks that should be completed before making this decision.</p>}
           {decision.description && <p className="plan-foundation-metadata mt-2">{decision.description}</p>}
           {decision.status === 'resolved' && decision.preparation_readiness === 'preparation_incomplete' && <Alert variant="warning">This decision is resolved, but its preparation is incomplete. Review the selected option if needed.</Alert>}
           {preparationExpanded && <div id={`decision-preparation-list-${decision.id}`} className="mb-2">{(decision.preparation_task_ids ?? []).map((taskId) => taskById.get(taskId)).filter((task): task is RelocationTask => Boolean(task)).map((task) => <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 border-top py-2" key={task.id}><span><strong className="d-block">{task.title}</strong><small className="text-muted">{phaseById.get(task.phase_id)?.title} · {task.status.replace('_', ' ')}</small></span><Button size="sm" variant="outline-secondary" onClick={() => { setExpandedMilestones((current) => new Set(current).add(milestone.id)); setExpandedDecisions((current) => new Set(current).add(decision.id)); window.requestAnimationFrame(() => onTaskTargeted?.(task)) }}>View task</Button></div>)}</div>}

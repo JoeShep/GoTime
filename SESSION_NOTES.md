@@ -2794,3 +2794,8 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   targeting opens its containing controls before using the existing reveal.
   The Decision editor now shows compact removable selections and exposes a
   bounded candidate panel only during active nonempty search.
+- Refined readiness terminology to **No preparation tasks** while preserving
+  the stored enum and derivation. A compact accessible information control now
+  explains all readiness badges through focus or click with Escape/outside
+  dismissal and focus return; expanded empty Decisions prompt the user to add
+  preparation Tasks.

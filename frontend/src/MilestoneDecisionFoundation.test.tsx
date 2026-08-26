@@ -188,8 +188,26 @@ describe('Milestone and Decision foundation', () => {
     expect(screen.queryByLabelText('Selection for Select the initial home-sale strategy')).not.toBeInTheDocument()
     fireEvent.click(decisionToggle)
     expect(screen.getByLabelText('Selection for Select the initial home-sale strategy')).toBeVisible()
+    expect(screen.getByText('Add tasks that should be completed before making this decision.')).toBeVisible()
     expect(JSON.parse(sessionStorage.getItem('gotime:milestone-expansion:family-relocation-plan:v1') ?? '[]')).toContain('start-selling-home')
     expect(JSON.parse(sessionStorage.getItem('gotime:decision-expansion:family-relocation-plan:v1') ?? '[]')).toContain('sale-strategy')
+  })
+
+  it('explains readiness through focus and dismisses with Escape or outside click', async () => {
+    render(<MilestoneDecisionFoundation plan={withDecision} onPlanUpdated={vi.fn()} />)
+    expandMilestone()
+    expect(screen.getByText('No preparation tasks')).toBeVisible()
+    const help = screen.getByRole('button', { name: 'About No preparation tasks' })
+    fireEvent.focus(help)
+    expect(screen.getByText('Preparation tasks are work you want completed before making this decision. GoTime uses their current status to estimate whether the decision is ready.')).toBeVisible()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())
+    expect(help).toHaveFocus()
+    fireEvent.click(help)
+    expect(help).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(document.body)
+    await waitFor(() => expect(help).toHaveAttribute('aria-expanded', 'false'))
+    expect(help).toHaveFocus()
   })
 
   it('uses the shared fixed-box SVG for preparation and keeps picker results query-driven', () => {
