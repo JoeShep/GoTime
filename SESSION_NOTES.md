@@ -2715,3 +2715,17 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`,
   and the normal backend retained its identity, health, start time, and zero
   restarts.
+
+# 2026-08-25 — Required-subtask visual correction
+
+- Replaced both phase and subtask inline chevron glyphs with one reusable SVG
+  component. Its fixed 1.25rem nonshrinking box rotates without changing layout;
+  the progress control remains inline-flex, count-aware, wrapping, and fully
+  clickable with unchanged `aria-expanded` and session behavior.
+- Scoped confirmation-modal titles to 1.25rem with normal line wrapping. Modal
+  semantics, body copy, actions, dismissal, and focus restoration are unchanged.
+- The 46 affected frontend tests and production build passed; complete suites
+  were intentionally not run. Recreated only the isolated acceptance frontend.
+  The backend identity stayed unchanged, and the acceptance database remained
+  byte-for-byte at SHA-256 `d7d6d16d10f4b45a6395fbfb5d3f87c5ee563ede350fe2f631dfd3e7e69fee7d`
+  with 52 Tasks, one hierarchy row, integrity `ok`, and clean foreign keys.

@@ -240,6 +240,19 @@ function CategoryLabels({ categories }: { categories: TaskCategory[] }) {
   )
 }
 
+function ExpansionChevron({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={`expansion-chevron ${expanded ? 'is-expanded' : ''}`}
+      focusable="false"
+      viewBox="0 0 16 16"
+    >
+      <path d="M5.75 3.5 10.25 8l-4.5 4.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" />
+    </svg>
+  )
+}
+
 interface PersistentCategoryDropdownProps {
   children: ReactNode
   id: string
@@ -828,7 +841,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
           <div>
             <div className="task-heading-row d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-1"><h4 className="task-title mb-0" id={titleId}>{task.title}</h4>{task.blocked && <Badge bg="warning" text="dark">Blocked</Badge>}{task.manual_status_override && <Badge bg="info" text="dark">Manual status</Badge>}<Badge bg="light" text="dark">{priorityLabels[task.priority]}</Badge></div>
             {task.parent_task_id && <p className="small text-muted mb-1">Part of: {taskById.get(task.parent_task_id)?.title ?? task.parent_task_id}</p>}
-            {task.is_parent && parentExpansion && <Button aria-controls={`subtask-list-${task.id}`} aria-expanded={parentExpansion.expanded} className="subtask-progress-toggle d-inline-flex align-items-center gap-1 p-0 mb-1" onClick={parentExpansion.toggle} variant="link"><span>{task.completed_subtask_count ?? 0} of {requiredSubtaskText(task.subtask_count ?? 0)} completed</span><span aria-hidden="true" className={`subtask-chevron ${parentExpansion.expanded ? 'is-expanded' : ''}`}>›</span></Button>}
+            {task.is_parent && parentExpansion && <Button aria-controls={`subtask-list-${task.id}`} aria-expanded={parentExpansion.expanded} className="subtask-progress-toggle d-inline-flex align-items-center gap-1 p-0 mb-1" onClick={parentExpansion.toggle} variant="link"><span>{task.completed_subtask_count ?? 0} of {requiredSubtaskText(task.subtask_count ?? 0)} completed</span><ExpansionChevron expanded={parentExpansion.expanded} /></Button>}
             <div className="task-metadata d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-2"><CategoryLabels categories={task.categories} /><span className="text-muted">{task.assignees.length > 0 ? task.assignees.join(', ') : 'Unassigned'}{task.due_date ? ` · Due ${task.due_date}` : ''}</span></div>
             {task.description && <p className="mb-2">{task.description}</p>}
             {task.dependency_task_ids.length > 0 && <p className="dependency-context mb-0"><strong>Depends on:</strong> {task.dependency_task_ids.map((id) => taskById.get(id)?.title ?? id).join(', ')}</p>}
@@ -1170,7 +1183,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                   <span className="phase-title d-block">{phase.title}</span>
                   <span className="phase-counts d-block fw-normal">{activeTasks.length} remaining · {completedTasks.length} completed</span>
                 </span>
-                <span aria-hidden="true" className={`phase-chevron flex-shrink-0 ${phaseExpanded ? 'is-expanded' : ''}`}>›</span>
+                <ExpansionChevron expanded={phaseExpanded} />
               </button>
             </Card.Header>
             {phaseExpanded && <Card.Body className="px-1 py-2 p-sm-3" id={bodyId}>
@@ -1209,6 +1222,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       aria-labelledby="task-confirmation-title"
       backdrop="static"
       centered
+      className="task-confirmation-modal"
       onHide={() => { if (!confirmationPending) closeConfirmation() }}
       restoreFocus={false}
       show={Boolean(confirmation)}

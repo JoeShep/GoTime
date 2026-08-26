@@ -24,6 +24,9 @@ phase-scoped eligible-parent picker with category/status context and an inline
 missing-parent error. Candidate-introduced browser confirmations are replaced
 by one focus-contained application modal for parent phase moves, manual parent
 status, downstream-unblocking completion, and first-child status changes.
+The focused visual follow-up uses one fixed-box SVG chevron for phase and
+subtask expansion controls and scopes confirmation-modal titles to a
+conventional 1.25rem size with natural narrow-screen wrapping.
 
 Human acceptance is available at `http://localhost:22173` (isolated backend
 `http://localhost:22000`). The disposable database begins with the verified
