@@ -967,6 +967,9 @@ describe('persistent relocation plan', () => {
     await screen.findByRole('heading', { name: 'Choose a mover' })
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0])
+    const prepareDependencies = screen.getByRole('button', { name: 'Prepare for the move · 0 selected' })
+    expect(prepareDependencies).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(prepareDependencies)
     fireEvent.click(screen.getByLabelText('Pay the mover deposit (Not started)'))
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 

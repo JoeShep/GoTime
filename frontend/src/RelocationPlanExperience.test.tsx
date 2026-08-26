@@ -191,7 +191,10 @@ describe('relocation-plan recommendation experience', () => {
     }))
 
     render(<RelocationPlanExperience />)
-    await screen.findByRole('button', { name: 'Mark achieved' })
+    const milestone = await screen.findByRole('button', { name: /Start selling our home/ })
+    expect(milestone).toHaveAttribute('aria-expanded', 'false')
+    fireEvent.click(milestone)
+    expect(screen.getByRole('button', { name: 'Mark achieved' })).toBeVisible()
     expect(recommendationRequests).toBe(1)
     fireEvent.click(screen.getByRole('button', { name: 'Mark achieved' }))
 
