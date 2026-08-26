@@ -317,6 +317,14 @@ target, remains on `/plan`, and shows the dismissible, approximately six-second
 notice **The recommended task is no longer available.** Recommendation ranking,
 refresh rules, derived attention, and all persisted data remain unchanged.
 
+Complete human acceptance passed for button presentation, normal history,
+filter compatibility and clearing, phase/completed reveal, focus and temporary
+highlighting, one-time targeting, and the missing-Task notice. The accepted
+frontend was deployed with Experiments disabled by recreating only the normal
+frontend. The backend and active logical data remained unchanged, runtime smoke
+verification passed, and the isolated acceptance resources were removed. This
+increment is complete.
+
 ## Unified Plan Add candidate
 
 Plan now presents one prominent text-labeled **Add** dropdown beside the compact

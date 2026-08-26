@@ -1,6 +1,6 @@
 # NEXT_SESSION
 
-## Current objective: human acceptance of cross-route Recommendation targeting
+## Current objective: cross-route Recommendation targeting closed
 
 The unified Add and plan-wide title-uniqueness increment passed complete human
 acceptance and is deployed to the normal stack at `http://localhost:5173`.
@@ -54,7 +54,7 @@ rebuilt or restarted. The active database checksum remained
 The isolated acceptance containers, volume, network, and temporary Compose
 directory were removed after successful deployment verification.
 
-The next frontend-only candidate adds a compact **View task** button to a
+The accepted frontend increment adds a compact **View task** button to a
 Primary Recommendation only when its existing response includes a stable
 `task_id`. It pushes `/plan` once and reuses the transient shared-Find target,
 so Plan owns compatible/incompatible category-filter handling, phase and
@@ -64,13 +64,13 @@ position. The target is consumed once and is never encoded in the URL.
 If the Task disappeared before Plan loads, Plan remains open and shows the
 dismissible, expiring notice **The recommended task is no longer available.**
 No Recommendation ranking, backend, API, schema, or database behavior changed.
-Human review is available at `http://localhost:21173` with isolated backend
-`http://localhost:21000` in project
-`gotime_recommendation_targeting_acceptance`. The disposable database contains
-49 Tasks, zero Milestones, Decisions, or Decision options, has integrity `ok`,
-and has no foreign-key violations. The normal frontend is stopped; the normal
-backend is unchanged and healthy, and the active database remains byte-for-byte
-unchanged.
+Complete human acceptance passed. The accepted frontend is deployed at
+`http://localhost:5173` with Experiments disabled; the normal backend retained
+its identity, original start time, and zero restarts. Now, Plan, both live APIs,
+the View-task navigation path, and disabled experimental endpoints passed
+smoke verification. The active database remained logically and byte-for-byte
+unchanged. The disposable acceptance containers, volume, network, and temporary
+Compose directory were removed.
 
 Secondary attention items, family-plan conversion, and derived-attention
 Increment 2 have not begun.

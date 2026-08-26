@@ -50,7 +50,7 @@
   environment safely.
 - [x] Complete human acceptance, deployment, and closeout of the shared
   cross-route Find panel and browser-session Plan scroll restoration candidate.
-- [ ] Complete human acceptance, deployment, and closeout of the implemented
+- [x] Complete human acceptance, deployment, and closeout of the implemented
   cross-route Recommendation reveal candidate.
 - [x] Complete human acceptance, deployment, and closeout of the implemented
   persistent mobile Now, Plan, and Find bottom navigation candidate.

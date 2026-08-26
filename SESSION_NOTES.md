@@ -2608,3 +2608,33 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   integrity is `ok` and foreign keys are clean. Neither container mounts or
   joins normal data/network resources. Human acceptance and deployment remain
   pending.
+
+# 2026-08-25 — Cross-route Recommendation targeting closeout
+
+- Complete human acceptance passed for the compact **View task** action,
+  normal Now-to-Plan history and Back behavior, compatible and incompatible
+  filters, active and completed Task reveal, focus and temporary highlighting,
+  saved Plan position, one-time target consumption, and the missing-Task
+  notice.
+- Built normal image `gotime-frontend:latest` from accepted commit
+  `ca97c32ee4a440694a5943b0a302900bece06a7a` with image SHA
+  `a5dcac532fde263947bada386897e71645782854aedcff02b2c5c8d218d2a60a`
+  and recreated only `gotime-frontend-1` with
+  `VITE_ENABLE_EXPERIMENTS=false`. `/now`, `/plan`, Recommendation and Plan API
+  proxy requests, live Recommendation-to-Plan Task identity, and the deployed
+  targeting tests passed. Both experimental APIs returned 404.
+- The normal backend was not rebuilt, restarted, or recreated. It retained
+  image `d8aedab223dded275d35f30eb9717c23b7821d9e4dd6f5c94f6888ab384c7056`,
+  start time `2026-08-24T02:50:36.992026018Z`, healthy status, zero restarts,
+  and `GOTIME_ENABLE_EXPERIMENTS=false`.
+- The active database remained byte-for-byte and logically unchanged at
+  221,184 bytes with SHA-256
+  `9b5e14b5d04799f8972f4875fa66fc82f8601221b206dda18e69d8651c7a66bd`;
+  integrity remained `ok`, foreign keys remained clean, and all concise table
+  counts matched the pre-deployment baseline.
+- Removed exactly `gotime-recommendation-targeting-acceptance-frontend`,
+  `gotime-recommendation-targeting-acceptance-backend`, volume
+  `gotime_recommendation_targeting_acceptance_data_b14e2c9`, network
+  `gotime_recommendation_targeting_acceptance_net_b14e2c9`, and temporary
+  directory `/tmp/gotime-recommendation-targeting-acceptance-b14e2c9/`.
+  No derived-attention or other feature work began.
