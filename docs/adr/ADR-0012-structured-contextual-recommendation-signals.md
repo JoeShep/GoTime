@@ -22,6 +22,10 @@ parent-inherited preparation, and actionable prerequisites that unblock
 preparation. Each signal carries stable Decision identity plus relevant parent,
 preparation-Task, blocked-Task, and dependency-path context.
 
+This ADR documents the implementation and extensibility boundary. The
+[Recommendation hierarchy](../reasoning-engine.md#recommendation-hierarchy) is
+the authoritative behavioral explanation and visualization.
+
 Eligibility and hard constraints remain separate from signals. Completed,
 blocked, future-start, inactive, and parent-summary Tasks are not eligible.
 Traversal through blocked preparation stops at every currently actionable

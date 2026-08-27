@@ -2863,6 +2863,10 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Recorded ADR-0012. The current Plan aggregate supplies every required fact,
   so this slice adds no database schema, migration, AI call, external research,
   or family-data conversion.
+- Added the approved Recommendation hierarchy beside the canonical eligibility
+  and ranking explanation in `docs/reasoning-engine.md`. The technical design
+  and ADR link to that section; README intentionally retains the approved
+  audience-facing visualization copy and links to the canonical explanation.
 - Added structured Task/Decision Recommendation candidates and signals for
   ready Decisions, direct and parent-inherited preparation, and deep or
   branching dependency-frontier work. Resolved Decisions and inactive branches

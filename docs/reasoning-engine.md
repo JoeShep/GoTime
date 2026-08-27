@@ -36,6 +36,45 @@ empty plan, a fully completed plan, and a plan whose remaining work is blocked
 or scheduled for later. The legacy employment/commute reasoning remains in the
 codebase as a separate planning flow; it does not rank persisted tasks.
 
+## Recommendation hierarchy
+
+Hard eligibility comes first, user timing and urgency second, and Decision context third.
+
+```mermaid
+flowchart TD
+    D["Decision"] --> S{"Current Decision state"}
+
+    S -->|"Resolved"| N["No Decision signal"]
+    S -->|"No preparation tracked"| N
+    S -->|"Ready to decide + unresolved"| RD["Ready Decision candidate"]
+    S -->|"Preparation incomplete"| W["Follow linked preparation work"]
+
+    W --> K{"Current path"}
+    K -->|"Actionable Task"| PT["Preparation Task candidate"]
+    K -->|"Incomplete parent summary"| C["Descend to actionable subtasks"]
+    K -->|"Blocked Task"| P["Trace to actionable prerequisites"]
+    K -->|"Inactive branch"| NI["No candidate from this path"]
+
+    C --> PT
+    P --> PT
+
+    T["Ordinary Task"] --> E{"Active, incomplete, unblocked, actionable?"}
+    E -->|"Yes"| OT["Ordinary Task candidate"]
+    E -->|"No"| X["Excluded"]
+
+    RD --> G["Eligible candidate pool"]
+    PT --> G
+    OT --> G
+
+    G --> R1["1. Apply user dates, urgency, and manual priority"]
+    R1 --> R2["2. Within the same attention level"]
+    R2 --> R3["Ready Decision > Preparation or unblocking Task > Ordinary Task"]
+    R3 --> R4["3. Apply stable tie-breakers"]
+    R4 --> O["Primary Recommendation + upcoming items"]
+```
+
+Future curated or AI-derived signals may enter the transparent ranking policy with appropriate provenance and explanation, but they cannot bypass deterministic eligibility rules.
+
 ## Planned derived-attention direction
 
 The implemented rule is a baseline, not the final attention behavior. GoTime

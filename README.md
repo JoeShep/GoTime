@@ -90,6 +90,14 @@ local to the demonstration and do not change trusted state or trigger
 re-reasoning. No real AI provider, live research, persistence, or external
 telemetry is involved.
 
+### Recommendation hierarchy
+
+Deterministic design, before adding any AI lead-time knowledge. See the
+[canonical behavioral explanation](docs/reasoning-engine.md#recommendation-hierarchy)
+for the detailed rules.
+
+![Recommendation hierarchy from deterministic eligibility through contextual ranking](image.png)
+
 ## Run locally
 
 With Docker and Docker Compose installed:

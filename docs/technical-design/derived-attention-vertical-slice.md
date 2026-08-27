@@ -401,6 +401,11 @@ bounded relationship semantics. A generic graph engine is unnecessary.
 The slice adds a derived-attention path without deleting stored priority or
 changing legacy behavior for unrelated work.
 
+The canonical behavioral explanation and visualization are maintained in the
+[Recommendation hierarchy](../reasoning-engine.md#recommendation-hierarchy).
+This technical design describes the increment boundaries and does not duplicate
+that hierarchy.
+
 Evaluate in this order:
 
 1. Derive parent status from required leaf statuses.
