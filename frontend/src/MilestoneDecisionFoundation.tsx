@@ -25,7 +25,10 @@ interface Props {
   onCreationSaved?: () => void
   onEditorOpenChange?: (open: boolean) => void
   onItemRevealed?: () => void
+  onRecommendationChanged?: () => void
   onTaskTargeted?: (task: RelocationTask) => void
+  targetDecisionId?: string
+  onDecisionTargetConsumed?: () => void
 }
 
 type MilestoneDraft = Pick<Milestone, 'title' | 'description' | 'target_earliest_date' | 'target_latest_date'>
@@ -85,7 +88,10 @@ export function MilestoneDecisionFoundation({
   onCreationSaved,
   onEditorOpenChange,
   onItemRevealed,
+  onRecommendationChanged,
   onTaskTargeted,
+  targetDecisionId,
+  onDecisionTargetConsumed,
 }: Props) {
   const [milestoneDraft, setMilestoneDraft] = useState<MilestoneDraft | null>(null)
   const [milestoneId, setMilestoneId] = useState<string | null>(null)
@@ -169,6 +175,18 @@ export function MilestoneDecisionFoundation({
   }, [onItemRevealed, pendingReveal, plan])
 
   useEffect(() => {
+    if (!targetDecisionId) return
+    const decision = plan.decisions.find((item) => item.id === targetDecisionId)
+    if (decision) {
+      setExpandedMilestones((current) => new Set(current).add(decision.milestone_id))
+      setExpandedDecisions((current) => new Set(current).add(decision.id))
+      setFoundItem({ type: 'decision', id: decision.id })
+      setPendingReveal({ type: 'decision', id: decision.id })
+    }
+    onDecisionTargetConsumed?.()
+  }, [onDecisionTargetConsumed, plan.decisions, targetDecisionId])
+
+  useEffect(() => {
     if (!readinessHelpDecisionId) return
     const dismiss = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
@@ -201,6 +219,7 @@ export function MilestoneDecisionFoundation({
     try {
       const updated = await action()
       onPlanUpdated(updated)
+      if (!key.startsWith('milestone-') && key !== 'save-milestone') onRecommendationChanged?.()
       return updated
     }
     catch (reason) {

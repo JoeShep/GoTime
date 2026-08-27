@@ -1,6 +1,27 @@
 # NEXT_SESSION
 
-## Current objective: Decision preparation readiness closed
+## Current objective: contextual Decision-preparation Recommendations acceptance
+
+The next derived-attention Increment 2 candidate deterministically recommends
+either an actionable Task or an unresolved Decision that is **Ready to decide**.
+Structured Recommendation signals distinguish direct preparation, preparation
+inherited through a parent, and actionable dependency-frontier work. They retain
+all unresolved Decision context while contributing only one ranking influence.
+Primary and upcoming positions share the same response and UI contract.
+
+ADR-0012 records the lasting signal boundary: existing deterministic rules own
+eligibility and hard constraints; future curated or AI-derived inputs may only
+enter ranking through structured signals and require separately approved
+provenance, confidence, freshness, and override semantics. This candidate adds
+no schema, migration, AI call, research, or family-data conversion.
+
+Focused backend and frontend verification and the production frontend build
+pass. The candidate is intended for isolated acceptance with Experiments enabled
+at `http://localhost:24173`; the normal application and family database remain
+untouched. Human acceptance and complete suites are the next step. Do not deploy
+or begin later Increment 2 work before acceptance.
+
+## Previous objective: Decision preparation readiness closed
 
 The accepted and deployed second derived-attention Increment 2 slice links ordinary Tasks to Decisions
 as **Work needed before deciding**. Readiness is derived from current links and

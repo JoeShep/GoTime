@@ -42,6 +42,10 @@ export function NowPage() {
         </section>
       </div>
       <NextTaskRecommendation
+        onViewDecision={(decisionId) => {
+          selectTarget({ decisionId, source: 'recommendation' })
+          navigate('/plan')
+        }}
         onViewTask={(taskId) => {
           selectTarget({ taskId, source: 'recommendation' })
           navigate('/plan')

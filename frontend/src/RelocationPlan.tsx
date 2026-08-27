@@ -594,6 +594,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
   useEffect(() => {
     if (!target || !plan || !expansionStateReady) return
+    if (target.decisionId) return
     const task = plan.tasks.find((candidate) => candidate.id === target.taskId)
     scrollRestoredRef.current = true
     if (task) selectFinderResult(task)
@@ -787,7 +788,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
   async function returnToAutomaticStatus(task: RelocationTask) {
     setError(null)
-    try { acceptPlan(await returnParentToAutomaticStatus(task.id)) }
+    try { acceptPlan(await returnParentToAutomaticStatus(task.id)); onPlanChanged?.() }
     catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to restore automatic status.') }
   }
 
@@ -802,6 +803,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setError(null)
     try {
       acceptPlan(await reorderSubtasks(parent.id, next.map((child) => child.id)))
+      onPlanChanged?.()
       const nextIndex = destination
       const preferredDirection = direction === -1 && nextIndex === 0 ? 1 : direction === 1 && nextIndex === next.length - 1 ? -1 : direction
       window.requestAnimationFrame(() => {
@@ -950,9 +952,12 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             writeScrollPosition(plan.id, lastPlanScrollYRef.current)
           })
         }}
+        onRecommendationChanged={onPlanChanged}
+        onDecisionTargetConsumed={consumeTarget}
         onTaskTargeted={selectFinderResult}
         onPlanUpdated={acceptPlan}
         plan={plan}
+        targetDecisionId={target?.decisionId}
       />}
 
       {plan && !draft && (

@@ -27,6 +27,7 @@ export interface RelocationTask {
   priority: TaskPriority
   dependency_task_ids: string[]
   blocked: boolean
+  active?: boolean
   parent_task_id?: string | null
   subtask_position?: number | null
   stored_status?: TaskStatus | null
@@ -97,22 +98,56 @@ export interface TaskWrite {
 export interface RankingFactors {
   due_state: 'overdue' | 'due_today' | 'upcoming' | 'no_due_date'
   due_date: string | null
+  effective_due_date?: string | null
   priority: TaskPriority
   task_status: TaskStatus
   directly_unblocks_count: number
   phase_position: number
+  decision_context_rank?: number
 }
 
-export interface RelocationTaskRecommendation {
-  status: 'recommended' | 'no_actionable_task'
+export interface RecommendationSignal {
+  kind: 'ready_to_decide' | 'direct_decision_preparation' | 'inherited_decision_preparation' | 'unblocks_decision_preparation'
+  decision_id: string
+  decision_title: string
+  preparation_task_id: string | null
+  preparation_task_title: string | null
+  parent_task_id: string | null
+  parent_task_title: string | null
+  blocked_task_id: string | null
+  blocked_task_title: string | null
+  dependency_path_task_ids: string[]
+}
+
+export interface TaskRecommendationMetadata {
+  status: TaskStatus
+  assignees: string[]
+  categories: TaskCategory[]
+  start_date: string | null
+  due_date: string | null
+  priority: TaskPriority
+}
+
+export interface RecommendationItem {
+  candidate_type?: 'task' | 'decision' | null
   task_id: string | null
   task_title: string | null
+  decision_id?: string | null
+  decision_title?: string | null
   phase_id: string | null
   phase_title: string | null
   why: string[]
   why_now: string
   directly_unblocks_task_ids: string[]
+  signals?: RecommendationSignal[]
+  task_metadata?: TaskRecommendationMetadata | null
   ranking_factors: RankingFactors | null
+}
+
+export interface RelocationTaskRecommendation extends Omit<RecommendationItem, 'candidate_type'> {
+  status: 'recommended' | 'no_actionable_task'
+  candidate_type?: 'task' | 'decision' | null
+  upcoming?: RecommendationItem[]
 }
 
 export type PlanErrorCode =

@@ -207,6 +207,7 @@ class SubtaskOrderUpdate(PlanModel):
 class Task(TaskFields):
     id: str
     blocked: bool
+    active: bool = True
     stored_status: TaskStatus | None = None
     automatic_status: TaskStatus | None = None
     manual_status_override: TaskStatus | None = None

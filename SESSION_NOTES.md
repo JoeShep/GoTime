@@ -2854,3 +2854,29 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   Compose directory was already absent after the environment interruption.
   Preserved the verified backup and manifest. Contextual Recommendations and
   later Increment 2 work were not started.
+
+# 2026-08-27 — Contextual Decision-preparation Recommendation candidate
+
+- Began from clean, pushed Decision-readiness closeout
+  `86b19251eac467adcd482c915bc1a501168c5df1`. Reviewed Recommendation,
+  readiness, hierarchy, dependency, activation, and targeting architecture.
+- Recorded ADR-0012. The current Plan aggregate supplies every required fact,
+  so this slice adds no database schema, migration, AI call, external research,
+  or family-data conversion.
+- Added structured Task/Decision Recommendation candidates and signals for
+  ready Decisions, direct and parent-inherited preparation, and deep or
+  branching dependency-frontier work. Resolved Decisions and inactive branches
+  contribute nothing; multiple Decisions preserve every explanation without
+  stacking rank influence. Existing priority, timing, urgency, eligibility,
+  and stable ordering remain authoritative before contextual tie-breaking.
+- Added consistent primary/upcoming Task and Decision cards, accessible compact
+  multi-Decision disclosure, existing Task metadata, immediate recalculation,
+  and transient reveal/focus/highlight targeting for existing Decision cards.
+- Focused backend verification passed 44 tests and backend compilation. Focused
+  frontend verification passed 17 tests across four files; the production
+  frontend build passed. Complete suites are deferred to final human acceptance
+  as authorized.
+- Reserved isolated acceptance at `http://localhost:24173` with an isolated
+  backend, frontend, database volume, and network and Experiments enabled.
+  Normal services and the active family database remain out of scope and
+  untouched. No family-plan Decision or preparation relationship is created.

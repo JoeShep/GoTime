@@ -1,7 +1,8 @@
 import { createContext, type ReactNode, useContext, useMemo, useState } from 'react'
 
 export interface FindTarget {
-  taskId: string
+  taskId?: string
+  decisionId?: string
   source?: 'find' | 'recommendation'
 }
 
