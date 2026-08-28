@@ -9,27 +9,42 @@ import {
 
 const label = (value: string) => value.replaceAll('_', ' ').replace(/^./, (letter) => letter.toUpperCase())
 
-function SignalContext({ signals }: { signals: RecommendationSignal[] }) {
+const redundantReason = (reason: string) =>
+  /^Its user priority is .+\.$/.test(reason)
+  || reason === 'It is actionable and has no later start-date restriction.'
+
+const redundantWhyNow = (whyNow: string) =>
+  whyNow === 'It advances preparation for an unresolved decision.'
+  || whyNow === 'This unresolved decision is ready for your review.'
+  || whyNow === 'It is available to work on now.'
+  || whyNow === 'It is available to work on now and has no incomplete prerequisites.'
+
+function DecisionContextButton({ signal, onViewDecision }: { signal: RecommendationSignal; onViewDecision?: (decisionId: string) => void }) {
+  if (!onViewDecision) return <>{signal.decision_title}</>
+  return <Button className="p-0 align-baseline" onClick={(event) => { event.stopPropagation(); onViewDecision(signal.decision_id) }} variant="link">{signal.decision_title}</Button>
+}
+
+function SignalContext({ signals, onViewDecision }: { signals: RecommendationSignal[]; onViewDecision?: (decisionId: string) => void }) {
   if (signals.length === 0) return null
   if (signals.length > 1) {
     return (
       <details className="recommendation-context mt-2">
         <summary>Helps prepare {signals.length} decisions</summary>
         <ul className="mb-0 mt-2">
-          {signals.map((signal) => <li key={signal.decision_id}>{signal.decision_title}</li>)}
+          {signals.map((signal) => <li key={signal.decision_id}><DecisionContextButton onViewDecision={onViewDecision} signal={signal} /></li>)}
         </ul>
       </details>
     )
   }
   const signal = signals[0]
   if (signal.kind === 'inherited_decision_preparation') {
-    return <div className="mt-2"><div><strong>Part of:</strong> {signal.parent_task_title}</div><div><strong>Helps prepare:</strong> {signal.decision_title}</div></div>
+    return <div className="mt-2"><div><strong>Part of:</strong> {signal.parent_task_title}</div><div><strong>Helps prepare:</strong> <DecisionContextButton onViewDecision={onViewDecision} signal={signal} /></div></div>
   }
   if (signal.kind === 'unblocks_decision_preparation') {
-    return <p className="mt-2 mb-0"><strong>Unblocks {signal.blocked_task_title}</strong>, which helps prepare {signal.decision_title}</p>
+    return <div className="mt-2"><div><strong>Unblocks:</strong> {signal.blocked_task_title}</div><div><strong>Helps prepare:</strong> <DecisionContextButton onViewDecision={onViewDecision} signal={signal} /></div></div>
   }
   if (signal.kind === 'direct_decision_preparation') {
-    return <p className="mt-2 mb-0"><strong>Helps prepare:</strong> {signal.decision_title}</p>
+    return <p className="mt-2 mb-0"><strong>Helps prepare:</strong> <DecisionContextButton onViewDecision={onViewDecision} signal={signal} /></p>
   }
   return null
 }
@@ -47,6 +62,7 @@ function RecommendationCard({
 }) {
   const isDecision = item.candidate_type === 'decision'
   const headingId = `${position}-recommendation-${item.decision_id ?? item.task_id ?? 'item'}`
+  const meaningfulReasons = item.why.filter((reason) => !redundantReason(reason))
   return (
     <article
       aria-labelledby={headingId}
@@ -57,8 +73,7 @@ function RecommendationCard({
         <>
           <h2 className="step-name mb-1" id={headingId}>Make a decision</h2>
           <p className="h5 mb-3">{item.decision_title}</p>
-          <p>{item.why[0] ?? 'All currently tracked preparation work is complete.'}</p>
-          <p className="mb-0"><strong>Why now:</strong> {item.why_now}</p>
+          <p>{meaningfulReasons[0] ?? 'All currently tracked preparation work is complete.'}</p>
           {item.decision_id && onViewDecision && <Button className="recommendation-task-link mt-3" onClick={() => onViewDecision(item.decision_id!)}>Review decision</Button>}
         </>
       ) : (
@@ -75,11 +90,11 @@ function RecommendationCard({
               {item.task_metadata.due_date ? ` · Due ${item.task_metadata.due_date}` : ''}
             </p>
           )}
-          <ListGroup as="ul" className="detail-list mb-3" variant="flush">
-            {item.why.map((reason) => <ListGroup.Item as="li" className="px-0 py-1" key={reason}>{reason}</ListGroup.Item>)}
-          </ListGroup>
-          <SignalContext signals={item.signals ?? []} />
-          <p className="mt-2 mb-0"><strong>Why now:</strong> {item.why_now}</p>
+          {meaningfulReasons.length > 0 && <ListGroup as="ul" className="detail-list mb-3" variant="flush">
+            {meaningfulReasons.map((reason) => <ListGroup.Item as="li" className="px-0 py-1" key={reason}>{reason}</ListGroup.Item>)}
+          </ListGroup>}
+          <SignalContext onViewDecision={onViewDecision} signals={item.signals ?? []} />
+          {!redundantWhyNow(item.why_now) && (item.signals?.length ?? 0) === 0 && <p className="mt-2 mb-0"><strong>Why now:</strong> {item.why_now}</p>}
           {item.task_id && onViewTask && <Button className="recommendation-task-link mt-3" onClick={() => onViewTask(item.task_id!)}>View task</Button>}
         </>
       )}

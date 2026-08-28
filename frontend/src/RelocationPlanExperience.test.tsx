@@ -115,10 +115,8 @@ describe('relocation-plan recommendation experience', () => {
     expect(await screen.findByText('Primary recommendation')).toBeVisible()
     expect(container.querySelector('.primary-recommendation')).toHaveClass('mx-2', 'mx-sm-0')
     expect(screen.getAllByRole('heading', { name: 'Choose a mover' })).toHaveLength(2)
-    expect(screen.getByText('Its user priority is high.')).toBeVisible()
-    expect(screen.getByText(/Why now:/).closest('p')).toHaveTextContent(
-      'It is available to work on now',
-    )
+    expect(screen.queryByText('Its user priority is high.')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Why now:/)).not.toBeInTheDocument()
   })
 
   it('changes the recommendation after completing the recommended task', async () => {
@@ -141,7 +139,8 @@ describe('relocation-plan recommendation experience', () => {
     }))
 
     render(<RelocationPlanExperience />)
-    await screen.findByText('Its user priority is high.')
+    await screen.findByText('Primary recommendation')
+    expect(screen.queryByText('Its user priority is high.')).not.toBeInTheDocument()
     expect(screen.getAllByRole('heading', { name: 'Choose a mover' })).toHaveLength(2)
 
     fireEvent.change(screen.getByLabelText('Status for Choose a mover'), {

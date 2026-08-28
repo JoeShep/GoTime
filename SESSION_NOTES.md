@@ -2884,3 +2884,10 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   backend, frontend, database volume, and network and Experiments enabled.
   Normal services and the active family database remain out of scope and
   untouched. No family-plan Decision or preparation relationship is created.
+- Consolidated the contextual-Recommendation frontend UX before acceptance:
+  single and disclosed multi-Decision titles now reuse transient Decision
+  targeting; redundant priority, absent-restriction, and repeated Why-now prose
+  is suppressed while timing and relationship context remain. Milestones stack
+  full width, and expanded Decision cards use a responsive one/two-column grid
+  without stretching. Thirty focused frontend tests and the production build
+  pass; complete suites remain deferred to human acceptance.

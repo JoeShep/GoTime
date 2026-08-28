@@ -55,6 +55,8 @@ describe('contextual Recommendations', () => {
     expect(screen.getByLabelText('Upcoming recommendations')).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Make a decision' })).toBeVisible()
     expect(screen.getByText('All currently tracked preparation work is complete.')).toBeVisible()
+    expect(screen.queryByText('Its user priority is medium.')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Why now:/)).not.toBeInTheDocument()
   })
 
   it('explains inherited and dependency contexts and discloses every Decision accessibly', async () => {
@@ -64,16 +66,35 @@ describe('contextual Recommendations', () => {
     const requests = [recommendation(inherited), recommendation(dependency), recommendation(multiple)]
     vi.stubGlobal('fetch', vi.fn().mockImplementation(() => Promise.resolve(response(requests.shift()))))
 
-    const view = render(<NextTaskRecommendation refreshKey={0} />)
+    const targetDecision = vi.fn()
+    const view = render(<NextTaskRecommendation onViewDecision={targetDecision} refreshKey={0} />)
     expect((await screen.findByText('Part of:')).closest('div')).toHaveTextContent('Compare areas')
     expect(screen.getByText('Helps prepare:').closest('div')).toHaveTextContent('Choose an area')
-    view.rerender(<NextTaskRecommendation refreshKey={1} />)
-    expect((await screen.findByText(/Unblocks Compare costs/)).closest('p')).toHaveTextContent('which helps prepare Choose an area')
-    view.rerender(<NextTaskRecommendation refreshKey={2} />)
+    view.rerender(<NextTaskRecommendation onViewDecision={targetDecision} refreshKey={1} />)
+    expect((await screen.findByText('Unblocks:')).closest('div')).toHaveTextContent('Compare costs')
+    view.rerender(<NextTaskRecommendation onViewDecision={targetDecision} refreshKey={2} />)
     const disclosure = await screen.findByText('Helps prepare 2 decisions')
     fireEvent.click(disclosure)
-    expect(screen.getByText('Choose an area')).toBeVisible()
-    expect(screen.getByText('Choose a school')).toBeVisible()
+    expect(disclosure.closest('details')).toHaveAttribute('open')
+    const chooseArea = screen.getByRole('button', { name: 'Choose an area' })
+    expect(screen.getByRole('button', { name: 'Choose a school' })).toBeVisible()
+    fireEvent.click(chooseArea)
+    expect(targetDecision).toHaveBeenCalledWith('choose-area')
+    expect(disclosure.closest('details')).toHaveAttribute('open')
+  })
+
+  it('preserves meaningful timing while suppressing priority, absent restrictions, and repeated context prose', async () => {
+    const item = taskItem({
+      why: ['Its user priority is medium.', 'It is actionable and has no later start-date restriction.', 'It is due on 2026-09-01.'],
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(recommendation(item))))
+    render(<NextTaskRecommendation onViewDecision={vi.fn()} refreshKey={0} />)
+
+    expect(await screen.findByText('It is due on 2026-09-01.')).toBeVisible()
+    expect(screen.queryByText('Its user priority is medium.')).not.toBeInTheDocument()
+    expect(screen.queryByText('It is actionable and has no later start-date restriction.')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Why now:/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Choose an area' })).toBeVisible()
   })
 
   it('renders a ready Decision as primary and a Task as upcoming', async () => {
@@ -82,6 +103,8 @@ describe('contextual Recommendations', () => {
     expect(await screen.findByText('Primary recommendation')).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Make a decision' })).toBeVisible()
     expect(screen.getByLabelText('Upcoming recommendations')).toHaveTextContent('Research neighborhoods')
+    expect(screen.getAllByText('All currently tracked preparation work is complete.')).toHaveLength(1)
+    expect(screen.queryByText('This unresolved decision is ready for your review.')).not.toBeInTheDocument()
   })
 
   it('rerenders Task to ready Decision to ordinary work after recalculation', async () => {
@@ -140,6 +163,25 @@ describe('contextual Recommendations', () => {
     render(<MemoryRouter initialEntries={['/now']}><App /><Location /></MemoryRouter>)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Review decision' }))
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/plan'))
+    const card = await screen.findByRole('article', { name: 'Choose an area' })
+    await waitFor(() => expect(card).toHaveFocus())
+    expect(card).toHaveClass('is-found')
+    expect(screen.getByRole('button', { name: /Choose an area/ })).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('targets a single Decision context title through the established Plan reveal path', async () => {
+    const plan: RelocationPlan = {
+      id: 'plan', title: 'Move', phases: [{ id: 'prepare', title: 'Prepare', position: 10 }], tasks: [],
+      milestones: [{ id: 'move', title: 'Move', description: null, target_earliest_date: null, target_latest_date: null, status: 'pending', achieved_at: null }],
+      decisions: [{ id: 'choose-area', title: 'Choose an area', description: null, milestone_id: 'move', options: [{ id: 'a', title: 'A', description: null }, { id: 'b', title: 'B', description: null }], status: 'unresolved', selected_option_id: null, preparation_task_ids: ['research'], preparation_readiness: 'preparation_incomplete', completed_preparation_task_count: 0 }],
+    }
+    vi.stubGlobal('fetch', vi.fn((path: string) => Promise.resolve(response(path === '/api/relocation-plan/recommendation' ? recommendation(taskItem()) : plan))))
+    Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
+    const Location = () => <output data-testid="location">{useLocation().pathname}</output>
+    render(<MemoryRouter initialEntries={['/now']}><App /><Location /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose an area' }))
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/plan'))
     const card = await screen.findByRole('article', { name: 'Choose an area' })
     await waitFor(() => expect(card).toHaveFocus())

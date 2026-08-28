@@ -21,6 +21,13 @@ at `http://localhost:24173`; the normal application and family database remain
 untouched. Human acceptance and complete suites are the next step. Do not deploy
 or begin later Increment 2 work before acceptance.
 
+The consolidated frontend UX correction makes every displayed Decision-context
+title target the existing Decision card, removes duplicated priority and generic
+availability prose, and keeps meaningful timing and structured relationship
+context. Milestones now stack full width; expanded Milestones use two Decision
+columns at desktop widths and one at narrower widths, with a single Decision
+using the full row. This layout remains a human visual-acceptance candidate.
+
 ## Previous objective: Decision preparation readiness closed
 
 The accepted and deployed second derived-attention Increment 2 slice links ordinary Tasks to Decisions

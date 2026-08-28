@@ -193,6 +193,37 @@ describe('Milestone and Decision foundation', () => {
     expect(JSON.parse(sessionStorage.getItem('gotime:decision-expansion:family-relocation-plan:v1') ?? '[]')).toContain('sale-strategy')
   })
 
+  it('stacks Milestones full width and uses responsive Decision columns without stretching a single card', () => {
+    const layoutPlan: RelocationPlan = {
+      ...withDecision,
+      milestones: [
+        ...withDecision.milestones,
+        { ...withDecision.milestones[0], id: 'complete-move', title: 'Complete the move' },
+      ],
+      decisions: [
+        ...withDecision.decisions,
+        { ...withDecision.decisions[0], id: 'sale-timing', title: 'Choose sale timing' },
+        { ...withDecision.decisions[0], id: 'moving-method', title: 'Choose moving method', milestone_id: 'complete-move' },
+      ],
+    }
+    const { container } = render(<MilestoneDecisionFoundation plan={layoutPlan} onPlanUpdated={vi.fn()} />)
+
+    const milestoneColumns = container.querySelectorAll('.milestone-stack > .milestone-column')
+    expect(milestoneColumns).toHaveLength(2)
+    milestoneColumns.forEach((column) => expect(column).toHaveClass('col-12'))
+    expect(milestoneColumns[0].querySelector('.plan-foundation-card')).not.toHaveClass('h-100')
+
+    fireEvent.click(screen.getByRole('button', { name: /Start selling our home/ }))
+    const pairedColumns = milestoneColumns[0].querySelectorAll('.decision-grid > .decision-column')
+    expect(pairedColumns).toHaveLength(2)
+    pairedColumns.forEach((column) => expect(column).toHaveClass('col-12', 'col-lg-6'))
+
+    fireEvent.click(screen.getByRole('button', { name: /Complete the move/ }))
+    const singleColumn = milestoneColumns[1].querySelector('.decision-grid > .decision-column')
+    expect(singleColumn).toHaveClass('col-12', 'col-lg-12')
+    expect(singleColumn?.querySelector('.decision-card')).not.toHaveClass('h-100')
+  })
+
   it('explains readiness through focus and dismisses with Escape or outside click', async () => {
     render(<MilestoneDecisionFoundation plan={withDecision} onPlanUpdated={vi.fn()} />)
     expandMilestone()

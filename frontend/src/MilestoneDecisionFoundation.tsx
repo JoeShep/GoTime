@@ -389,14 +389,14 @@ export function MilestoneDecisionFoundation({
       </Card.Body></Card>}
 
       {plan.milestones.length === 0 && !milestoneDraft && <p className="text-muted">No milestones yet.</p>}
-      <Row className="g-3">{plan.milestones.map((milestone) => {
+      <Row className="milestone-stack g-3">{plan.milestones.map((milestone) => {
         const decisions = plan.decisions.filter((decision) => decision.milestone_id === milestone.id)
         const resolvedCount = decisions.filter((decision) => decision.status === 'resolved').length
         const milestoneExpanded = expandedMilestones.has(milestone.id)
-        return <Col lg={6} key={milestone.id}><Card
+        return <Col className="milestone-column" xs={12} key={milestone.id}><Card
         aria-labelledby={`milestone-title-${milestone.id}`}
         as="article"
-        className={`plan-foundation-card plan-foundation-item h-100 ${foundItem?.type === 'milestone' && foundItem.id === milestone.id ? 'is-found' : ''}`}
+        className={`plan-foundation-card plan-foundation-item ${foundItem?.type === 'milestone' && foundItem.id === milestone.id ? 'is-found' : ''}`}
         ref={(element: HTMLElement | null) => {
           if (element) itemRefs.current.set(`milestone:${milestone.id}`, element)
           else itemRefs.current.delete(`milestone:${milestone.id}`)
@@ -412,14 +412,13 @@ export function MilestoneDecisionFoundation({
         {milestoneExpanded && <div id={`milestone-body-${milestone.id}`}>
         {milestone.description && <p className="mt-2">{milestone.description}</p>}
         <Stack direction="horizontal" gap={2} className="flex-wrap mt-2"><Button size="sm" variant="outline-secondary" onClick={() => { setDecisionDraft(null); setDecisionId(null); setMilestoneId(milestone.id); setMilestoneDraft({ title: milestone.title, description: milestone.description, target_earliest_date: milestone.target_earliest_date, target_latest_date: milestone.target_latest_date }) }}>Edit</Button><Button size="sm" variant={milestone.status === 'achieved' ? 'outline-secondary' : 'success'} disabled={pendingActions.has(`milestone-achievement-${milestone.id}`)} onClick={() => void perform(`milestone-achievement-${milestone.id}`, () => changeMilestoneAchievement(milestone.id, milestone.status !== 'achieved'))}>{milestone.status === 'achieved' ? 'Return to pending' : 'Mark achieved'}</Button></Stack>
-        {decisions.map((decision) => {
+        <Row className="decision-grid g-3 align-items-start mt-0">{decisions.map((decision) => {
           const decisionExpanded = expandedDecisions.has(decision.id)
           const preparationExpanded = expandedPreparation.has(decision.id)
-          return <Card
+          return <Col className="decision-column" xs={12} lg={decisions.length > 1 ? 6 : 12} key={decision.id}><Card
           aria-labelledby={`decision-title-${decision.id}`}
           as="article"
           className={`decision-card plan-foundation-item mt-3 ${foundItem?.type === 'decision' && foundItem.id === decision.id ? 'is-found' : ''}`}
-          key={decision.id}
           ref={(element: HTMLElement | null) => {
             if (element) itemRefs.current.set(`decision:${decision.id}`, element)
             else itemRefs.current.delete(`decision:${decision.id}`)
@@ -458,8 +457,8 @@ export function MilestoneDecisionFoundation({
           <Form.Group><Form.Label>Select an option</Form.Label><Form.Select aria-label={`Selection for ${decision.title}`} disabled={pendingActions.has(`decision-selection-${decision.id}`)} value={decision.selected_option_id ?? ''} onChange={(event) => { const optionId = event.target.value; if (!optionId) { void perform(`decision-selection-${decision.id}`, () => changeDecisionSelection(decision.id, null)); return } if (decision.preparation_readiness !== 'ready_to_decide') { setSelectionConfirmation({ decisionId: decision.id, optionId, returnFocus: event.currentTarget }); return } void perform(`decision-selection-${decision.id}`, () => changeDecisionSelection(decision.id, optionId)) }}><option value="">Unresolved</option>{decision.options.map((option) => <option key={option.id} value={option.id}>{option.title}</option>)}</Form.Select></Form.Group>
           <Button className="mt-2" size="sm" variant="outline-secondary" onClick={() => { setMilestoneDraft(null); setMilestoneId(null); setDecisionId(decision.id); setDecisionDraft({ title: decision.title, description: decision.description, milestone_id: decision.milestone_id, options: decision.options, preparation_task_ids: decision.preparation_task_ids ?? [] }) }}>Edit decision</Button>
           </div>}
-        </Card.Body></Card>
-        })}
+        </Card.Body></Card></Col>
+        })}</Row>
         </div>}
       </Card.Body></Card></Col>
       })}</Row>
