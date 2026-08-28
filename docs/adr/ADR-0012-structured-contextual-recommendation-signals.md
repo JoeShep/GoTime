@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for the contextual Decision-preparation Recommendation candidate.
+Accepted and deployed on 2026-08-27.
 
 ## Context
 

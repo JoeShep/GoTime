@@ -1,8 +1,8 @@
 # NEXT_SESSION
 
-## Current objective: contextual Decision-preparation Recommendations acceptance
+## Current objective: contextual Decision-preparation Recommendations closed
 
-The next derived-attention Increment 2 candidate deterministically recommends
+The accepted and deployed derived-attention Increment 2 slice deterministically recommends
 either an actionable Task or an unresolved Decision that is **Ready to decide**.
 Structured Recommendation signals distinguish direct preparation, preparation
 inherited through a parent, and actionable dependency-frontier work. They retain
@@ -15,18 +15,29 @@ enter ranking through structured signals and require separately approved
 provenance, confidence, freshness, and override semantics. This candidate adds
 no schema, migration, AI call, research, or family-data conversion.
 
-Focused backend and frontend verification and the production frontend build
-pass. The candidate is intended for isolated acceptance with Experiments enabled
-at `http://localhost:24173`; the normal application and family database remain
-untouched. Human acceptance and complete suites are the next step. Do not deploy
-or begin later Increment 2 work before acceptance.
+Complete backend and frontend verification and the production build pass. The
+normal application is deployed at `http://localhost:5173` with both Experiments
+flags false. Human acceptance passed for contextual Recommendations, targetable
+Decision context, reduced explanatory prose, and the responsive Milestone/
+Decision layout; later layout refinement remains possible.
 
 The consolidated frontend UX correction makes every displayed Decision-context
 title target the existing Decision card, removes duplicated priority and generic
 availability prose, and keeps meaningful timing and structured relationship
-context. Milestones now stack full width; expanded Milestones use two Decision
+context. Milestones stack full width; expanded Milestones use two Decision
 columns at desktop widths and one at narrower widths, with a single Decision
-using the full row. This layout remains a human visual-acceptance candidate.
+using the full row. The README hierarchy is an intentional audience-facing copy;
+`docs/reasoning-engine.md` remains canonical.
+
+No schema or family records changed. All 49 Tasks and every stable row hash
+remain identical, with zero Decisions, options, preparation links, hierarchy
+links, or overrides. Normal repository initialization advanced only SQLite's
+header change counter and version-valid-for value from 117 to 118, changing the
+database SHA-256 from `da902f7617f983db404657bc22d410a435d4775bd02d1d68f706ddbfae60854c`
+to `09bf1f9c2453254c0319b58d1bd3beb59bc8c37f4701bdb6269d0b87749f9f7a`;
+an isolated copy reproduced the exact two-byte change. Integrity remains `ok`
+and foreign keys are clean. The port-24173/24174 acceptance environment and its
+temporary configuration were removed.
 
 ## Previous objective: Decision preparation readiness closed
 

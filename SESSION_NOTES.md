@@ -2891,3 +2891,66 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   full width, and expanded Decision cards use a responsive one/two-column grid
   without stretching. Thirty focused frontend tests and the production build
   pass; complete suites remain deferred to human acceptance.
+
+# 2026-08-27 — Contextual Recommendations acceptance, deployment, and closeout
+
+- Human acceptance passed for contextual Decision-preparation Recommendations,
+  targetable single/multiple Decision context, reduced explanatory prose, and
+  the final responsive Milestone/Decision layout. The layout is accepted for
+  this increment while remaining open to later refinement. README intentionally
+  keeps the audience-facing Recommendation hierarchy image;
+  `docs/reasoning-engine.md` is the canonical behavioral explanation.
+- Accepted commits were `cda3f8d5a67961a45539e419df3d3ab69d3cfbb2`,
+  `bb6410c41c5ff2671a599e925f93037d23428ace`,
+  `9fb42da499b38e80a80c75e5e870199e191b94ab`, and
+  `02c326477e43c301b78de45dec2be22f995957ac`. Complete backend verification
+  passed 230 tests with pinned development dependencies and compilation passed;
+  complete frontend verification passed 153 tests, the production build passed,
+  and `git diff --check` passed. Initial environment-shape and concurrent-load
+  attempts were corrected before deployment and clean reruns passed.
+- Pre-deployment database SHA-256 was
+  `da902f7617f983db404657bc22d410a435d4775bd02d1d68f706ddbfae60854c`;
+  integrity was `ok` and foreign keys were clean. Counts were 49 Tasks, 76
+  assignees, 50 category assignments, 45 dependencies, four phases, one plan,
+  and zero Milestones, Decisions, options, preparation links, hierarchy links,
+  or parent overrides.
+- Rebuilt and recreated normal services with `GOTIME_ENABLE_EXPERIMENTS=false`,
+  `VITE_ENABLE_EXPERIMENTS=false`, and
+  `VITE_API_PROXY_TARGET=http://backend:8000`. Backend container
+  `f524ad1b7d176cb99ee2db506f0641319e12126c3e54682bf82e1f4380dd1ccf`
+  runs image `0ae4e164818003663ac0c4cbd0e83d9217c4962ee8b7c5efdc21f7469bd44268`;
+  frontend container
+  `d81ed09e4a184ad6634ab5753f40957f104c4495f36c754b167585b2ee58aec2`
+  runs image `04516d74b28e0961f498cc5484423d030243120ec4721feff7aa753c07144c0d`.
+  Both had zero restarts and backend health was healthy.
+- Direct and proxied Plan/Recommendation responses matched; `/now`, `/plan`,
+  frontend proxying, normal Task rendering, and disabled experimental API/UI
+  boundaries passed without probe records. The active Plan retained 49 Tasks
+  and zero Decisions or relationships.
+- Post-startup SHA-256 was
+  `09bf1f9c2453254c0319b58d1bd3beb59bc8c37f4701bdb6269d0b87749f9f7a`.
+  Every logical count and stable row hash matched, integrity remained `ok`, and
+  foreign keys remained clean. Exact byte comparison found only SQLite header
+  bytes 28 and 96 changed: the change counter and version-valid-for values
+  advanced from 117 to 118. Running the accepted repository initializer against
+  a byte-for-byte pre-deployment copy produced the identical post-startup hash,
+  proving a no-row/no-schema initialization transaction—not a migration or live
+  data mutation—caused the two-byte write.
+- Stable hashes remained: plans
+  `2c2620d61df783578e34379c44863b0ab43678a69076dc48e0494ab9d4bb888a`,
+  phases `77e694dd42fa94fb15d3fb75f452ff37aab2fb590f2d317e68e24c3ea8130340`,
+  Tasks `f25a1c68a3070611f22b2d44eb5a59b7148ece17901d21c72c7d82e27806cc21`,
+  assignees `f48e530c451580111b46d897df93106639159180de737024667389e133429815`,
+  categories `11133af06a50d2861d67f7b6da27a4c7899ea529d3b0690d761d375df97c1c68`,
+  and dependencies
+  `bbf459be9ccffd21ba2ccc078943726bebff1923b835c73a0ec3b8a9f26eb5c1`.
+  Every empty Milestone/Decision/relationship table retained the canonical empty
+  hash `4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945`.
+- Removed exactly acceptance containers
+  `gotime-contextual-recommendations-acceptance-frontend` and
+  `gotime-contextual-recommendations-acceptance-backend`, volume
+  `gotime_contextual_recommendations_acceptance_data_c12`, network
+  `gotime_contextual_recommendations_acceptance_net_c12`, Compose file
+  `/tmp/gotime-contextual-recommendations-acceptance.compose.yml`, and seed
+  configuration `/tmp/seed-gotime-contextual-recommendations.sh`. No later
+  Increment 2 or AI-assisted work began.

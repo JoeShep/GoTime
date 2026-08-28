@@ -805,8 +805,14 @@ created. The second bounded slice—Decision preparation and advisory readiness�
 passed human acceptance and was deployed on 2026-08-26. Its additive active
 migration created an empty preparation relationship table; every preexisting
 logical row remained identical and the family plan was not converted.
-Contextual Recommendation reasoning, conditional activation, and family
-conversion remain unstarted and require separate approval.
+The third bounded Increment 2 slice—contextual Recommendations for Decision
+preparation—passed human acceptance and was deployed on 2026-08-27. It adds
+structured deterministic Recommendation signals and Task/ready-Decision
+candidates without schema or family-data changes. Targetable Decision context,
+reduced explanatory prose, and the responsive Milestone/Decision layout were
+accepted for this increment; later layout refinement remains possible.
+Conditional activation and family conversion remain unstarted and require
+separate approval.
 # Implemented preparation-readiness slice
 
 The second Increment 2 slice uses normalized `decision_preparation_tasks` rows
@@ -817,3 +823,14 @@ returns linked IDs, readiness, and completed count. The Decision editor is the
 only relationship editor; card expansion is versioned session state and View
 task reuses the existing transient Plan targeting path. Recommendation ranking
 and contextual explanation remain unchanged.
+
+# Implemented contextual-Recommendation slice
+
+The third Increment 2 slice derives ready-Decision, direct preparation,
+parent-inherited preparation, and dependency-frontier signals from the current
+Plan. Deterministic eligibility remains authoritative, Decision context breaks
+otherwise-equivalent attention levels, and multiple Decision contexts never
+multiply ranking influence. Primary and upcoming positions share one structured
+Task/Decision contract. The canonical behavior and hierarchy are maintained in
+[`docs/reasoning-engine.md`](../reasoning-engine.md#recommendation-hierarchy);
+README intentionally retains an audience-facing visualization copy.
