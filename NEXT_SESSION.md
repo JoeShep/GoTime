@@ -1,6 +1,15 @@
 # NEXT_SESSION
 
-## Current objective: contextual Decision-preparation Recommendations closed
+## Current objective: first family conversion rehearsal
+
+Prepare and review the exact Tennessee home-marketing Milestone/Decision
+conversion on a byte-identical isolated database copy. The active database,
+normal services, and production Experiments flags remain untouched. The narrow
+transactional artifact and its safety evidence are documented in
+`docs/conversions/tennessee-home-marketing-v1.md`. Active conversion requires a
+separate authorization after human review.
+
+## Previous objective: contextual Decision-preparation Recommendations closed
 
 The accepted and deployed derived-attention Increment 2 slice deterministically recommends
 either an actionable Task or an unresolved Decision that is **Ready to decide**.

@@ -33,6 +33,8 @@
   Decision preparation with structured deterministic signals and no new schema.
 - [x] Complete human acceptance, complete suites, deployment, and closeout for
   contextual Decision-preparation Recommendations.
+- [ ] Review and approve the isolated first family Milestone/Decision conversion
+  rehearsal before any separately authorized active-data conversion.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting
   states as deterministic outputs rather than user-selected priorities.
 - [ ] Specify which existing plan facts contribute to each state without

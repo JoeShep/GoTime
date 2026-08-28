@@ -2855,6 +2855,34 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   Preserved the verified backup and manifest. Contextual Recommendations and
   later Increment 2 work were not started.
 
+# 2026-08-27 — First family Milestone/Decision conversion rehearsal
+
+- Began from clean, pushed closeout `84598c6c2554ef70a2629e93fb4b4052804dd6fc`.
+  The active database was inspected read-only and matched SHA-256
+  `09bf1f9c2453254c0319b58d1bd3beb59bc8c37f4701bdb6269d0b87749f9f7a`,
+  integrity `ok`, no foreign-key violations, 49 Tasks, and zero Milestone,
+  Decision, option, preparation, hierarchy, or override rows.
+- The only plausible parent match was Task
+  `reengage-with-tn-realtor-e71dd74d-01e4-4338-9a94-0570bec0f3d2`, **Reengage
+  with TN realtor**, in `prepare` / **Prepare for the move**. No requested child
+  had a plausible existing match. Housing is the existing `housing` identity;
+  Anne and Joe are the established family/Housing pair.
+- Added a narrow transactional, exact-ID, fingerprint-guarded conversion plus
+  focused tests and conversion documentation. Tests cover exact target state,
+  idempotence, unrelated-row preservation, derived readiness and contextual
+  Recommendation tracing, partial-target rejection, and injected rollback.
+- Copied the active database byte-for-byte into isolated volume
+  `gotime_tennessee_home_conversion_acceptance_data_v1`, verified the checksum,
+  and applied the conversion only there. The manifest is preserved at
+  `/tmp/gotime-family-conversion-audit-20260827/conversion-manifest.json`.
+  Counts became 53 Tasks, one Milestone, one Decision, three options, one
+  preparation link, four hierarchy links, 48 dependencies, and zero overrides.
+  Integrity and foreign keys passed; a rerun returned `unchanged`.
+- Left isolated review running at `http://localhost:25173` with backend
+  `http://localhost:25174`, Experiments enabled, and the accepted application
+  images. Normal services, production flags, and the active family database
+  were not changed.
+
 # 2026-08-27 — Contextual Decision-preparation Recommendation candidate
 
 - Began from clean, pushed Decision-readiness closeout
