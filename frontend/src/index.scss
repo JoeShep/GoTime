@@ -520,6 +520,21 @@ body {
   line-height: 1;
 }
 
+@media (min-width: 992px) {
+  .decision-column-paired {
+    display: flex;
+  }
+
+  .decision-column-paired > .decision-card {
+    width: 100%;
+    height: 100%;
+  }
+
+  .decision-column-full .decision-controls {
+    max-width: calc(50% - 0.75rem);
+  }
+}
+
 @media (max-width: 575.98px) {
   .app-shell {
     display: flex;

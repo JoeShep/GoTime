@@ -193,7 +193,7 @@ describe('Milestone and Decision foundation', () => {
     expect(JSON.parse(sessionStorage.getItem('gotime:decision-expansion:family-relocation-plan:v1') ?? '[]')).toContain('sale-strategy')
   })
 
-  it('stacks Milestones full width and uses responsive Decision columns without stretching a single card', () => {
+  it('uses equal-height desktop pairs, a full-row final Decision, and natural narrow-width hooks', () => {
     const layoutPlan: RelocationPlan = {
       ...withDecision,
       milestones: [
@@ -203,6 +203,7 @@ describe('Milestone and Decision foundation', () => {
       decisions: [
         ...withDecision.decisions,
         { ...withDecision.decisions[0], id: 'sale-timing', title: 'Choose sale timing' },
+        { ...withDecision.decisions[0], id: 'sale-channel', title: 'Choose sale channel' },
         { ...withDecision.decisions[0], id: 'moving-method', title: 'Choose moving method', milestone_id: 'complete-move' },
       ],
     }
@@ -214,13 +215,19 @@ describe('Milestone and Decision foundation', () => {
     expect(milestoneColumns[0].querySelector('.plan-foundation-card')).not.toHaveClass('h-100')
 
     fireEvent.click(screen.getByRole('button', { name: /Start selling our home/ }))
-    const pairedColumns = milestoneColumns[0].querySelectorAll('.decision-grid > .decision-column')
-    expect(pairedColumns).toHaveLength(2)
-    pairedColumns.forEach((column) => expect(column).toHaveClass('col-12', 'col-lg-6'))
+    const firstMilestoneColumns = milestoneColumns[0].querySelectorAll('.decision-grid > .decision-column')
+    expect(firstMilestoneColumns).toHaveLength(3)
+    Array.from(firstMilestoneColumns).slice(0, 2).forEach((column) => {
+      expect(column).toHaveClass('col-12', 'col-lg-6', 'decision-column-paired')
+      expect(column.querySelector('.decision-card')).not.toHaveClass('h-100')
+    })
+    expect(firstMilestoneColumns[2]).toHaveClass('col-12', 'col-lg-12', 'decision-column-full')
+    fireEvent.click(screen.getByRole('button', { name: /Choose sale channel/ }))
+    expect(firstMilestoneColumns[2].querySelector('.decision-controls')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Complete the move/ }))
     const singleColumn = milestoneColumns[1].querySelector('.decision-grid > .decision-column')
-    expect(singleColumn).toHaveClass('col-12', 'col-lg-12')
+    expect(singleColumn).toHaveClass('col-12', 'col-lg-12', 'decision-column-full')
     expect(singleColumn?.querySelector('.decision-card')).not.toHaveClass('h-100')
   })
 
