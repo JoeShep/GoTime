@@ -85,6 +85,12 @@ EXPECTED_PARENT_ROW = {
     "due_date": "2026-09-01",
     "priority": "high",
 }
+TARGET_PARENT_ROW = {
+    **EXPECTED_PARENT_ROW,
+    "title": PARENT_TARGET_TITLE,
+    "start_date": None,
+    "due_date": None,
+}
 
 
 class ConversionError(RuntimeError):
@@ -141,6 +147,8 @@ def _baseline_projection_hashes(connection: sqlite3.Connection) -> dict[str, str
             for row in rows:
                 if row["id"] == PARENT_ID:
                     row["title"] = PARENT_SOURCE_TITLE
+                    row["start_date"] = EXPECTED_PARENT_ROW["start_date"]
+                    row["due_date"] = EXPECTED_PARENT_ROW["due_date"]
         elif table in {"task_categories", "task_assignees"}:
             rows = [row for row in rows if row["task_id"] not in TASK_IDS]
             if table == "task_assignees":
@@ -199,7 +207,7 @@ def _expected_task(task_id: str, title: str) -> dict[str, Any]:
 
 def _target_is_exact(connection: sqlite3.Connection) -> bool:
     parent = _one(connection, "SELECT * FROM tasks WHERE id = ?", (PARENT_ID,))
-    if parent != {**EXPECTED_PARENT_ROW, "title": PARENT_TARGET_TITLE}:
+    if parent != TARGET_PARENT_ROW:
         return False
     milestone = _one(connection, "SELECT * FROM milestones WHERE id = ?", (MILESTONE_ID,))
     if milestone != {
@@ -265,7 +273,10 @@ def _target_is_exact(connection: sqlite3.Connection) -> bool:
 
 
 def _insert_target(connection: sqlite3.Connection) -> None:
-    connection.execute("UPDATE tasks SET title = ? WHERE id = ?", (PARENT_TARGET_TITLE, PARENT_ID))
+    connection.execute(
+        "UPDATE tasks SET title = ?, start_date = NULL, due_date = NULL WHERE id = ?",
+        (PARENT_TARGET_TITLE, PARENT_ID),
+    )
     connection.execute(
         "INSERT INTO task_assignees(task_id, position, name) VALUES (?, 1, 'Joe')", (PARENT_ID,)
     )
@@ -353,7 +364,15 @@ def _manifest(result: str, before: dict[str, Any], after: dict[str, Any]) -> dic
         "conversion": "tennessee-home-marketing-v1",
         "result": result,
         "source_fingerprint": EXPECTED_SOURCE_SHA256,
-        "reused_tasks": [{"id": PARENT_ID, "source_title": PARENT_SOURCE_TITLE, "target_title": PARENT_TARGET_TITLE}],
+        "reused_tasks": [{
+            "id": PARENT_ID,
+            "source_title": PARENT_SOURCE_TITLE,
+            "target_title": PARENT_TARGET_TITLE,
+            "approved_mutations": {
+                "start_date": {"before": "2026-08-13", "after": None},
+                "due_date": {"before": "2026-09-01", "after": None},
+            },
+        }],
         "created_tasks": [{"id": task_id, "title": title} for task_id, title in TASKS],
         "created_milestone_id": MILESTONE_ID,
         "created_decision_id": DECISION_ID,

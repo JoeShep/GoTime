@@ -57,6 +57,10 @@ def test_conversion_is_exact_preserving_and_idempotent(tmp_path: Path) -> None:
     path, source_hashes = _source_database(tmp_path)
     first = _convert(path, source_hashes)
     assert first["result"] == "applied"
+    assert first["reused_tasks"][0]["approved_mutations"] == {
+        "start_date": {"before": "2026-08-13", "after": None},
+        "due_date": {"before": "2026-09-01", "after": None},
+    }
     after_sha = _sha(path)
     second = convert_database(
         path,
@@ -73,12 +77,18 @@ def test_conversion_is_exact_preserving_and_idempotent(tmp_path: Path) -> None:
     assert parent.title == "Reengage with the realtor"
     assert parent.status.value == "not_started"
     assert parent.manual_status_override is None
-    assert parent.due_date.isoformat() == "2026-09-01"
+    assert parent.start_date is None
+    assert parent.due_date is None
+    assert parent.priority.value == "high"
+    assert tuple(category.value for category in parent.categories) == ("housing",)
+    assert parent.assignees == ("Anne", "Joe")
     children = sorted(
         (child for child in plan.tasks if child.parent_task_id == PARENT_ID),
         key=lambda child: child.subtask_position,
     )
     assert tuple(child.id for child in children) == tuple(task_id for task_id, _ in TASKS)
+    assert all(child.start_date is None and child.due_date is None for child in children)
+    assert all(child.priority.value == "medium" for child in children)
     assert decision.preparation_task_ids == (PARENT_ID,)
     assert decision.preparation_readiness.value == "preparation_incomplete"
     assert len(plan.milestones) == 1

@@ -2882,6 +2882,14 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   `http://localhost:25174`, Experiments enabled, and the accepted application
   images. Normal services, production flags, and the active family database
   were not changed.
+- Corrected the candidate after review to explicitly clear the reused parent's
+  temporary UI-test start date `2026-08-13` and due date `2026-09-01`. The
+  parent retains High priority; all four children remain undated at neutral
+  medium priority. The manifest names both date removals as approved mutations.
+- Recreated the isolated database volume from a freshly checksum-verified copy
+  of the unchanged active database, applied the corrected conversion, verified
+  exact target relationships and stable baseline projection, and confirmed an
+  unchanged rerun. Focused tests passed 3 tests and `git diff --check` passed.
 
 # 2026-08-27 — Contextual Decision-preparation Recommendation candidate
 

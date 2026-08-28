@@ -7,7 +7,9 @@ conversion on a byte-identical isolated database copy. The active database,
 normal services, and production Experiments flags remain untouched. The narrow
 transactional artifact and its safety evidence are documented in
 `docs/conversions/tennessee-home-marketing-v1.md`. Active conversion requires a
-separate authorization after human review.
+separate authorization after human review. The corrected candidate explicitly
+clears the reused parent's known UI-test start/due dates while preserving its
+High priority; all four new children remain undated at neutral priority.
 
 ## Previous objective: contextual Decision-preparation Recommendations closed
 

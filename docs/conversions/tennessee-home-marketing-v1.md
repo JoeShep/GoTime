@@ -18,9 +18,12 @@ The sole reused Task is
 not started, high priority, starts 2026-08-13, is due 2026-09-01, has Housing,
 is assigned to Anne, has no description or hierarchy, and is depended on by
 three existing Tasks. Those fields and dependency edges are preserved except
-for its approved title and the addition of Joe. Anne and Joe are the dominant
-existing family and Housing assignee pair. No plausible existing Task matched
-any required child title, so all four children are created.
+for its approved title, the addition of Joe, and clearing both dates. The dates
+were temporary UI-test data, so removing them is an explicit approved mutation,
+not inferred cleanup or loss of user planning data. The parent's meaningful
+legacy High priority is preserved. Anne and Joe are the dominant existing
+family and Housing assignee pair. No plausible existing Task matched any
+required child title, so all four children are created.
 
 ## Target and stable identities
 
@@ -33,7 +36,10 @@ Only the reused parent is linked as Decision preparation.
 Child order is Prepare questions, Contact, Schedule, Meet. Schedule depends on
 Contact. Meet depends on Schedule and Prepare questions. All children are in
 `prepare`, have Housing and Anne/Joe, and use neutral medium priority without
-invented dates. The parent has automatic derived status and no override.
+invented dates. Neither the parent's High priority nor its cleared dates are
+copied to them. The parent has automatic derived status and no override. Manual
+priority across the family plan remains deferred to deterministic-attention
+calibration.
 
 The January 4–15, 2027 Milestone window is editable user-provided test data,
 not a forecast. Its description records that achievement requires explicit
@@ -49,4 +55,3 @@ post-write target validation, and an unrelated-row baseline projection. A
 complete target is a no-op on rerun. Changed sources and partial targets fail
 closed; any exception rolls back the transaction. The generated JSON manifest
 records before/after checksums, counts, hashes, reused records, and created IDs.
-
