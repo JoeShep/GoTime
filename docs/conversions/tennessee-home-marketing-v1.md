@@ -4,6 +4,15 @@ This narrow conversion rehearses the first real Milestone/Decision family-plan
 change on an isolated copy only. It makes no schema change and must not be run
 against the active database without separate authorization.
 
+## Deployment status
+
+Human review and isolated rehearsal passed, and the separately authorized
+active conversion was applied on August 28, 2026 from accepted commit
+`a62cad8fbfdcbb4a1139fdc7629612c09340f28c`. The active rerun returned
+`unchanged`. Production backup, manifest, restore, rehearsal, and post-startup
+evidence are preserved under
+`/tmp/gotime-family-conversion-production-backup-20260828/`.
+
 ## Approved source
 
 The source is the post-contextual-Recommendations family database with SHA-256

@@ -2916,6 +2916,43 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   to `6bcd0da85377e0b482e3f4daeec258d9ecb62105032686849749a798f6445a93`;
   integrity remained `ok` and foreign keys remained clean.
 
+# 2026-08-28 — First family conversion deployment and closeout
+
+- Deployed accepted commit `a62cad8fbfdcbb4a1139fdc7629612c09340f28c`.
+  Complete verification passed 234 backend and 154 frontend tests, backend
+  compilation, the production frontend build with Experiments false, and
+  `git diff --check`.
+- Verified source SHA-256
+  `09bf1f9c2453254c0319b58d1bd3beb59bc8c37f4701bdb6269d0b87749f9f7a`,
+  integrity `ok`, clean foreign keys, exact source identities, counts, and
+  stable hashes. Preserved the backup and evidence under
+  `/tmp/gotime-family-conversion-production-backup-20260828/`; checksum manifest
+  SHA-256 is `a96a8d1be87c107d7b8afea3216b49e677f698d09d27da50d13ea0e981112fec`.
+- Exact restore to isolated volume
+  `gotime_family_conversion_restore_rehearsal_20260828` reproduced the source
+  checksum. A fresh Python 3.12 conversion rehearsal reproduced the accepted
+  checksum `72008256c2bd3dd90dde4307f891fdc0e4cb01c7a425c4e6a9d625ba143fff67`,
+  manifest, counts, and stable hashes.
+- Stopped normal services to prevent concurrent writes, then transactionally
+  applied the exact accepted conversion. The active idempotency rerun returned
+  `unchanged` with the same byte checksum and logical hashes. After normal
+  repository startup, SHA-256 was
+  `f33aa79f83218fed3246133a639c232892bb8c7211e7b5b92aad8015ed076e1c`;
+  integrity remained `ok`, foreign keys clean, and all accepted counts/hashes
+  matched.
+- Rebuilt normal services with `GOTIME_ENABLE_EXPERIMENTS=false`,
+  `VITE_ENABLE_EXPERIMENTS=false`, and proxy
+  `VITE_API_PROXY_TARGET=http://backend:8000`. Direct and proxied Plan and
+  contextual Recommendation APIs returned 200; both prototype endpoints
+  returned 404. `/now` and `/plan` served normally, and automated routing
+  coverage confirmed `/experiments` uses the normal not-found experience.
+- Removed only the port-25173/25174 review containers, volume
+  `gotime_tennessee_home_conversion_acceptance_data_v1`, network
+  `gotime_tennessee_home_conversion_acceptance_net_v1`, and temporary Compose
+  file `/tmp/gotime-tennessee-home-conversion-acceptance.compose.yml`. No seed
+  resource existed. No other family conversion, status mutation, option
+  selection, AI call, research, or later increment began.
+
 # 2026-08-27 — Contextual Decision-preparation Recommendation candidate
 
 - Began from clean, pushed Decision-readiness closeout

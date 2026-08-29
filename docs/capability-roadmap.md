@@ -60,22 +60,24 @@ activate conditional branches only after the user's choice, preserve inactive
 work outside ordinary attention, and require explicit Milestone achievement.
 Review and approve the design and increment sequence before implementation.
 
-The first two bounded Increment 2 slices are accepted and deployed. GoTime now
+The completed Increment 2 slices are accepted and deployed. GoTime now
 supports one level of required subtasks, derived or visibly overridden parent
 status, parent-aware dependency blocking, leaf-only Recommendation eligibility,
 and explicit sibling ordering. Ordinary Tasks may be linked to Decisions as
 preparation work, with readiness derived from effective Task status and option
-selection remaining under user authority. Both active migrations added empty
-relationship structures only; the family plan was not converted. Contextual
-Recommendation reasoning remains later, separately approved work.
+selection remaining under user authority. Contextual Recommendations now use
+structured deterministic Decision-preparation signals without overriding
+existing urgency and timing. The first family conversion created the accepted
+Tennessee home-marketing Milestone, Decision, preparation parent, and required
+subtasks; no other family-data conversion is authorized.
 
-Before Increment 2 changes reasoning behavior, establish the approved
-[Now, Plan, and Experiments presentation boundary](technical-design/now-plan-experiments.md).
-This separates the primary Recommendation from complete plan management,
+The approved
+[Now, Plan, and Experiments presentation boundary](technical-design/now-plan-experiments.md)
+separates the primary Recommendation from complete plan management,
 introduces progressive disclosure for the four Task phases, and removes
 suspended experiments from the ordinary family interface without deleting
-their code or evidence. Secondary Now attention remains empty until genuine
-derived signals exist.
+their code or evidence. Accepted planning behavior is available normally while
+the shared experiment flags remain false.
 
 ### Capability 5: Explain
 This is the part I don't want to compromise on. Every recommendation should be accompanied by an explanation.

@@ -1,19 +1,18 @@
 # NEXT_SESSION
 
-## Current objective: first family conversion rehearsal
+## Current objective: first family conversion closed
 
-Prepare and review the exact Tennessee home-marketing Milestone/Decision
-conversion on a byte-identical isolated database copy. The active database,
-normal services, and production Experiments flags remain untouched. The narrow
-transactional artifact and its safety evidence are documented in
-`docs/conversions/tennessee-home-marketing-v1.md`. Active conversion requires a
-separate authorization after human review. The corrected candidate explicitly
-clears the reused parent's known UI-test start/due dates while preserving its
-High priority; all four new children remain undated at neutral priority.
+The accepted Tennessee home-marketing Milestone/Decision conversion is applied
+to the active family plan and documented in
+`docs/conversions/tennessee-home-marketing-v1.md`. It cleared the reused
+parent's known UI-test start/due dates while preserving its High priority; all
+four new children are undated at neutral priority.
 The production boundary correction graduates all accepted persisted planning
 and contextual-Recommendation behavior to normal Now/Plan routes with both
 shared flags false. Only `/experiments` and its two suspended prototype APIs
-remain gated. Complete suites and active conversion deployment remain deferred.
+remain gated. Complete suites, deployment, active-data verification, and
+isolated cleanup are complete. Do not begin another family conversion or later
+reasoning work without a newly selected objective.
 
 ## Previous objective: contextual Decision-preparation Recommendations closed
 
