@@ -3171,3 +3171,55 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   retained its original start time and zero restarts. The copied database
   checksum remained
   `00c794a198f124436d968be1e2e2c9c63a42e57836ed5f8b79e2a2c70d6ea7fe`.
+
+# 2026-08-29 — Deterministic Recommendation-ranking deployment closeout
+
+- Confirmed accepted commits through
+  `a333f5dcbb41b6a82c51fbb66af07d85893f5918`, a clean worktree, and active
+  source checksum
+  `f33aa79f83218fed3246133a639c232892bb8c7211e7b5b92aad8015ed076e1c`.
+  Preflight integrity was `ok`, foreign keys were clean, and counts were 53
+  Tasks, one Milestone, one Decision, three options, one preparation link, four
+  hierarchy links, 48 dependencies, 85 assignee assignments, 54 category
+  assignments, and zero parent overrides.
+- Complete backend verification passed 260 tests in a disposable Python 3.12
+  environment using pinned development requirements. Complete frontend
+  verification passed 168 tests. Backend/correction compilation, the production
+  frontend build with experiments false, and `git diff --check` passed.
+- Created the authoritative durable pre-correction backup at
+  `/home/joeshep/backups/gotime/20260829-deterministic-ranking-closeout/`.
+  Its exact database copy retains SHA-256 `f33aa79…`; every artifact verifies
+  against `checksums.sha256`. Retained restore volume
+  `gotime_deterministic_ranking_restore_rehearsal_20260829` restored it
+  byte-for-byte. The earlier 20260828 authoritative backup and restore volume
+  were not altered.
+- Isolated rehearsal changed exactly `milestones.description` on
+  `put-tennessee-home-on-market-2027`. Counts and every unrelated stable hash
+  were identical, integrity and foreign keys passed, rerun was byte-idempotent,
+  injected failure rolled back byte-for-byte, and missing, duplicate,
+  identity-drifted, or unexpected-copy targets failed closed without mutation.
+- Applied the same active correction with normal writes stopped. Database
+  checksum changed `f33aa79…` to `5fd96c…`; only the Milestone stable hash
+  changed from `91f6ceed…` to `c4a0f477…`. Immediate rerun reported unchanged.
+  Normal repository initialization advanced only SQLite header offsets 28 and
+  96 from 121 to 122, yielding `496eba…`; isolated reproduction matched the
+  active post-startup file exactly and all logical evidence remained unchanged.
+- Rebuilt normal backend container `b1e95d5740b3…` on image `1c2c269c13a4…`
+  and frontend container `45ffc83ec131…` on image `77ab55fd3264…` with zero
+  restarts, healthy backend, `GOTIME_ENABLE_EXPERIMENTS=false`,
+  `VITE_ENABLE_EXPERIMENTS=false`, and proxy `http://backend:8000`.
+- Direct/proxied Plan and normal Recommendation APIs matched. Accepted date
+  `2026-08-28` produced Test task with Dependency, APES timing, then Contact the
+  realtor; Wash windows (test) was absent. `/now` and `/plan` served normally,
+  invalid dates returned 422, omitted date remained compatible, and direct and
+  proxied primary/moving-service experiment APIs returned 404. Complete
+  frontend coverage confirms the disabled `/experiments` not-found experience
+  and accepted rendering/targeting/edit-return behavior without live probes.
+- Removed only acceptance containers
+  `gotime-ranking-calibration-acceptance-frontend` and
+  `gotime-ranking-calibration-acceptance-backend`, volume
+  `gotime_ranking_calibration_acceptance_data_20260828`, network
+  `gotime-ranking-calibration-acceptance_default`, Compose file
+  `/tmp/gotime-ranking-calibration-acceptance.compose.yml`, and the temporary
+  acceptance correction manifest after preserving its durable verified copy.
+  No seed file existed. No later work began.

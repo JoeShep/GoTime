@@ -80,7 +80,8 @@ Keep these observations separate from the selected derived-attention milestone:
 * First-class People and assignment identities.
 * Non-blocking related-task links.
 * After editing, optionally highlight the specific field and value that changed;
-  keep this distinct from the current return-to-Task location highlight.
+  keep this distinct from the accepted return-to-Task location highlight. This
+  remains deferred after deterministic-ranking closeout.
 
 These remain useful candidates, but none is part of the current product-design
 objective.

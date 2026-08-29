@@ -71,6 +71,15 @@ existing urgency and timing. The first family conversion created the accepted
 Tennessee home-marketing Milestone, Decision, preparation parent, and required
 subtasks; no other family-data conversion is authorized.
 
+The first deterministic Recommendation calibration is also accepted and
+deployed. Eligibility precedes attention, due-today/overdue work is protected,
+deadline pressure reaches actionable prerequisite frontiers, actual next-state
+leverage and momentum are bounded, viewer-local dates are explicit, and legacy
+priority is the weakest meaningful fallback. The family baseline confirms that
+Critical priority alone no longer places **Wash windows (test)** in the bounded
+Recommendation list. Defining Do now/Coming soon/Later/Waiting as broader
+outputs remains a later capability slice.
+
 The approved
 [Now, Plan, and Experiments presentation boundary](technical-design/now-plan-experiments.md)
 separates the primary Recommendation from complete plan management,

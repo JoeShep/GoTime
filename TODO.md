@@ -40,6 +40,8 @@
 - [x] Calibrate the focused deterministic Recommendation ranking baseline:
   viewer-local holds, due-pressure propagation, bounded attention signals, and
   transitional priority as the weakest meaningful fallback.
+- [x] Complete human acceptance, production deployment, durable backup,
+  one-field Milestone copy correction, and formal closeout for that calibration.
 - [ ] Specify which existing plan facts contribute to each state without
   changing the stored priority field or existing data.
 - [ ] Test a no-AI baseline against representative tasks in the real family

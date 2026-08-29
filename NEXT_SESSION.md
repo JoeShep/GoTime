@@ -1,6 +1,6 @@
 # NEXT_SESSION
 
-## Current objective: deterministic Recommendation calibration in acceptance
+## Current objective: deterministic Recommendation calibration closed
 
 The focused candidate recalibrates normal Recommendations without schema or
 family-data changes. Eligibility precedes bounded attention; overdue/due-today
@@ -11,36 +11,40 @@ legacy priority contribute in that order of strength, with phase/identity used
 only for stable presentation. The normal request now carries the viewer-local
 calendar date and refreshes after local midnight or tab return.
 
-Focused backend/frontend verification and the false-flag production build pass.
-The disposable candidate runs at `http://localhost:26173` (backend
-`http://localhost:26174`) with both experiment flags false, from a fresh copy of
-the active converted family database. Its logical counts and every stable row
-hash match the source. Normal services and the active database remain untouched.
-Complete suites, deployment, and closeout remain deferred pending human
-acceptance.
+Human acceptance, complete verification, production deployment, the approved
+one-field Milestone copy correction, and isolated cleanup are complete. Normal
+backend and frontend run accepted commit
+`a333f5dcbb41b6a82c51fbb66af07d85893f5918` with both experiment flags false.
+The durable pre-correction backup and all restore/correction/deployment evidence
+are authoritative at
+`/home/joeshep/backups/gotime/20260829-deterministic-ranking-closeout/`.
+Restore volume `gotime_deterministic_ranking_restore_rehearsal_20260829` is
+retained. The earlier 20260828 family-conversion backup and restore volume remain
+unchanged.
 
-The consolidated acceptance correction suppresses duplicate Decision-context
+The deployed acceptance correction suppresses duplicate Decision-context
 reason prose while retaining structured signals and targetable relationships,
 places Assignees and the semantic Recommendation-timing group on balanced
 separate rows, and applies the approved family-facing Milestone copy only to
 the disposable acceptance database. Historical conversion evidence is
 unchanged; fresh conversion expectations use the approved wording.
 
-The accepted follow-up makes the parent title after **Part of:** a native
+The deployed follow-up makes the parent title after **Part of:** a native
 link-style button. It reuses the established Task target so Plan reveals the
 phase and Completed section as needed, expands the parent, and focuses and
 highlights the parent without changing the child **View task** action.
 
-The focused Plan-navigation correction now returns every existing-Task edit to
+The deployed Plan-navigation correction returns every existing-Task edit to
 the saved Task's current phase, Completed section, and parent group after Save,
 with centered scrolling only when needed, restored Edit focus, and a temporary
 orientation highlight. Cancel restores the original scroll and Edit focus with
 the same return-to-Task highlight because the cue communicates location, not a
 saved change. If a save makes the Task incompatible with the
 active category filter, the filter stays intact and an accessible **Show task**
-action explicitly reuses the established reveal path. The corrected acceptance
-frontend remains at `http://localhost:26173`; its backend and copied database
-were not replaced.
+action explicitly reuses the established reveal path. The return border remains
+fully visible for three seconds after Save or Cancel, then fades briefly; reduced
+motion removes the static cue without animation. The disposable 26173/26174
+acceptance environment has been removed.
 
 ## Previous objective: first family conversion closed
 

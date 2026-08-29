@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted and deployed on 2026-08-27.
+Accepted and deployed on 2026-08-27; deterministic ranking calibration accepted
+and deployed on 2026-08-29.
 
 ## Context
 
@@ -74,5 +75,8 @@ approval.
 
 Recommendation explanations are derived from inspectable context rather than
 being the source of ranking truth. Recalculation is immediate and stateless.
-The family database and existing Decision, hierarchy, dependency, and Task
-records remain unchanged.
+The calibration required no schema change and did not change Decision,
+hierarchy, dependency, priority, date, or Task records. Its separately approved
+production data correction changed only the achievement-description field on
+Milestone `put-tennessee-home-on-market-2027`; durable pre-correction and
+deployment evidence is linked from the conversion documentation.

@@ -55,6 +55,15 @@ empty plan, a fully completed plan, and a plan whose remaining work is blocked
 or scheduled for later. The legacy employment/commute reasoning remains in the
 codebase as a separate planning flow; it does not rank persisted tasks.
 
+This deterministic calibration was accepted and deployed on August 29, 2026
+with both shared experiment flags false. Against the accepted family snapshot
+and evaluation date `2026-08-28`, the bounded order is **Test task with
+Dependency**, **Decide how long APES should continue working in Tennessee before
+moving**, then **Contact the realtor**. **Wash windows (test)** no longer enters
+that list merely because its retained legacy priority is Critical. This is the
+deployed no-AI baseline; priority removal and Milestone-derived timing remain
+separate future work.
+
 ## Recommendation hierarchy
 
 Hard eligibility comes first, user timing and urgency second, and Decision context third.

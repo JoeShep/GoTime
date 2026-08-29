@@ -32,6 +32,20 @@ manifest is retained at
 `/tmp/gotime-tennessee-milestone-description-v2-acceptance.json`; this new
 evidence does not alter the immutable v1 production evidence.
 
+The separately authorized correction was applied to production on August 29,
+2026 during deterministic-ranking closeout. Active checksum changed from
+`f33aa79f83218fed3246133a639c232892bb8c7211e7b5b92aad8015ed076e1c` to
+`5fd96cf175ea2af93ff50d22d890d436fbc4e4588c5608ef8388cfcd1dd3071f`
+for the transactional field update. Normal repository initialization then
+advanced only SQLite header bytes 28 and 96, producing
+`496eba140d5684a6458efebdddf5ccc1ff7da9f810cca236b0d3b794bd374df5`;
+an isolated initialization reproduced that file byte-for-byte. Counts and every
+stable hash except `milestones` remained identical. The new authoritative
+backup and audit record is
+`/home/joeshep/backups/gotime/20260829-deterministic-ranking-closeout/`, and
+restore volume `gotime_deterministic_ranking_restore_rehearsal_20260829` is
+retained. The immutable 20260828 evidence remains untouched.
+
 ## Approved source
 
 The source is the post-contextual-Recommendations family database with SHA-256
