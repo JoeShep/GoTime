@@ -1077,9 +1077,16 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                 </Col>
                 <Col md={4}><Form.Group controlId="task-priority"><Form.Label>Priority</Form.Label><Form.Select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>{Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
                 <Col md={4}><Form.Group controlId="task-status"><Form.Label>Status</Form.Label><Form.Select disabled={Boolean(editingId && plan.tasks.find((task) => task.id === editingId)?.is_parent)} value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select></Form.Group></Col>
-                <Col lg={6}><Form.Group controlId="task-assignees"><Form.Label>Assignees <span className="text-muted">(optional)</span></Form.Label><Form.Control placeholder="Separate names with commas" value={draft.assignees} onChange={(event) => setDraft({ ...draft, assignees: event.target.value })} /></Form.Group></Col>
-                <Col className="task-date-field" md={6} lg={3}><Form.Group controlId="task-start-date"><Form.Label>Do not recommend before <span className="text-muted">(optional)</span></Form.Label><Form.Control aria-describedby="task-start-date-help" type="date" value={draft.startDate} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })} /><Form.Text id="task-start-date-help">You can still start or complete it earlier.</Form.Text></Form.Group></Col>
-                <Col className="task-date-field" md={6} lg={3}><Form.Group controlId="task-due-date"><Form.Label>Due by <span className="text-muted">(optional)</span></Form.Label><Form.Control type="date" value={draft.dueDate} onChange={(event) => setDraft({ ...draft, dueDate: event.target.value })} /></Form.Group></Col>
+                <Col xs={12}><Form.Group controlId="task-assignees"><Form.Label>Assignees <span className="text-muted">(optional)</span></Form.Label><Form.Control placeholder="Separate names with commas" value={draft.assignees} onChange={(event) => setDraft({ ...draft, assignees: event.target.value })} /></Form.Group></Col>
+                <Col xs={12}>
+                  <fieldset className="recommendation-timing-group rounded-3 p-3">
+                    <legend className="form-label float-none w-auto mb-2">Recommendation timing <span className="text-muted">(optional)</span></legend>
+                    <Row className="g-3">
+                      <Col className="task-date-field" xs={12} lg={6}><Form.Group controlId="task-start-date"><Form.Label>Do not recommend before</Form.Label><Form.Control aria-describedby="task-start-date-help" type="date" value={draft.startDate} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })} /><Form.Text id="task-start-date-help">You can still start or complete it earlier.</Form.Text></Form.Group></Col>
+                      <Col className="task-date-field" xs={12} lg={6}><Form.Group controlId="task-due-date"><Form.Label>Due by</Form.Label><Form.Control type="date" value={draft.dueDate} onChange={(event) => setDraft({ ...draft, dueDate: event.target.value })} /></Form.Group></Col>
+                    </Row>
+                  </fieldset>
+                </Col>
                 <Col xs={12}>
                   <Form.Group>
                     <Form.Label>Dependencies <span className="text-muted">(optional)</span></Form.Label>

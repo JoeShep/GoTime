@@ -19,6 +19,13 @@ hash match the source. Normal services and the active database remain untouched.
 Complete suites, deployment, and closeout remain deferred pending human
 acceptance.
 
+The consolidated acceptance correction suppresses duplicate Decision-context
+reason prose while retaining structured signals and targetable relationships,
+places Assignees and the semantic Recommendation-timing group on balanced
+separate rows, and applies the approved family-facing Milestone copy only to
+the disposable acceptance database. Historical conversion evidence is
+unchanged; fresh conversion expectations use the approved wording.
+
 ## Previous objective: first family conversion closed
 
 The accepted Tennessee home-marketing Milestone/Decision conversion is applied

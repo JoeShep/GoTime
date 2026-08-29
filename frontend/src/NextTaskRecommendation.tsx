@@ -20,6 +20,20 @@ const redundantWhyNow = (whyNow: string) =>
   || whyNow === 'It is available to work on now.'
   || whyNow === 'It is available to work on now and has no incomplete prerequisites.'
 
+export function visibleRecommendationReasons(
+  item: RecommendationItem,
+  relationshipContextVisible: boolean,
+): string[] {
+  const decisionTitles = new Set((item.signals ?? [])
+    .filter((signal) => signal.kind !== 'ready_to_decide')
+    .map((signal) => signal.decision_title))
+  return item.why.filter((reason) => {
+    if (redundantReason(reason)) return false
+    if (!relationshipContextVisible) return true
+    return ![...decisionTitles].some((title) => reason === `Helps prepare ${title}.`)
+  })
+}
+
 function DecisionContextButton({ signal, onViewDecision }: { signal: RecommendationSignal; onViewDecision?: (decisionId: string) => void }) {
   if (!onViewDecision) return <>{signal.decision_title}</>
   return <Button className="p-0 align-baseline" onClick={(event) => { event.stopPropagation(); onViewDecision(signal.decision_id) }} variant="link">{signal.decision_title}</Button>
@@ -63,7 +77,7 @@ function RecommendationCard({
 }) {
   const isDecision = item.candidate_type === 'decision'
   const headingId = `${position}-recommendation-${item.decision_id ?? item.task_id ?? 'item'}`
-  const meaningfulReasons = item.why.filter((reason) => !redundantReason(reason))
+  const meaningfulReasons = visibleRecommendationReasons(item, !isDecision && (item.signals?.length ?? 0) > 0)
   return (
     <article
       aria-labelledby={headingId}

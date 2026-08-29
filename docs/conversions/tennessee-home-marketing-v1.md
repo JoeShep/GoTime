@@ -16,6 +16,21 @@ This repo-external directory is the authoritative durable backup. The identical
 `/tmp/gotime-family-conversion-production-backup-20260828/` copy remains
 temporarily available but is not authoritative. Restore-rehearsal volume
 `gotime_family_conversion_restore_rehearsal_20260828` also remains retained.
+Those historical backup files, manifests, checksums, and restore evidence
+remain immutable records of the conversion as originally applied.
+
+## Approved copy correction
+
+The subsequent deterministic-ranking acceptance correction replaces only the
+description on exact Milestone `put-tennessee-home-on-market-2027` with the
+approved family-facing achievement language. The narrow transactional artifact
+is `scripts/conversions/correct_tennessee_milestone_description.py`. It accepts
+only the exact historical description (applied) or the exact approved new
+description (unchanged), validates identity, window, pending state, and target
+uniqueness, and otherwise fails without mutation. Its isolated acceptance
+manifest is retained at
+`/tmp/gotime-tennessee-milestone-description-v2-acceptance.json`; this new
+evidence does not alter the immutable v1 production evidence.
 
 ## Approved source
 
@@ -57,10 +72,12 @@ copied to them. The parent has automatic derived status and no override. Manual
 priority across the family plan remains deferred to deterministic-attention
 calibration.
 
-The January 4–15, 2027 Milestone window is editable user-provided test data,
-not a forecast. Its description records that achievement requires explicit
-user confirmation after the selected marketing path has begun; meeting with
-the realtor or selecting an option is insufficient.
+The January 4–15, 2027 Milestone window remains editable user-provided planning
+data, not a forecast. Fresh conversions now use this approved description:
+“Mark this milestone achieved when the public listing is live, the property has
+been offered directly to selected builders, or—if pursuing both paths—both have
+begun. Meeting with the realtor or choosing a marketing option alone does not
+achieve it.”
 
 ## Operation and safety
 

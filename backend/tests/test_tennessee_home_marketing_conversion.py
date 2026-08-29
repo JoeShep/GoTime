@@ -14,6 +14,7 @@ sys.path.insert(0, str(REPOSITORY_ROOT))
 from scripts.conversions.convert_tennessee_home_marketing import (  # noqa: E402
     ConversionError,
     DECISION_ID,
+    MILESTONE_DESCRIPTION,
     PARENT_ID,
     TASKS,
     audit,
@@ -95,9 +96,7 @@ def test_conversion_is_exact_preserving_and_idempotent(tmp_path: Path) -> None:
     assert [option.title for option in decision.options] == [
         "List publicly", "Seek builder offers directly", "Pursue both paths",
     ]
-    assert all(title in plan.milestones[0].description for title in (
-        "List publicly", "Seek builder offers directly", "Pursue both paths",
-    ))
+    assert plan.milestones[0].description == MILESTONE_DESCRIPTION
     recommendation = recommend_relocation_task(plan)
     assert recommendation is not None
     assert recommendation.task_id == "contact-the-realtor"

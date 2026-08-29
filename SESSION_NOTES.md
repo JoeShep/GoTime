@@ -3095,3 +3095,25 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Isolated acceptance is running at `http://localhost:26173` and backend
   `http://localhost:26174`, with both experiment flags false. Normal services
   and the active database were not mutated or restarted.
+- Consolidated acceptance correction: Recommendation cards suppress a
+  preparation sentence only when the same structured **Helps prepare** control
+  is rendered; compact surfaces retain the reason. The Task form gives
+  Assignees its own row and groups two equal desktop timing columns in an
+  accessible **Recommendation timing (optional)** fieldset that stacks below
+  the large breakpoint.
+- Applied the approved copy-only correction to Milestone
+  `put-tennessee-home-on-market-2027` in the disposable acceptance database.
+  Its checksum changed from
+  `6bcd0da85377e0b482e3f4daeec258d9ecb62105032686849749a798f6445a93`
+  to `496eba140d5684a6458efebdddf5ccc1ff7da9f810cca236b0d3b794bd374df5`.
+  Counts are identical; only the `milestones` stable hash changed, from
+  `91f6ceed8e607ce4c9f610bc9adcd7da6cc282d0e7e8d63e2dfdf9949b54a5e2`
+  to `c4a0f477b90345184d2668da3ddfd0aa7926a3991f99b88fca91403d28fe96fa`.
+  All other stable hashes are identical, integrity is `ok`, foreign keys are
+  clean, and the immediate rerun reported `unchanged`. The acceptance manifest
+  is `/tmp/gotime-tennessee-milestone-description-v2-acceptance.json`.
+  Restarting the unchanged isolated backend advanced SQLite bookkeeping bytes,
+  so the currently running disposable copy checksum is
+  `823820ffcedd4265c1a46c01502b63dc222d2698751c7cb3a37549da739dc97f`;
+  its counts and stable hashes remain exactly the verified post-correction
+  values.

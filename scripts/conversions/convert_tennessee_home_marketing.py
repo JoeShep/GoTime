@@ -61,10 +61,9 @@ OPTIONS = (
 OPTION_IDS = {item[0] for item in OPTIONS}
 
 MILESTONE_DESCRIPTION = (
-    "Editable user-provided test target. Achievement is explicitly confirmed by the user: "
-    "for List publicly, when the listing is live; for Seek builder offers directly, when the "
-    "property has been actively offered to selected builders; for Pursue both paths, when both "
-    "paths have begun. A realtor meeting or Decision selection alone does not achieve it."
+    "Mark this milestone achieved when the public listing is live, the property has been offered "
+    "directly to selected builders, or—if pursuing both paths—both have begun. Meeting with the "
+    "realtor or choosing a marketing option alone does not achieve it."
 )
 QUESTIONS_DESCRIPTION = (
     "Prepare questions covering: likely interest from move-in buyers despite nearby teardowns; "

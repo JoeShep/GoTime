@@ -20,10 +20,12 @@ describe('Recommendation date calibration', () => {
     await screen.findByText('Prepare')
     fireEvent.click(screen.getByRole('button', { name: /add/i }))
     fireEvent.click(await screen.findByRole('menuitem', { name: /task/i }))
-    const hold = screen.getByLabelText('Do not recommend before (optional)')
+    expect(screen.getByRole('group', { name: 'Recommendation timing (optional)' })).toBeVisible()
+    const hold = screen.getByLabelText('Do not recommend before')
     expect(hold).toHaveAccessibleDescription('You can still start or complete it earlier.')
-    expect(hold.closest('.task-date-field')).toHaveClass('col-md-6', 'col-lg-3')
-    expect(screen.getByLabelText('Due by (optional)').closest('.task-date-field')).toHaveClass('col-md-6', 'col-lg-3')
+    expect(hold.closest('.task-date-field')).toHaveClass('col-12', 'col-lg-6')
+    expect(screen.getByLabelText('Due by').closest('.task-date-field')).toHaveClass('col-12', 'col-lg-6')
+    expect(screen.getByLabelText('Assignees (optional)').closest('.col-12')).not.toContainElement(hold)
   })
 
   it('refetches after the viewer local calendar crosses midnight', async () => {

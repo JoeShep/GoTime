@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, useLocation } from 'react-router'
 import App from './App'
-import { NextTaskRecommendation } from './NextTaskRecommendation'
+import { NextTaskRecommendation, visibleRecommendationReasons } from './NextTaskRecommendation'
 import { RelocationPlanExperience } from './RelocationPlanExperience'
 import type { RecommendationItem, RelocationPlan, RelocationTask, RelocationTaskRecommendation } from './api/relocationPlan'
 
@@ -86,16 +86,25 @@ describe('contextual Recommendations', () => {
 
   it('preserves meaningful timing while suppressing priority, absent restrictions, and repeated context prose', async () => {
     const item = taskItem({
-      why: ['Its user priority is medium.', 'It is actionable and has no later start-date restriction.', 'It is due on 2026-09-01.'],
+      why: ['Its user priority is medium.', 'Helps prepare Choose an area.', 'It is due on 2026-09-01.'],
     })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(recommendation(item))))
     render(<NextTaskRecommendation onViewDecision={vi.fn()} refreshKey={0} />)
 
     expect(await screen.findByText('It is due on 2026-09-01.')).toBeVisible()
     expect(screen.queryByText('Its user priority is medium.')).not.toBeInTheDocument()
-    expect(screen.queryByText('It is actionable and has no later start-date restriction.')).not.toBeInTheDocument()
+    expect(screen.queryByText('Helps prepare Choose an area.')).not.toBeInTheDocument()
     expect(screen.queryByText(/Why now:/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Choose an area' })).toBeVisible()
+  })
+
+  it('suppresses every repeated multiple-Decision reason but retains it for compact surfaces without relationship controls', () => {
+    const item = taskItem({
+      why: ['Completing it unlocks 1 Task.', 'Helps prepare Choose an area.', 'Helps prepare Choose a school.'],
+      signals: [taskItem().signals![0], { ...taskItem().signals![0], decision_id: 'choose-school', decision_title: 'Choose a school' }],
+    })
+    expect(visibleRecommendationReasons(item, true)).toEqual(['Completing it unlocks 1 Task.'])
+    expect(visibleRecommendationReasons(item, false)).toEqual(item.why)
   })
 
   it('renders a ready Decision as primary and a Task as upcoming', async () => {
