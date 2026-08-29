@@ -45,6 +45,7 @@ afterEach(() => {
 
 describe('contextual Recommendations', () => {
   it('renders Task and Decision candidates consistently in primary and upcoming positions', async () => {
+    expect(import.meta.env.VITE_ENABLE_EXPERIMENTS).not.toBe('true')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(recommendation(taskItem(), [decisionItem()]))))
     render(<NextTaskRecommendation refreshKey={0} />)
 

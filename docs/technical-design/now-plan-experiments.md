@@ -106,6 +106,15 @@ deterministic endpoints and their tests remain preserved behind the boundary.
 Development documentation must explain both flags and their default-off
 behavior when the boundary is implemented.
 
+The boundary gates only the suspended `/experiments` area and its prototype
+APIs (`/api/recommendations/primary` and
+`/api/experiments/moving-service-question`). Accepted persisted-plan behavior
+is not experimental: Milestones, Decisions/options, readiness, preparation
+relationships, required-subtask hierarchy and derived status, contextual
+Recommendations, and their Plan/Now targeting and editing routes remain
+available when both shared flags are false. Graduating these capabilities does
+not make the suspended prototypes part of normal navigation or execution.
+
 The following presentation concepts remain relevant to future derived
 attention even though their suspended implementations move behind Experiments:
 
@@ -163,6 +172,8 @@ sections.
 The extracted Experiments page has no Plan dependency and is absent unless
 `VITE_ENABLE_EXPERIMENTS` is exactly `true`. Its two deterministic backend
 routes return 404 unless `GOTIME_ENABLE_EXPERIMENTS` is exactly `true`.
+The accepted persisted-plan and contextual-Recommendation routes are normal
+product endpoints and do not consult either flag.
 
 Human browser acceptance passed for the route boundaries, default-off
 Experiments behavior, shared segmented navigation, and responsive page-shell

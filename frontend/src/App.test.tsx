@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
-import App from './App'
+import App, { experimentsEnabled } from './App'
 
 vi.mock('./NowPage', () => ({ NowPage: () => <h1>Now content</h1> }))
 vi.mock('./PlanPage', () => ({ PlanPage: () => <h1>Plan content</h1> }))
@@ -13,6 +13,14 @@ function renderAt(path: string) {
 }
 
 describe('application routes', () => {
+  it('keeps normal Now and Plan routes available while the experiment area is off', () => {
+    expect(experimentsEnabled).toBe(false)
+    renderAt('/now')
+    expect(screen.getByRole('heading', { name: 'Now content' })).toBeVisible()
+    fireEvent.click(screen.getByRole('link', { name: 'Plan' }))
+    expect(screen.getByRole('heading', { name: 'Plan content' })).toBeVisible()
+  })
+
   it('redirects the root to Now and marks its navigation active', async () => {
     const { container } = renderAt('/')
     expect(await screen.findByRole('heading', { name: 'Now content' })).toBeVisible()

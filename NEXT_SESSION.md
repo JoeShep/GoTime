@@ -10,6 +10,10 @@ transactional artifact and its safety evidence are documented in
 separate authorization after human review. The corrected candidate explicitly
 clears the reused parent's known UI-test start/due dates while preserving its
 High priority; all four new children remain undated at neutral priority.
+The production boundary correction graduates all accepted persisted planning
+and contextual-Recommendation behavior to normal Now/Plan routes with both
+shared flags false. Only `/experiments` and its two suspended prototype APIs
+remain gated. Complete suites and active conversion deployment remain deferred.
 
 ## Previous objective: contextual Decision-preparation Recommendations closed
 

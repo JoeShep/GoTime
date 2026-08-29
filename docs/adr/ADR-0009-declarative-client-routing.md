@@ -38,6 +38,13 @@ The router owns:
 The Experiments route exists only when `VITE_ENABLE_EXPERIMENTS` is exactly
 `true`. It is absent from ordinary family navigation even when enabled.
 
+Accepted planning capabilities are not part of this optional route boundary.
+Normal Now and Plan rendering, Milestones, Decisions, readiness, required
+subtasks, contextual Recommendations, and their targeting/editing behavior are
+available with both shared experiment flags false. On the backend, only the
+suspended prototype Recommendation and moving-service experiment endpoints use
+`GOTIME_ENABLE_EXPERIMENTS`; persisted-plan APIs do not.
+
 Future Plan expansion and scroll position belong to browser-session workspace
 state, not the router and not SQLite. A small provider plus `sessionStorage`,
 keyed by persisted plan ID, may own that transient state. Later Finder and

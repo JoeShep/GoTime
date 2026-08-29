@@ -2891,6 +2891,31 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   exact target relationships and stable baseline projection, and confirmed an
   unchanged rerun. Focused tests passed 3 tests and `git diff --check` passed.
 
+# 2026-08-28 — Accepted planning production-boundary correction
+
+- Confirmed the family conversion remains canonical at **List publicly**,
+  **Seek builder offers directly**, and **Pursue both paths**, including the
+  matching Milestone achievement description. No conversion IDs, logic, or
+  isolated records changed.
+- Audited the shared flags and made their narrow route set explicit. Accepted
+  Milestone, Decision/readiness, preparation, hierarchy/derived-status, and
+  contextual-Recommendation APIs and UI remain normal product behavior with
+  both flags false. `/experiments`, `/api/recommendations/primary`, and
+  `/api/experiments/moving-service-question` remain gated.
+- Added focused false-flag regression tests while retaining existing true-flag
+  experiment coverage. No new permanent feature flag was needed.
+- Focused verification passed 66 backend and 67 frontend tests. Backend
+  compilation and the production frontend build with
+  `VITE_ENABLE_EXPERIMENTS=false` passed. The corrected isolated environment
+  runs at ports 25173/25174 with both shared flags false; accepted Plan and
+  contextual-Recommendation APIs return 200 while both direct and proxied
+  prototype endpoints return 404.
+- Replacing only the isolated containers preserved every logical count and
+  stable row hash. SQLite startup changed the isolated file checksum from
+  `f33aa79f83218fed3246133a639c232892bb8c7211e7b5b92aad8015ed076e1c`
+  to `6bcd0da85377e0b482e3f4daeec258d9ecb62105032686849749a798f6445a93`;
+  integrity remained `ok` and foreign keys remained clean.
+
 # 2026-08-27 — Contextual Decision-preparation Recommendation candidate
 
 - Began from clean, pushed Decision-readiness closeout

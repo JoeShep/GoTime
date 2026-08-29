@@ -57,6 +57,10 @@ from app.scenarios import (
 
 DEFAULT_DATABASE_PATH = Path(os.environ.get("GOTIME_DATABASE_PATH", "data/gotime.db"))
 router = APIRouter()
+EXPERIMENT_ROUTE_PATHS = frozenset({
+    "/api/recommendations/primary",
+    "/api/experiments/moving-service-question",
+})
 
 
 def experiments_enabled() -> bool:
@@ -75,10 +79,7 @@ def create_app(database_path: str | Path = DEFAULT_DATABASE_PATH) -> FastAPI:
 
     @application.middleware("http")
     async def gate_experiment_routes(request: Request, call_next):
-        if request.url.path in {
-            "/api/recommendations/primary",
-            "/api/experiments/moving-service-question",
-        } and not experiments_enabled():
+        if request.url.path in EXPERIMENT_ROUTE_PATHS and not experiments_enabled():
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND,
                 content={"detail": "Not Found"},

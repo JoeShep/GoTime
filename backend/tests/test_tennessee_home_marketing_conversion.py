@@ -92,7 +92,12 @@ def test_conversion_is_exact_preserving_and_idempotent(tmp_path: Path) -> None:
     assert decision.preparation_task_ids == (PARENT_ID,)
     assert decision.preparation_readiness.value == "preparation_incomplete"
     assert len(plan.milestones) == 1
-    assert len(decision.options) == 3
+    assert [option.title for option in decision.options] == [
+        "List publicly", "Seek builder offers directly", "Pursue both paths",
+    ]
+    assert all(title in plan.milestones[0].description for title in (
+        "List publicly", "Seek builder offers directly", "Pursue both paths",
+    ))
     recommendation = recommend_relocation_task(plan)
     assert recommendation is not None
     assert recommendation.task_id == "contact-the-realtor"

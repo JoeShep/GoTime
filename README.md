@@ -109,12 +109,15 @@ docker compose up --build
 Open http://localhost:5173 to see the GoTime recommendation experience. The
 backend health endpoint remains available at `GET /api/health`.
 
-The suspended deterministic prototypes are excluded by default. For isolated
-development only, set `VITE_ENABLE_EXPERIMENTS=true` for the frontend and
-`GOTIME_ENABLE_EXPERIMENTS=true` for the backend to make `/experiments` and its
-two supporting endpoints available. Both values require the exact lowercase
-string `true`. Enabling them does not authorize an AI provider, live research,
-credentials, or spending, and Experiments never appears in family navigation.
+Accepted planning capabilities—including Milestones, Decisions, readiness,
+required subtasks, and contextual Recommendations—are normal product behavior
+and remain available with both experiment flags false. The suspended
+deterministic prototypes are excluded by default. For isolated development
+only, set `VITE_ENABLE_EXPERIMENTS=true` and
+`GOTIME_ENABLE_EXPERIMENTS=true` to make `/experiments` and its two prototype
+endpoints available. Both values require the exact lowercase string `true`.
+Enabling them does not authorize an AI provider, live research, credentials,
+or spending, and Experiments never appears in family navigation.
 
 ## Documentation
 

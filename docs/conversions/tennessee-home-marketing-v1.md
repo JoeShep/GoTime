@@ -31,6 +31,9 @@ The script creates Milestone `put-tennessee-home-on-market-2027`, Decision
 `choose-how-to-market-our-home`, and four children with IDs matching their
 normalized approved titles. It creates the three ordered options with IDs
 `list-publicly`, `seek-builder-offers-directly`, and `pursue-both-paths`.
+Their canonical display titles are **List publicly**, **Seek builder offers
+directly**, and **Pursue both paths**; the Milestone achievement description
+uses those same titles. These accepted labels are not deployment-time aliases.
 Only the reused parent is linked as Decision preparation.
 
 Child order is Prepare questions, Contact, Schedule, Meet. Schedule depends on
