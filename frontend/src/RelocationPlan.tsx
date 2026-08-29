@@ -328,6 +328,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [expansionStateReady, setExpansionStateReady] = useState(false)
   const [pendingNavigation, setPendingNavigation] = useState<{ taskId: string; focus: 'card' | 'edit'; scroll: 'always' | 'if-needed' } | null>(null)
   const [foundTaskId, setFoundTaskId] = useState<string | null>(null)
+  const [foundTaskFading, setFoundTaskFading] = useState(false)
   const [categoryFilters, setCategoryFilters] = useState<Set<CategoryFilter>>(new Set())
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [creationType, setCreationType] = useState<'task' | 'milestone' | 'decision' | null>(null)
@@ -554,9 +555,27 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
   useEffect(() => {
     if (!foundTaskId) return
-    const timeout = window.setTimeout(() => setFoundTaskId((current) => current === foundTaskId ? null : current), 2200)
+    const timeout = window.setTimeout(() => {
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+      if (reducedMotion) setFoundTaskId((current) => current === foundTaskId ? null : current)
+      else setFoundTaskFading(true)
+    }, 3000)
     return () => window.clearTimeout(timeout)
   }, [foundTaskId])
+
+  useEffect(() => {
+    if (!foundTaskId || !foundTaskFading) return
+    const timeout = window.setTimeout(() => {
+      setFoundTaskId((current) => current === foundTaskId ? null : current)
+      setFoundTaskFading(false)
+    }, 350)
+    return () => window.clearTimeout(timeout)
+  }, [foundTaskFading, foundTaskId])
+
+  function highlightTask(taskId: string) {
+    setFoundTaskFading(false)
+    setFoundTaskId(taskId)
+  }
 
   function matchingPhaseIds(filters: Set<CategoryFilter>) {
     if (!plan) return new Set<string>()
@@ -602,7 +621,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     } else {
       setExpandedPhaseIds((expanded) => new Set(expanded).add(task.phase_id))
     }
-    setFoundTaskId(task.id)
+    highlightTask(task.id)
     if (task.parent_task_id) setExpandedParentIds((expanded) => new Set(expanded).add(task.parent_task_id!))
     if (task.is_parent) setExpandedParentIds((expanded) => new Set(expanded).add(task.id))
     if (task.status === 'completed') {
@@ -692,6 +711,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   function beginEdit(task: RelocationTask) {
     editOriginRef.current = { taskId: task.id, scrollY: Math.max(0, window.scrollY) }
     setFoundTaskId(null)
+    setFoundTaskFading(false)
     setEditingId(task.id)
     setDraft(draftFromTask(task))
     setDependencyQuery('')
@@ -720,7 +740,9 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
       window.scrollTo({ top: origin.scrollY, left: 0, behavior: 'auto' })
       lastPlanScrollYRef.current = origin.scrollY
       if (plan) writeScrollPosition(plan.id, origin.scrollY)
-      document.getElementById(`task-${origin.taskId}`)?.querySelector<HTMLElement>('[data-task-edit-control]')?.focus({ preventScroll: true })
+      const taskElement = document.getElementById(`task-${origin.taskId}`)
+      taskElement?.querySelector<HTMLElement>('[data-task-edit-control]')?.focus({ preventScroll: true })
+      if (taskElement) highlightTask(origin.taskId)
     })
   }
 
@@ -758,6 +780,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         editOriginRef.current = null
         if (savedTask && !taskMatchesCategoryFilters(savedTask, categoryFilters)) {
           setFoundTaskId(null)
+          setFoundTaskFading(false)
           setHiddenSavedTaskId(savedTask.id)
           window.requestAnimationFrame(() => {
             const restoreY = origin?.scrollY ?? lastPlanScrollYRef.current
@@ -890,7 +913,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     return (
       <article
         aria-labelledby={titleId}
-        className={`task-item rounded-3 p-2 p-sm-3 ${isSubtask ? 'is-subtask' : ''} ${task.blocked ? 'is-blocked' : ''} ${foundTaskId === task.id ? 'is-found' : ''}`}
+        className={`task-item rounded-3 p-2 p-sm-3 ${isSubtask ? 'is-subtask' : ''} ${task.blocked ? 'is-blocked' : ''} ${foundTaskId === task.id ? `is-found${foundTaskFading ? ' is-found-fading' : ''}` : ''}`}
         id={`task-${task.id}`}
         key={task.id}
         ref={(element) => {

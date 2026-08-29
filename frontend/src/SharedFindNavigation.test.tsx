@@ -112,7 +112,8 @@ describe('shared Find', () => {
     fireEvent.keyDown(input, { key: 'ArrowDown' })
     expect(input).toHaveAttribute('aria-activedescendant', 'shared-find-result-deposit')
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(await screen.findByRole('article', { name: 'Pay deposit' })).toHaveFocus()
+    const target = await screen.findByRole('article', { name: 'Pay deposit' })
+    await waitFor(() => expect(target).toHaveFocus())
   })
 
   it('shows empty and error states', async () => {

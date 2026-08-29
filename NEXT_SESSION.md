@@ -34,8 +34,9 @@ highlights the parent without changing the child **View task** action.
 The focused Plan-navigation correction now returns every existing-Task edit to
 the saved Task's current phase, Completed section, and parent group after Save,
 with centered scrolling only when needed, restored Edit focus, and a temporary
-orientation highlight. Cancel restores the original scroll and Edit focus
-without a change highlight. If a save makes the Task incompatible with the
+orientation highlight. Cancel restores the original scroll and Edit focus with
+the same return-to-Task highlight because the cue communicates location, not a
+saved change. If a save makes the Task incompatible with the
 active category filter, the filter stays intact and an accessible **Show task**
 action explicitly reuses the established reveal path. The corrected acceptance
 frontend remains at `http://localhost:26173`; its backend and copied database

@@ -79,6 +79,8 @@ Keep these observations separate from the selected derived-attention milestone:
 * Alternate plan views.
 * First-class People and assignment identities.
 * Non-blocking related-task links.
+* After editing, optionally highlight the specific field and value that changed;
+  keep this distinct from the current return-to-Task location highlight.
 
 These remain useful candidates, but none is part of the current product-design
 objective.

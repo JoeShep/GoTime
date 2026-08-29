@@ -355,12 +355,20 @@ body {
   outline-offset: 0.15rem;
 }
 
-.task-item.is-found,
-.plan-foundation-item.is-found {
-  animation: found-task 1.8s ease-out;
+.task-item.is-found {
+  box-shadow: 0 0 0 0.3rem rgb(74 111 83 / 35%);
 }
 
-@keyframes found-task {
+.task-item.is-found.is-found-fading {
+  box-shadow: 0 0 0 0.3rem rgb(74 111 83 / 0%);
+  transition: box-shadow 350ms ease-out;
+}
+
+.plan-foundation-item.is-found {
+  animation: found-plan-item 1.8s ease-out;
+}
+
+@keyframes found-plan-item {
   0%,
   35% {
     box-shadow: 0 0 0 0.3rem rgb(74 111 83 / 35%);
@@ -372,7 +380,14 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .task-item.is-found,
+  .task-item.is-found {
+    box-shadow: 0 0 0 0.3rem rgb(74 111 83 / 35%);
+  }
+
+  .task-item.is-found.is-found-fading {
+    transition: none;
+  }
+
   .plan-foundation-item.is-found {
     animation: none;
     box-shadow: 0 0 0 0.2rem rgb(74 111 83 / 35%);

@@ -3132,8 +3132,8 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   the Task from the returned Plan, reveals its current phase, Completed section,
   and parent group, then restores its Edit focus and a temporary highlight.
   Scrolling is centered only when needed and respects reduced motion.
-- Cancel restores the original scroll position and Edit control without a save
-  highlight. Failed validation or persistence retains the editor and draft.
+- Cancel restores the original scroll position and Edit control. Failed
+  validation or persistence retains the editor and draft.
   A saved Task hidden by the active category filter leaves that filter intact
   and presents **Task saved but hidden by the current filter.** with a focused
   **Show task** action that reuses the established Task targeting path.
@@ -3147,3 +3147,27 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   retained its original start time and zero restarts. The copied database
   checksum remained
   `330d21cb17ea71952291d1ae5e424c35dbcf2be8bb4cb24a5451239e9b002eae`.
+
+# 2026-08-29 — Return-to-Task highlight correction
+
+- Clarified the existing Task-card treatment as a location/orientation cue.
+  Successful Save and Cancel now show the same full return border for three
+  seconds. It then fades for 350ms without affecting layout; reduced-motion
+  viewers receive the same three-second static cue followed by immediate
+  removal. Failed editors remain open and receive no highlight.
+- Kept the established `is-found` targeting boundary for Task, Finder,
+  Recommendation, and parent navigation. The separate future possibility of
+  highlighting the changed field/value after editing is recorded in the
+  Parking Lot and was not implemented.
+- Focused frontend verification passed 98 tests across eight affected files.
+  The production build with `VITE_ENABLE_EXPERIMENTS=false` and
+  `git diff --check` passed.
+- Recreated only the isolated frontend at `http://localhost:26173`. Frontend
+  container `55bae2c5be15822f14d9721ecd85e3b4f1628f4e9e1280390bad9ba79f0c00aa`
+  runs image
+  `06cb030bc535e9cfedc46970ea3bf3d53efbea603def64c82fa86ac79956f832`.
+  Backend container
+  `478228de8c731a24b42a10cd19f2cd23f2434b1faf92965a64cb37d3623feec1`
+  retained its original start time and zero restarts. The copied database
+  checksum remained
+  `00c794a198f124436d968be1e2e2c9c63a42e57836ed5f8b79e2a2c70d6ea7fe`.

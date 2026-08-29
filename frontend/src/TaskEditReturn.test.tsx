@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RelocationPlan } from './RelocationPlan'
 import type { RelocationPlan as Plan, RelocationTask } from './api/relocationPlan'
@@ -59,6 +59,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   sessionStorage.clear()
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
@@ -130,7 +131,7 @@ describe('existing Task edit return', () => {
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'center' })
   })
 
-  it('returns Cancel to the original control and scroll position without a save highlight', async () => {
+  it('returns Cancel to the original control and scroll position with the same location highlight', async () => {
     mockSave(initialPlan)
     Object.defineProperty(window, 'scrollY', { configurable: true, value: 640 })
     render(<RelocationPlan />)
@@ -141,8 +142,48 @@ describe('existing Task edit return', () => {
     const card = await screen.findByRole('article', { name: 'Ordinary task' })
     await waitFor(() => expect(within(card).getByRole('button', { name: 'Edit' })).toHaveFocus())
     expect(window.scrollTo).toHaveBeenCalledWith({ top: 640, left: 0, behavior: 'auto' })
-    expect(card).not.toHaveClass('is-found')
+    expect(card).toHaveClass('is-found')
     expect(screen.queryByDisplayValue('Unsaved')).not.toBeInTheDocument()
+  })
+
+  it('holds the return highlight for three seconds and then briefly fades it', async () => {
+    mockSave(initialPlan)
+    render(<RelocationPlan />)
+    await editTask('Ordinary task')
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await act(async () => vi.advanceTimersToNextTimerAsync())
+
+    const card = screen.getByRole('article', { name: 'Ordinary task' })
+    expect(within(card).getByRole('button', { name: 'Edit' })).toHaveFocus()
+    expect(card).toHaveClass('is-found')
+    expect(card).not.toHaveClass('is-found-fading')
+
+    await act(async () => vi.advanceTimersByTimeAsync(2999))
+    expect(card).toHaveClass('is-found')
+    expect(card).not.toHaveClass('is-found-fading')
+    await act(async () => vi.advanceTimersByTimeAsync(1))
+    expect(card).toHaveClass('is-found', 'is-found-fading')
+    await act(async () => vi.advanceTimersByTimeAsync(350))
+    expect(card).not.toHaveClass('is-found', 'is-found-fading')
+  })
+
+  it('keeps a static return highlight for three seconds with reduced motion, then removes it', async () => {
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue({ matches: true }))
+    mockSave(initialPlan)
+    render(<RelocationPlan />)
+    await editTask('Ordinary task')
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await act(async () => vi.advanceTimersToNextTimerAsync())
+
+    const card = screen.getByRole('article', { name: 'Ordinary task' })
+    expect(within(card).getByRole('button', { name: 'Edit' })).toHaveFocus()
+    expect(card).toHaveClass('is-found')
+    await act(async () => vi.advanceTimersByTimeAsync(2999))
+    expect(card).toHaveClass('is-found')
+    await act(async () => vi.advanceTimersByTimeAsync(1))
+    expect(card).not.toHaveClass('is-found', 'is-found-fading')
   })
 
   it('preserves a compatible filter and offers explicit established reveal when a save becomes hidden', async () => {
@@ -174,6 +215,7 @@ describe('existing Task edit return', () => {
     expect(await screen.findByText('Save failed.')).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Edit task' })).toBeVisible()
     expect(screen.getByLabelText('Description (optional)')).toHaveValue('Keep this draft')
+    expect(document.querySelector('.task-item.is-found')).not.toBeInTheDocument()
     expect(screen.queryByText('Task saved but hidden by the current filter.')).not.toBeInTheDocument()
   })
 })
