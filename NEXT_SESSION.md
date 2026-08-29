@@ -31,6 +31,16 @@ link-style button. It reuses the established Task target so Plan reveals the
 phase and Completed section as needed, expands the parent, and focuses and
 highlights the parent without changing the child **View task** action.
 
+The focused Plan-navigation correction now returns every existing-Task edit to
+the saved Task's current phase, Completed section, and parent group after Save,
+with centered scrolling only when needed, restored Edit focus, and a temporary
+orientation highlight. Cancel restores the original scroll and Edit focus
+without a change highlight. If a save makes the Task incompatible with the
+active category filter, the filter stays intact and an accessible **Show task**
+action explicitly reuses the established reveal path. The corrected acceptance
+frontend remains at `http://localhost:26173`; its backend and copied database
+were not replaced.
+
 ## Previous objective: first family conversion closed
 
 The accepted Tennessee home-marketing Milestone/Decision conversion is applied

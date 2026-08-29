@@ -1684,6 +1684,7 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   one-way commute.
 - Rejected blank, whitespace-only, over-length, and prerequisite-incompatible
   values.
+
 - Added accessible parent targeting to contextual subtask Recommendation cards.
   Only the parent title after **Part of:** is a native link-style button, named
   `View parent task [title]`; it sends the parent ID through the existing
@@ -3123,3 +3124,26 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   `823820ffcedd4265c1a46c01502b63dc222d2698751c7cb3a37549da739dc97f`;
   its counts and stable hashes remain exactly the verified post-correction
   values.
+
+# 2026-08-29 — Existing-Task edit return correction
+
+- Added a focused Plan-navigation correction from accepted lineage
+  `9c4a9b1fa60d01abf1f00bd01e7e79c5b950b338`. Existing-Task Save now resolves
+  the Task from the returned Plan, reveals its current phase, Completed section,
+  and parent group, then restores its Edit focus and a temporary highlight.
+  Scrolling is centered only when needed and respects reduced motion.
+- Cancel restores the original scroll position and Edit control without a save
+  highlight. Failed validation or persistence retains the editor and draft.
+  A saved Task hidden by the active category filter leaves that filter intact
+  and presents **Task saved but hidden by the current filter.** with a focused
+  **Show task** action that reuses the established Task targeting path.
+- Focused frontend verification passed 87 tests across seven affected files.
+  The production frontend build with `VITE_ENABLE_EXPERIMENTS=false` and
+  `git diff --check` passed.
+- Rebuilt and recreated only the isolated frontend at
+  `http://localhost:26173` with `VITE_ENABLE_EXPERIMENTS=false` and proxy target
+  `http://backend:8000`. Backend container
+  `478228de8c731a24b42a10cd19f2cd23f2434b1faf92965a64cb37d3623feec1`
+  retained its original start time and zero restarts. The copied database
+  checksum remained
+  `330d21cb17ea71952291d1ae5e424c35dbcf2be8bb4cb24a5451239e9b002eae`.

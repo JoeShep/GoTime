@@ -310,6 +310,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [pendingTaskStatusIds, setPendingTaskStatusIds] = useState<Set<string>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [filterNotice, setFilterNotice] = useState<string | null>(null)
+  const [hiddenSavedTaskId, setHiddenSavedTaskId] = useState<string | null>(null)
   const [taskTitleError, setTaskTitleError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft | null>(null)
@@ -325,7 +326,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [expandedCompletedPhaseIds, setExpandedCompletedPhaseIds] = useState<Set<string>>(new Set())
   const [expandedParentIds, setExpandedParentIds] = useState<Set<string>>(new Set())
   const [expansionStateReady, setExpansionStateReady] = useState(false)
-  const [pendingNavigationTaskId, setPendingNavigationTaskId] = useState<string | null>(null)
+  const [pendingNavigation, setPendingNavigation] = useState<{ taskId: string; focus: 'card' | 'edit'; scroll: 'always' | 'if-needed' } | null>(null)
   const [foundTaskId, setFoundTaskId] = useState<string | null>(null)
   const [categoryFilters, setCategoryFilters] = useState<Set<CategoryFilter>>(new Set())
   const [addMenuOpen, setAddMenuOpen] = useState(false)
@@ -335,6 +336,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const editorRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const taskRefs = useRef(new Map<string, HTMLElement>())
+  const hiddenSavedTaskActionRef = useRef<HTMLButtonElement>(null)
   const moveButtonRefs = useRef(new Map<string, HTMLButtonElement>())
   const initializedPlanIdRef = useRef<string | null>(null)
   const preFilterExpandedPhaseIdsRef = useRef<Set<string> | null>(null)
@@ -342,6 +344,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const scrollWriteFrameRef = useRef<number | null>(null)
   const lastPlanScrollYRef = useRef(0)
   const preCreationScrollYRef = useRef(0)
+  const editOriginRef = useRef<{ taskId: string; scrollY: number } | null>(null)
 
   const editorActive = Boolean(draft) || foundationEditorOpen || creationType !== null
 
@@ -521,19 +524,39 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }, [draft !== null, editingId])
 
   useEffect(() => {
-    if (!pendingNavigationTaskId) return
-    const taskElement = taskRefs.current.get(pendingNavigationTaskId)
+    if (!pendingNavigation) return
+    const taskElement = document.getElementById(`task-${pendingNavigation.taskId}`)
     if (!taskElement) return
-    taskElement.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
-    taskElement.focus({ preventScroll: true })
+    const focusElement = pendingNavigation.focus === 'edit'
+      ? taskElement.querySelector<HTMLElement>('[data-task-edit-control]') ?? taskElement
+      : taskElement
+    const bounds = taskElement.getBoundingClientRect()
+    const comfortablyVisible = bounds.top >= 72 && bounds.bottom <= window.innerHeight - 72
+    if (pendingNavigation.scroll === 'always' || !comfortablyVisible) {
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+      taskElement.scrollIntoView?.({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' })
+    }
+    focusElement.focus({ preventScroll: true })
     if (plan) {
       window.requestAnimationFrame(() => {
         lastPlanScrollYRef.current = Math.max(0, window.scrollY)
         writeScrollPosition(plan.id, lastPlanScrollYRef.current)
       })
     }
-    setPendingNavigationTaskId(null)
-  }, [expandedCompletedPhaseIds, expandedPhaseIds, pendingNavigationTaskId, plan])
+    setPendingNavigation(null)
+  }, [expandedCompletedPhaseIds, expandedParentIds, expandedPhaseIds, pendingNavigation, plan])
+
+  useEffect(() => {
+    if (!hiddenSavedTaskId) return
+    const frame = window.requestAnimationFrame(() => hiddenSavedTaskActionRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [hiddenSavedTaskId])
+
+  useEffect(() => {
+    if (!foundTaskId) return
+    const timeout = window.setTimeout(() => setFoundTaskId((current) => current === foundTaskId ? null : current), 2200)
+    return () => window.clearTimeout(timeout)
+  }, [foundTaskId])
 
   function matchingPhaseIds(filters: Set<CategoryFilter>) {
     if (!plan) return new Set<string>()
@@ -568,7 +591,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     })
   }
 
-  function selectFinderResult(task: RelocationTask) {
+  function revealTask(task: RelocationTask, focus: 'card' | 'edit' = 'card', scroll: 'always' | 'if-needed' = 'always') {
     setFilterNotice(null)
     if (!taskMatchesCategoryFilters(task, categoryFilters)) {
       const restored = preFilterExpandedPhaseIdsRef.current ?? new Set<string>()
@@ -589,7 +612,11 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         return next
       })
     }
-    setPendingNavigationTaskId(task.id)
+    setPendingNavigation({ taskId: task.id, focus, scroll })
+  }
+
+  function selectFinderResult(task: RelocationTask) {
+    revealTask(task)
   }
 
   useEffect(() => {
@@ -663,6 +690,8 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   }
 
   function beginEdit(task: RelocationTask) {
+    editOriginRef.current = { taskId: task.id, scrollY: Math.max(0, window.scrollY) }
+    setFoundTaskId(null)
     setEditingId(task.id)
     setDraft(draftFromTask(task))
     setDependencyQuery('')
@@ -674,6 +703,25 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setParentError(null)
     setParentPickerOpen(false)
     setParentQuery('')
+  }
+
+  function cancelEdit() {
+    const origin = editOriginRef.current
+    setDraft(null)
+    setEditingId(null)
+    setDependencyQuery('')
+    setExpandedDependencyPhaseIds(new Set())
+    setParentQuery('')
+    setParentPickerOpen(false)
+    setParentError(null)
+    editOriginRef.current = null
+    window.requestAnimationFrame(() => {
+      if (!origin) return
+      window.scrollTo({ top: origin.scrollY, left: 0, behavior: 'auto' })
+      lastPlanScrollYRef.current = origin.scrollY
+      if (plan) writeScrollPosition(plan.id, origin.scrollY)
+      document.getElementById(`task-${origin.taskId}`)?.querySelector<HTMLElement>('[data-task-edit-control]')?.focus({ preventScroll: true })
+    })
   }
 
   function requestConfirmation(request: Omit<ConfirmationRequest, 'returnFocus'>, returnFocus?: HTMLElement | null) {
@@ -704,6 +752,21 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         setCreationType(null)
         const createdTask = updated.tasks.find((task) => task.id === createdId)
         if (createdTask) selectFinderResult(createdTask)
+      } else {
+        const savedTask = updated.tasks.find((task) => task.id === createdId)
+        const origin = editOriginRef.current
+        editOriginRef.current = null
+        if (savedTask && !taskMatchesCategoryFilters(savedTask, categoryFilters)) {
+          setFoundTaskId(null)
+          setHiddenSavedTaskId(savedTask.id)
+          window.requestAnimationFrame(() => {
+            const restoreY = origin?.scrollY ?? lastPlanScrollYRef.current
+            window.scrollTo({ top: restoreY, left: 0, behavior: 'auto' })
+          })
+        } else if (savedTask) {
+          setHiddenSavedTaskId(null)
+          revealTask(savedTask, 'edit', 'if-needed')
+        }
       }
     } catch (requestError) {
       if (requestError instanceof PlanRequestError && requestError.code === 'duplicate_task_title') {
@@ -850,7 +913,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
             <Form.Select aria-label={`Status for ${task.title}`} disabled={pendingTaskStatusIds.has(task.id)} value={task.status} onChange={(event) => void updateStatus(task, event.target.value as TaskStatus, event.currentTarget)}>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Form.Select>
             {task.is_parent && <Button variant="outline-primary" onClick={() => beginSubtask(task)}>Add subtask</Button>}
             {task.manual_status_override && <Button variant="outline-secondary" onClick={() => void returnToAutomaticStatus(task)}>Return to automatic status</Button>}
-            <Button variant="outline-secondary" onClick={() => beginEdit(task)}>Edit</Button>
+            <Button data-task-edit-control variant="outline-secondary" onClick={() => beginEdit(task)}>Edit</Button>
           </div>
         </div>
       </article>
@@ -940,6 +1003,27 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
           {filterNotice}
         </Alert>
       )}
+      {hiddenSavedTaskId && (
+        <Alert
+          className="filter-clear-notice position-fixed start-50 translate-middle-x mb-3 shadow-sm"
+          dismissible
+          onClose={() => setHiddenSavedTaskId(null)}
+          role="status"
+          variant="info"
+        >
+          <span>Task saved but hidden by the current filter.</span>{' '}
+          <Button
+            className="p-0 align-baseline"
+            onClick={() => {
+              const savedTask = plan?.tasks.find((task) => task.id === hiddenSavedTaskId)
+              setHiddenSavedTaskId(null)
+              if (savedTask) selectFinderResult(savedTask)
+            }}
+            ref={hiddenSavedTaskActionRef}
+            variant="link"
+          >Show task</Button>
+        </Alert>
+      )}
 
       {plan && !draft && <MilestoneDecisionFoundation
         creationType={creationType === 'milestone' || creationType === 'decision' ? creationType : null}
@@ -1010,7 +1094,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                 </Button>
                 <Button type="button" variant="outline-secondary" disabled={taskEditorSaving} onClick={() => {
                   if (!editingId && creationType === 'task') cancelCreation()
-                  else { setDraft(null); setEditingId(null); setDependencyQuery(''); setExpandedDependencyPhaseIds(new Set()) }
+                  else cancelEdit()
                 }}>Cancel</Button>
               </Stack>
               <Row className="g-3">
