@@ -1684,6 +1684,12 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   one-way commute.
 - Rejected blank, whitespace-only, over-length, and prerequisite-incompatible
   values.
+- Added accessible parent targeting to contextual subtask Recommendation cards.
+  Only the parent title after **Part of:** is a native link-style button, named
+  `View parent task [title]`; it sends the parent ID through the existing
+  Recommendation Task-target path. Focused coverage confirms phase/completed
+  reveal, parent expansion, focus/highlight, compatible child targeting,
+  keyboard-focus semantics, and no parent control for top-level Tasks.
 - Added a focused workplace-area input after a successful commute-limit
   submission.
 - Kept draft input local and submitted only an explicitly confirmed, trimmed

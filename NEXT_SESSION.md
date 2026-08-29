@@ -26,6 +26,11 @@ separate rows, and applies the approved family-facing Milestone copy only to
 the disposable acceptance database. Historical conversion evidence is
 unchanged; fresh conversion expectations use the approved wording.
 
+The accepted follow-up makes the parent title after **Part of:** a native
+link-style button. It reuses the established Task target so Plan reveals the
+phase and Completed section as needed, expands the parent, and focuses and
+highlights the parent without changing the child **View task** action.
+
 ## Previous objective: first family conversion closed
 
 The accepted Tennessee home-marketing Milestone/Decision conversion is applied

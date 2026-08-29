@@ -39,7 +39,12 @@ function DecisionContextButton({ signal, onViewDecision }: { signal: Recommendat
   return <Button className="p-0 align-baseline" onClick={(event) => { event.stopPropagation(); onViewDecision(signal.decision_id) }} variant="link">{signal.decision_title}</Button>
 }
 
-function SignalContext({ signals, onViewDecision }: { signals: RecommendationSignal[]; onViewDecision?: (decisionId: string) => void }) {
+function ParentContextButton({ signal, onViewTask }: { signal: RecommendationSignal; onViewTask?: (taskId: string) => void }) {
+  if (!signal.parent_task_id || !signal.parent_task_title || !onViewTask) return <>{signal.parent_task_title}</>
+  return <Button aria-label={`View parent task ${signal.parent_task_title}`} className="p-0 align-baseline" onClick={(event) => { event.stopPropagation(); onViewTask(signal.parent_task_id!) }} variant="link">{signal.parent_task_title}</Button>
+}
+
+function SignalContext({ signals, onViewDecision, onViewTask }: { signals: RecommendationSignal[]; onViewDecision?: (decisionId: string) => void; onViewTask?: (taskId: string) => void }) {
   if (signals.length === 0) return null
   if (signals.length > 1) {
     return (
@@ -53,7 +58,7 @@ function SignalContext({ signals, onViewDecision }: { signals: RecommendationSig
   }
   const signal = signals[0]
   if (signal.kind === 'inherited_decision_preparation') {
-    return <div className="mt-2"><div><strong>Part of:</strong> {signal.parent_task_title}</div><div><strong>Helps prepare:</strong> <DecisionContextButton onViewDecision={onViewDecision} signal={signal} /></div></div>
+    return <div className="mt-2"><div><strong>Part of:</strong> <ParentContextButton onViewTask={onViewTask} signal={signal} /></div><div><strong>Helps prepare:</strong> <DecisionContextButton onViewDecision={onViewDecision} signal={signal} /></div></div>
   }
   if (signal.kind === 'unblocks_decision_preparation') {
     return <div className="mt-2"><div><strong>Unblocks:</strong> {signal.blocked_task_title}</div><div><strong>Helps prepare:</strong> <DecisionContextButton onViewDecision={onViewDecision} signal={signal} /></div></div>
@@ -108,7 +113,7 @@ function RecommendationCard({
           {meaningfulReasons.length > 0 && <ListGroup as="ul" className="detail-list mb-3" variant="flush">
             {meaningfulReasons.map((reason) => <ListGroup.Item as="li" className="px-0 py-1" key={reason}>{reason}</ListGroup.Item>)}
           </ListGroup>}
-          <SignalContext onViewDecision={onViewDecision} signals={item.signals ?? []} />
+          <SignalContext onViewDecision={onViewDecision} onViewTask={onViewTask} signals={item.signals ?? []} />
           {item.why_now && !redundantWhyNow(item.why_now) && (item.signals?.length ?? 0) === 0 && <p className="mt-2 mb-0"><strong>Why now:</strong> {item.why_now}</p>}
           {item.task_id && onViewTask && <Button className="recommendation-task-link mt-3" onClick={() => onViewTask(item.task_id!)}>View task</Button>}
         </>

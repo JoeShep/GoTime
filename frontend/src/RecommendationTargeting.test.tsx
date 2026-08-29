@@ -42,6 +42,35 @@ function recommendation(taskId: string | null): RelocationTaskRecommendation {
   }
 }
 
+const parentPlan: RelocationPlan = {
+  ...plan,
+  tasks: [
+    {
+      id: 'parent', title: 'Reengage with the realtor', description: null, phase_id: 'prepare', categories: ['housing'],
+      status: 'completed', assignees: ['Anne', 'Joe'], start_date: null, due_date: null, priority: 'high',
+      dependency_task_ids: [], blocked: false, is_parent: true, subtask_count: 1, completed_subtask_count: 1,
+      automatic_status: 'completed', stored_status: 'not_started', manual_status_override: null,
+    },
+    {
+      id: 'child', title: 'Contact the realtor', description: null, phase_id: 'prepare', categories: ['housing'],
+      status: 'completed', assignees: ['Anne', 'Joe'], start_date: null, due_date: null, priority: 'medium',
+      dependency_task_ids: [], blocked: false, parent_task_id: 'parent', subtask_position: 0,
+    },
+  ],
+}
+
+const childRecommendation: RelocationTaskRecommendation = {
+  status: 'recommended', candidate_type: 'task', task_id: 'child', task_title: 'Contact the realtor',
+  phase_id: 'prepare', phase_title: 'Prepare', why: ['Completing it unlocks 1 Task.'], why_now: '',
+  directly_unblocks_task_ids: [], ranking_factors: null,
+  signals: [{
+    kind: 'inherited_decision_preparation', decision_id: 'decision', decision_title: 'Choose how to market our home',
+    preparation_task_id: 'parent', preparation_task_title: 'Reengage with the realtor', parent_task_id: 'parent',
+    parent_task_title: 'Reengage with the realtor', blocked_task_id: null, blocked_task_title: null,
+    dependency_path_task_ids: ['child'],
+  }],
+}
+
 function response(body: unknown): Response {
   return { ok: true, status: 200, json: async () => body } as Response
 }
@@ -144,5 +173,32 @@ describe('cross-route Recommendation targeting', () => {
     fireEvent.click(within(notice.closest('[role="status"]')!).getByRole('button', { name: 'Close alert' }))
     await waitFor(() => expect(screen.queryByText('The recommended task is no longer available.')).not.toBeInTheDocument())
     expect(screen.getByTestId('location')).toHaveTextContent('/plan')
+  })
+
+  it('targets the parent through the established reveal path while preserving the child action', async () => {
+    vi.stubGlobal('fetch', mockRequests(childRecommendation, parentPlan))
+    Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
+    const first = render(<MemoryRouter initialEntries={['/now']}><App /><HistoryProbe /></MemoryRouter>)
+
+    const parentLink = await screen.findByRole('button', { name: 'View parent task Reengage with the realtor' })
+    parentLink.focus()
+    expect(parentLink).toHaveFocus()
+    fireEvent.keyDown(parentLink, { key: 'Enter', code: 'Enter' })
+    parentLink.click()
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/plan'))
+    const parent = await screen.findByRole('article', { name: 'Reengage with the realtor' })
+    await waitFor(() => expect(parent).toHaveFocus())
+    expect(parent).toHaveClass('is-found')
+    expect(screen.getByRole('button', { name: /Prepare 0 remaining · 1 completed/ })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: 'Completed (1)' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('button', { name: /1 of 1 required subtask completed/ })).toHaveAttribute('aria-expanded', 'true')
+    first.unmount()
+
+    vi.stubGlobal('fetch', mockRequests(childRecommendation, parentPlan))
+    render(<MemoryRouter initialEntries={['/now']}><App /></MemoryRouter>)
+    fireEvent.click(await screen.findByRole('button', { name: 'View task' }))
+    const child = await screen.findByRole('article', { name: 'Contact the realtor' })
+    await waitFor(() => expect(child).toHaveFocus())
+    expect(child).toHaveClass('is-found')
   })
 })

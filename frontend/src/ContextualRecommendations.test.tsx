@@ -68,12 +68,20 @@ describe('contextual Recommendations', () => {
     vi.stubGlobal('fetch', vi.fn().mockImplementation(() => Promise.resolve(response(requests.shift()))))
 
     const targetDecision = vi.fn()
-    const view = render(<NextTaskRecommendation onViewDecision={targetDecision} refreshKey={0} />)
+    const targetTask = vi.fn()
+    const view = render(<NextTaskRecommendation onViewDecision={targetDecision} onViewTask={targetTask} refreshKey={0} />)
     expect((await screen.findByText('Part of:')).closest('div')).toHaveTextContent('Compare areas')
+    const parentButton = screen.getByRole('button', { name: 'View parent task Compare areas' })
+    expect(parentButton).toHaveTextContent('Compare areas')
+    parentButton.focus()
+    expect(parentButton).toHaveFocus()
+    parentButton.click()
+    expect(targetTask).toHaveBeenCalledWith('compare')
+    expect(screen.getByRole('button', { name: 'View task' })).toBeVisible()
     expect(screen.getByText('Helps prepare:').closest('div')).toHaveTextContent('Choose an area')
-    view.rerender(<NextTaskRecommendation onViewDecision={targetDecision} refreshKey={1} />)
+    view.rerender(<NextTaskRecommendation onViewDecision={targetDecision} onViewTask={targetTask} refreshKey={1} />)
     expect((await screen.findByText('Unblocks:')).closest('div')).toHaveTextContent('Compare costs')
-    view.rerender(<NextTaskRecommendation onViewDecision={targetDecision} refreshKey={2} />)
+    view.rerender(<NextTaskRecommendation onViewDecision={targetDecision} onViewTask={targetTask} refreshKey={2} />)
     const disclosure = await screen.findByText('Helps prepare 2 decisions')
     fireEvent.click(disclosure)
     expect(disclosure.closest('details')).toHaveAttribute('open')
@@ -82,6 +90,14 @@ describe('contextual Recommendations', () => {
     fireEvent.click(chooseArea)
     expect(targetDecision).toHaveBeenCalledWith('choose-area')
     expect(disclosure.closest('details')).toHaveAttribute('open')
+  })
+
+  it('does not render a parent control for an ordinary top-level Task', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(recommendation(taskItem({ signals: [] })))))
+    render(<NextTaskRecommendation onViewTask={vi.fn()} refreshKey={0} />)
+    await screen.findByRole('heading', { name: 'Research neighborhoods' })
+    expect(screen.queryByRole('button', { name: /View parent task/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'View task' })).toBeVisible()
   })
 
   it('preserves meaningful timing while suppressing priority, absent restrictions, and repeated context prose', async () => {
