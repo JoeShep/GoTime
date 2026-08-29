@@ -2925,9 +2925,12 @@ I'd hold off on creating a new category until we see whether it recurs in other 
 - Verified source SHA-256
   `09bf1f9c2453254c0319b58d1bd3beb59bc8c37f4701bdb6269d0b87749f9f7a`,
   integrity `ok`, clean foreign keys, exact source identities, counts, and
-  stable hashes. Preserved the backup and evidence under
-  `/tmp/gotime-family-conversion-production-backup-20260828/`; checksum manifest
-  SHA-256 is `a96a8d1be87c107d7b8afea3216b49e677f698d09d27da50d13ea0e981112fec`.
+  stable hashes. The authoritative backup and evidence are preserved under
+  `/home/joeshep/backups/gotime/20260828-first-family-conversion-closeout/`;
+  checksum manifest SHA-256 is
+  `a96a8d1be87c107d7b8afea3216b49e677f698d09d27da50d13ea0e981112fec`.
+  The identical `/tmp/gotime-family-conversion-production-backup-20260828/`
+  source remains temporarily available but is not authoritative.
 - Exact restore to isolated volume
   `gotime_family_conversion_restore_rehearsal_20260828` reproduced the source
   checksum. A fresh Python 3.12 conversion rehearsal reproduced the accepted
@@ -2952,6 +2955,11 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   file `/tmp/gotime-tennessee-home-conversion-acceptance.compose.yml`. No seed
   resource existed. No other family conversion, status mutation, option
   selection, AI call, research, or later increment began.
+- Independently recalculated every durable artifact checksum, successfully
+  verified the copied `checksums.sha256`, and compared source/durable trees by
+  path, type, size, mode, and content with no missing, added, or changed file.
+  Restore-rehearsal volume `gotime_family_conversion_restore_rehearsal_20260828`
+  remains retained.
 
 # 2026-08-27 — Contextual Decision-preparation Recommendation candidate
 

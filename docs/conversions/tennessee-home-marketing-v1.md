@@ -11,7 +11,11 @@ active conversion was applied on August 28, 2026 from accepted commit
 `a62cad8fbfdcbb4a1139fdc7629612c09340f28c`. The active rerun returned
 `unchanged`. Production backup, manifest, restore, rehearsal, and post-startup
 evidence are preserved under
-`/tmp/gotime-family-conversion-production-backup-20260828/`.
+`/home/joeshep/backups/gotime/20260828-first-family-conversion-closeout/`.
+This repo-external directory is the authoritative durable backup. The identical
+`/tmp/gotime-family-conversion-production-backup-20260828/` copy remains
+temporarily available but is not authoritative. Restore-rehearsal volume
+`gotime_family_conversion_restore_rehearsal_20260828` also remains retained.
 
 ## Approved source
 

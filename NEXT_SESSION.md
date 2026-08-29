@@ -14,6 +14,12 @@ remain gated. Complete suites, deployment, active-data verification, and
 isolated cleanup are complete. Do not begin another family conversion or later
 reasoning work without a newly selected objective.
 
+The authoritative repo-external closeout backup is
+`/home/joeshep/backups/gotime/20260828-first-family-conversion-closeout/`.
+The identical `/tmp/gotime-family-conversion-production-backup-20260828/` copy
+is temporarily retained but is not authoritative. Restore-rehearsal volume
+`gotime_family_conversion_restore_rehearsal_20260828` remains retained.
+
 ## Previous objective: contextual Decision-preparation Recommendations closed
 
 The accepted and deployed derived-attention Increment 2 slice deterministically recommends
