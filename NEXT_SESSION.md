@@ -1,6 +1,25 @@
 # NEXT_SESSION
 
-## Current objective: first family conversion closed
+## Current objective: deterministic Recommendation calibration in acceptance
+
+The focused candidate recalibrates normal Recommendations without schema or
+family-data changes. Eligibility precedes bounded attention; overdue/due-today
+pressure is protected, due pressure reaches actionable dependency frontiers,
+and stored start dates are presented as **Do not recommend before** holds.
+Actual immediate unlocks, ready Decisions, momentum, Decision preparation, and
+legacy priority contribute in that order of strength, with phase/identity used
+only for stable presentation. The normal request now carries the viewer-local
+calendar date and refreshes after local midnight or tab return.
+
+Focused backend/frontend verification and the false-flag production build pass.
+The disposable candidate runs at `http://localhost:26173` (backend
+`http://localhost:26174`) with both experiment flags false, from a fresh copy of
+the active converted family database. Its logical counts and every stable row
+hash match the source. Normal services and the active database remain untouched.
+Complete suites, deployment, and closeout remain deferred pending human
+acceptance.
+
+## Previous objective: first family conversion closed
 
 The accepted Tennessee home-marketing Milestone/Decision conversion is applied
 to the active family plan and documented in

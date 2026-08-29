@@ -13,25 +13,44 @@ The reasoning engine exists to continuously evaluate the current state of a user
 
 ## Implemented deterministic next-task rule
 
-For the singleton relocation-plan MVP, GoTime recommends one persisted task
-without AI or an opaque score. A task is actionable only when it is not
-completed, has no incomplete dependency, and has no start date later than the
-current date.
+GoTime recommends actionable persisted Tasks and ready unresolved Decisions
+without AI. Eligibility is resolved before attention: completed, blocked,
+inactive, parent-summary, and held Not-started Tasks are excluded. The stored
+`start_date` is the backward-compatible **Do not recommend before** date. An
+In-progress child overrides its own and its parent's hold without changing
+either stored date; otherwise the latest applicable child/parent hold applies.
+Holds do not propagate through dependencies.
 
-Actionable tasks are compared lexicographically in this exact order:
+Eligible candidates receive bounded deterministic attention contributions.
+Overdue and due-today work forms a protected tier. Other date-only bands are
+1–3 days (strong), 4–7 (moderate), 8–30 (light), and over 30 days (no urgency,
+date usable only for close comparisons). Due pressure traverses blocked
+dependency chains to their actionable prerequisite frontier and traverses a
+dated parent outcome to actionable required subtasks. It is context only and
+never changes an editable date.
 
-1. user priority (`critical`, `high`, `medium`, `low`);
-2. overdue tasks, then other dated tasks, then undated tasks;
-3. earlier due date within the same due-date group;
-4. `in_progress` before an otherwise equivalent `not_started` task;
-5. more incomplete downstream tasks that this task alone would directly
-   unblock;
-6. the persisted phase order; and
-7. task ID as the stable final tie-breaker.
+Within those safeguards, capped contributions represent actual next-transition
+unblocking, ready-to-decide state, In-progress momentum, unresolved-Decision
+preparation, and finally legacy priority. The implementation coefficients are
+calibration constants, not evidence-based measurements: protected due 100,
+strong due 60, moderate due 30, light due 12, each actual immediate unlock 24
+(capped at 48), ready Decision 35, In-progress 22, Decision preparation 10, and
+priority 0–3. Only the strongest direct or inherited deadline applies. Phase
+order and stable identity are deterministic tie-breakers, not attention.
 
-The response retains these factors as structured data and explains the selected
-task's due state, priority, in-progress state where applicable, and direct
-unblocking effect. If no task is actionable, the response distinguishes an
+Behavioral comparisons are the contract: protected urgency beats non-urgent
+work; strong due pressure beats momentum; several real signals can beat one
+moderate date; actual immediate unblocking beats otherwise-equivalent momentum;
+a ready Decision beats ordinary undated work; momentum breaks close attention;
+priority resolves only otherwise-close meaningful comparisons. Explanations
+show at most two meaningful reasons and never cite score, priority, phase,
+generic availability, or an absent restriction.
+
+The normal Recommendation request accepts an optional `evaluation_date` in
+strict `YYYY-MM-DD` form. The frontend supplies the viewer's local calendar date
+and refreshes after local midnight or return to a hidden tab. Omitted values use
+the backend's local calendar date for backward compatibility. If no candidate
+is actionable, the response distinguishes an
 empty plan, a fully completed plan, and a plan whose remaining work is blocked
 or scheduled for later. The legacy employment/commute reasoning remains in the
 codebase as a separate planning flow; it does not rank persisted tasks.
@@ -66,9 +85,9 @@ flowchart TD
     PT --> G
     OT --> G
 
-    G --> R1["1. Apply user dates, urgency, and manual priority"]
-    R1 --> R2["2. Within the same attention level"]
-    R2 --> R3["Ready Decision > Preparation or unblocking Task > Ordinary Task"]
+    G --> R1["1. Protect overdue and due-today pressure"]
+    R1 --> R2["2. Accumulate bounded deterministic attention"]
+    R2 --> R3["Dates + actual leverage + readiness + momentum + context + legacy priority"]
     R3 --> R4["3. Apply stable tie-breakers"]
     R4 --> O["Primary Recommendation + upcoming items"]
 ```

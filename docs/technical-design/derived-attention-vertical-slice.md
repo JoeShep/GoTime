@@ -93,16 +93,13 @@ conditional associations, and activation do not exist today.
 ### Recommendation behavior
 
 The stored-plan Recommendation endpoint loads the complete plan and calls a
-pure deterministic function. It excludes completed, blocked, and future-start
-Tasks. Eligible Tasks are compared lexicographically by:
-
-1. stored Critical/High/Medium/Low priority;
-2. overdue, dated, and undated grouping;
-3. due date;
-4. In progress before Not started;
-5. number of incomplete Tasks directly unblocked by this Task alone;
-6. phase position; and
-7. stable Task ID.
+pure deterministic function. The implemented calibration now resolves hard
+eligibility first, protects overdue/due-today pressure, and combines bounded
+date, actual-unblocking, readiness, momentum, Decision-context, and transitional
+priority signals. Due pressure reaches actionable prerequisite frontiers while
+Recommendation holds do not cross dependency edges. The canonical behavior and
+calibration boundaries are maintained in
+[the reasoning-engine rule](../reasoning-engine.md#implemented-deterministic-next-task-rule).
 
 The response identifies one Task and phase, provides structured ranking
 factors, lists directly unblocked Task IDs, and supplies `why` plus `why_now`
@@ -110,10 +107,10 @@ text. Empty, complete, and blocked-or-future plans receive distinct
 no-actionable explanations. Successful plan mutations cause the frontend to
 refetch the Recommendation.
 
-The engine does not understand parent/leaf context, Decision leverage,
-Milestone contribution, advisory readiness, activation, or inactive work. It
-also still elevates stored priority, which the derived-attention direction
-intends to demote without deleting existing data.
+Parent/leaf context, readiness, inactive work, and contextual preparation are
+implemented. Stored priority remains editable for compatibility but is now the
+weakest meaningful ranking fallback; this slice does not migrate it or add
+Milestone-derived scheduling.
 
 ### Routes and frontend behavior
 

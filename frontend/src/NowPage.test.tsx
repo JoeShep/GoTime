@@ -42,6 +42,6 @@ describe('Now page', () => {
     first.unmount()
     render(<MemoryRouter><NowPage /></MemoryRouter>)
     await screen.findByRole('heading', { name: 'Contact the realtor' })
-    expect(fetchMock.mock.calls.filter(([path]) => path === '/api/relocation-plan/recommendation')).toHaveLength(2)
+    expect(fetchMock.mock.calls.filter(([path]) => String(path).startsWith('/api/relocation-plan/recommendation?'))).toHaveLength(2)
   })
 })

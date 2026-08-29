@@ -109,7 +109,7 @@ def test_high_priority_undated_beats_medium_priority_distant_dated() -> None:
     assert recommendation.task_id == "high-undated"
 
 
-def test_critical_due_today_beats_overdue_low_priority() -> None:
+def test_earlier_overdue_beats_due_today_regardless_of_priority() -> None:
     recommendation = recommend_relocation_task(
         plan(
             task("overdue-low", priority="low", due_date="2026-08-12"),
@@ -118,7 +118,7 @@ def test_critical_due_today_beats_overdue_low_priority() -> None:
         today=TODAY,
     )
 
-    assert recommendation.task_id == "critical-today"
+    assert recommendation.task_id == "overdue-low"
 
 
 def test_overdue_then_earlier_due_date_wins_for_equal_priority() -> None:
@@ -144,17 +144,13 @@ def test_priority_orders_tasks_with_equivalent_dates() -> None:
     assert recommendation.task_id == "critical"
 
 
-def test_in_progress_wins_after_date_and_priority_tie() -> None:
+def test_in_progress_wins_when_attention_is_otherwise_close() -> None:
     recommendation = recommend_relocation_task(
         plan(task("not-started"), task("started", status="in_progress")), today=TODAY
     )
 
     assert recommendation.task_id == "started"
-    assert recommendation.why[:2] == (
-        "Its user priority is medium.",
-        "It is actionable and has no later start-date restriction.",
-    )
-    assert recommendation.why[2] == "It is already in progress."
+    assert recommendation.why == ("Already in progress.",)
 
 
 def test_task_that_directly_unblocks_more_downstream_work_wins() -> None:
@@ -238,6 +234,18 @@ def test_api_returns_a_recommendation_from_the_persisted_plan(tmp_path) -> None:
     assert recommendation["task_id"] == "book-movers"
     assert recommendation["task_title"] == "Book movers"
     assert recommendation["phase_title"] == "Prepare for the move"
+
+
+def test_api_uses_strict_explicit_evaluation_date_and_compatible_fallback(tmp_path) -> None:
+    async def exercise() -> tuple[int, int, int]:
+        app = create_app(tmp_path / "gotime.db")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+            valid = await client.get("/api/relocation-plan/recommendation?evaluation_date=2026-08-28")
+            omitted = await client.get("/api/relocation-plan/recommendation")
+            invalid = await client.get("/api/relocation-plan/recommendation?evaluation_date=2026-08-28T23:00:00Z")
+            return valid.status_code, omitted.status_code, invalid.status_code
+
+    assert asyncio.run(exercise()) == (200, 200, 422)
 
 
 def test_api_recommends_through_dependency_chain_completion_and_reopening(

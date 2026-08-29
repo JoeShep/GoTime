@@ -104,7 +104,7 @@ afterEach(() => {
 describe('relocation-plan recommendation experience', () => {
   it('displays the returned stored-task recommendation and explanation', async () => {
     vi.stubGlobal('fetch', vi.fn((path: string) => {
-      if (path === '/api/relocation-plan/recommendation') {
+      if (path.startsWith('/api/relocation-plan/recommendation?')) {
         return Promise.resolve(response(recommendation('choose-mover', 'Choose a mover')))
       }
       return Promise.resolve(response(initialPlan))
@@ -122,7 +122,7 @@ describe('relocation-plan recommendation experience', () => {
   it('changes the recommendation after completing the recommended task', async () => {
     let completed = false
     vi.stubGlobal('fetch', vi.fn((path: string, init?: RequestInit) => {
-      if (path === '/api/relocation-plan/recommendation') {
+      if (path.startsWith('/api/relocation-plan/recommendation?')) {
         return Promise.resolve(
           response(
             completed
@@ -179,7 +179,7 @@ describe('relocation-plan recommendation experience', () => {
     }
     let recommendationRequests = 0
     vi.stubGlobal('fetch', vi.fn((path: string, init?: RequestInit) => {
-      if (path === '/api/relocation-plan/recommendation') {
+      if (path.startsWith('/api/relocation-plan/recommendation?')) {
         recommendationRequests += 1
         return Promise.resolve(response(recommendation('choose-mover', 'Choose a mover')))
       }
@@ -211,7 +211,7 @@ describe('relocation-plan recommendation experience', () => {
     let recommendationRequests = 0
     let completed = false
     vi.stubGlobal('fetch', vi.fn((path: string, init?: RequestInit) => {
-      if (path === '/api/relocation-plan/recommendation') {
+      if (path.startsWith('/api/relocation-plan/recommendation?')) {
         recommendationRequests += 1
         if (recommendationRequests === 1) return obsoleteRequest
         return Promise.resolve(

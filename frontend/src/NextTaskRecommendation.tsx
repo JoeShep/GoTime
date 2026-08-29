@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Alert, Badge, Button, ListGroup, Spinner } from 'react-bootstrap'
 import {
   fetchRelocationTaskRecommendation,
+  viewerLocalEvaluationDate,
   type RecommendationItem,
   type RecommendationSignal,
   type RelocationTaskRecommendation,
@@ -94,7 +95,7 @@ function RecommendationCard({
             {meaningfulReasons.map((reason) => <ListGroup.Item as="li" className="px-0 py-1" key={reason}>{reason}</ListGroup.Item>)}
           </ListGroup>}
           <SignalContext onViewDecision={onViewDecision} signals={item.signals ?? []} />
-          {!redundantWhyNow(item.why_now) && (item.signals?.length ?? 0) === 0 && <p className="mt-2 mb-0"><strong>Why now:</strong> {item.why_now}</p>}
+          {item.why_now && !redundantWhyNow(item.why_now) && (item.signals?.length ?? 0) === 0 && <p className="mt-2 mb-0"><strong>Why now:</strong> {item.why_now}</p>}
           {item.task_id && onViewTask && <Button className="recommendation-task-link mt-3" onClick={() => onViewTask(item.task_id!)}>View task</Button>}
         </>
       )}
@@ -114,18 +115,32 @@ export function NextTaskRecommendation({
   const [recommendation, setRecommendation] = useState<RelocationTaskRecommendation | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [evaluationDate, setEvaluationDate] = useState(viewerLocalEvaluationDate)
+
+  useEffect(() => {
+    const refreshDate = () => {
+      const nextDate = viewerLocalEvaluationDate()
+      setEvaluationDate((current) => current === nextDate ? current : nextDate)
+    }
+    const now = new Date()
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    const timer = window.setTimeout(refreshDate, nextMidnight.getTime() - now.getTime() + 100)
+    const onVisibilityChange = () => { if (!document.hidden) refreshDate() }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => { window.clearTimeout(timer); document.removeEventListener('visibilitychange', onVisibilityChange) }
+  }, [evaluationDate])
 
   useEffect(() => {
     const controller = new AbortController()
     let current = true
     setLoading(true)
     setError(null)
-    fetchRelocationTaskRecommendation(controller.signal)
+    fetchRelocationTaskRecommendation(controller.signal, evaluationDate)
       .then((next) => { if (current) setRecommendation(next) })
       .catch((reason: unknown) => { if (current) setError(reason instanceof Error ? reason.message : 'Unable to load the next recommendation.') })
       .finally(() => { if (current) setLoading(false) })
     return () => { current = false; controller.abort() }
-  }, [refreshKey])
+  }, [evaluationDate, refreshKey])
 
   const primary: RecommendationItem | null = recommendation?.status === 'recommended' ? {
     candidate_type: recommendation.candidate_type ?? 'task',

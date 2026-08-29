@@ -1,4 +1,5 @@
 import os
+from datetime import date
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request, status
@@ -140,8 +141,11 @@ async def relocation_plan(request: Request) -> RelocationPlan:
 )
 async def relocation_plan_recommendation(
     request: Request,
+    evaluation_date: date | None = None,
 ) -> RelocationTaskRecommendation:
-    return recommend_relocation_task(get_plan_repository(request).get_plan())
+    return recommend_relocation_task(
+        get_plan_repository(request).get_plan(), today=evaluation_date
+    )
 
 
 @router.post(

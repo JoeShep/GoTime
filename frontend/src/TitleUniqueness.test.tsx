@@ -48,7 +48,7 @@ function recommendation() {
 
 function planRequests(write?: (path: string, init: RequestInit) => Promise<Response>) {
   return vi.fn((path: string, init?: RequestInit) => {
-    if (path === '/api/relocation-plan/recommendation') return Promise.resolve(response(recommendation()))
+    if (path.startsWith('/api/relocation-plan/recommendation?')) return Promise.resolve(response(recommendation()))
     if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(plan))
     return write?.(path, init!) ?? Promise.resolve(response(plan))
   })

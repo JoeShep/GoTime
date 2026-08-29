@@ -3060,3 +3060,38 @@ I'd hold off on creating a new category until we see whether it recurs in other 
   `/tmp/gotime-contextual-recommendations-acceptance.compose.yml`, and seed
   configuration `/tmp/seed-gotime-contextual-recommendations.sh`. No later
   Increment 2 or AI-assisted work began.
+
+# 2026-08-28 — Deterministic Recommendation-ranking calibration candidate
+
+- Began the focused deterministic Recommendation-ranking calibration from clean
+  closeout lineage `255bee582c136a3e283773a3c884186a802d2dae`. No schema,
+  family-data, normal-service, or production-configuration change was required.
+- Implemented eligibility-first ranking, viewer-local Recommendation evaluation
+  dates, protected overdue/due-today pressure, dependency/parent deadline
+  propagation, parent/child Recommendation holds, bounded actual-unlock,
+  readiness, momentum, Decision-context, and transitional-priority signals,
+  and concise two-reason explanations. Task UI language now says **Do not
+  recommend before**, **Due by**, and **Recommendations begin**.
+- Focused backend verification passed 45 tests with pinned dependencies and
+  compilation passed. Focused frontend verification passed 63 tests, including
+  the viewer-local-midnight refetch regression. The false-flag production build passed and
+  `git diff --check` passed.
+- Recorded the pre-calibration copied-family ordering as **Wash windows (test)**,
+  **Test task with Dependency**, then **Decide how long APES should continue
+  working in Tennessee before moving**. The isolated candidate orders **Test
+  task with Dependency**, **Decide how long APES should continue working in
+  Tennessee before moving**, then **Contact the realtor**. The disappearance of
+  undated **Wash windows (test)** from the bounded upcoming list is specifically
+  caused by demoting its legacy Critical priority below date pressure, momentum,
+  actual unlocks, and Decision preparation.
+- Created a byte-identical active-database copy in volume
+  `gotime_ranking_calibration_acceptance_data_20260828`; source and copy checksum
+  were `f33aa79f83218fed3246133a639c232892bb8c7211e7b5b92aad8015ed076e1c`
+  before isolated startup. Post-startup counts remain 53 Tasks, one Milestone,
+  one Decision, three options, one preparation link, four hierarchy links, 48
+  dependencies, 85 assignee assignments, 54 category assignments, and zero
+  overrides. Integrity is `ok`, foreign keys are clean, and all stable row hashes
+  match the active source.
+- Isolated acceptance is running at `http://localhost:26173` and backend
+  `http://localhost:26174`, with both experiment flags false. Normal services
+  and the active database were not mutated or restarted.

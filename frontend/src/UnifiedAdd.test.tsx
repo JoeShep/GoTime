@@ -40,7 +40,7 @@ function recommendation() {
 
 function mockRequests(initial = plan) {
   return vi.fn((path: string, init?: RequestInit) => {
-    if (path === '/api/relocation-plan/recommendation') return Promise.resolve(response(recommendation()))
+    if (path.startsWith('/api/relocation-plan/recommendation?')) return Promise.resolve(response(recommendation()))
     if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(initial))
     return Promise.resolve(response(initial))
   })
@@ -55,7 +55,7 @@ async function openAdd() {
 function mockTaskCreationRequests() {
   let latest = plan
   return vi.fn((path: string, init?: RequestInit) => {
-    if (path === '/api/relocation-plan/recommendation') return Promise.resolve(response(recommendation()))
+    if (path.startsWith('/api/relocation-plan/recommendation?')) return Promise.resolve(response(recommendation()))
     if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(latest))
     const body = JSON.parse(String(init?.body))
     latest = { ...latest, tasks: [...latest.tasks, { ...body, blocked: false }] }
@@ -169,7 +169,7 @@ describe('unified Plan Add menu', () => {
     let resolveCreate: ((value: Response) => void) | undefined
     const pending = new Promise<Response>((resolve) => { resolveCreate = resolve })
     const fetchMock = vi.fn((path: string, init?: RequestInit) => {
-      if (path === '/api/relocation-plan/recommendation') return Promise.resolve(response(recommendation()))
+      if (path.startsWith('/api/relocation-plan/recommendation?')) return Promise.resolve(response(recommendation()))
       if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(plan))
       return pending
     })
@@ -216,7 +216,7 @@ describe('unified Plan Add menu', () => {
       value: vi.fn(function (this: Element) { if (this.id.startsWith('task-')) y = 420 }),
     })
     const fetchMock = vi.fn((path: string, init?: RequestInit) => {
-      if (path === '/api/relocation-plan/recommendation') return Promise.resolve(response(recommendation()))
+      if (path.startsWith('/api/relocation-plan/recommendation?')) return Promise.resolve(response(recommendation()))
       if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(plan))
       if (path === '/api/relocation-plan/tasks' && init?.method === 'POST') {
         const body = JSON.parse(String(init.body))
@@ -256,7 +256,7 @@ describe('unified Plan Add menu', () => {
     let latest = plan
     Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
     vi.stubGlobal('fetch', vi.fn((path: string, init?: RequestInit) => {
-      if (path === '/api/relocation-plan/recommendation') return Promise.resolve(response(recommendation()))
+      if (path.startsWith('/api/relocation-plan/recommendation?')) return Promise.resolve(response(recommendation()))
       if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(latest))
       const body = JSON.parse(String(init?.body))
       latest = { ...plan, tasks: [...plan.tasks, { ...body, blocked: false }] }
@@ -341,7 +341,7 @@ describe('unified Plan Add menu', () => {
       value: vi.fn(function (this: Element) { y = this.getAttribute('aria-labelledby')?.startsWith('milestone') ? 510 : 620 }),
     })
     vi.stubGlobal('fetch', vi.fn((path: string, init?: RequestInit) => {
-      if (path === '/api/relocation-plan/recommendation') return Promise.resolve(response(recommendation()))
+      if (path.startsWith('/api/relocation-plan/recommendation?')) return Promise.resolve(response(recommendation()))
       if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(latest))
       const body = JSON.parse(String(init?.body))
       if (path === '/api/relocation-plan/milestones') {

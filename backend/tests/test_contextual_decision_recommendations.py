@@ -115,11 +115,11 @@ def test_multiple_decisions_preserve_context_without_stacking_rank() -> None:
     assert result.ranking_factors.decision_context_rank == 1
 
 
-def test_existing_priority_dates_and_stable_order_precede_context() -> None:
+def test_context_precedes_priority_but_strong_date_pressure_wins() -> None:
     signaled = task("signaled")
     critical = task("critical", priority="critical")
     result = recommend_relocation_task(plan((signaled, critical), (decision("choose", (signaled.id,)),)), today=TODAY)
-    assert result.task_id == "critical"
+    assert result.task_id == "signaled"
 
     dated = task("dated", due_date="2026-08-28")
     result = recommend_relocation_task(plan((signaled, dated), (decision("choose", (signaled.id,)),)), today=TODAY)
@@ -142,8 +142,9 @@ def test_downstream_due_date_applies_pressure_without_making_blocked_work_eligib
 
 def test_response_contract_has_candidate_identity_context_and_upcoming_types() -> None:
     preparation = task("preparation")
-    ready = decision("ready", (), preparation_readiness="ready_to_decide")
-    result = recommend_relocation_task(plan((preparation,), (ready, decision("working", (preparation.id,)))), today=TODAY)
+    ready_work = task("ready-work", status="completed")
+    ready = decision("ready", (ready_work.id,), preparation_readiness="ready_to_decide", completed_preparation_task_count=1)
+    result = recommend_relocation_task(plan((preparation, ready_work), (ready, decision("working", (preparation.id,)))), today=TODAY)
     payload = result.model_dump(mode="json")
 
     assert payload["candidate_type"] in {"task", "decision"}

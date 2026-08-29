@@ -34,14 +34,21 @@ actionable subtasks, and never crosses an inactive Task. A preparation signal
 affects a Task's rank once even when several unresolved Decisions apply; all
 applicable Decision contexts remain available for explanation.
 
-Preserve the existing Task comparison factors. Priority, supported due-date
-ordering, work already in progress, direct-unblocking leverage, phase order,
-and stable identity retain their established meanings. Context breaks ties
-within the same existing attention factors in this order: ready Decision,
-signaled Task, ordinary Task. Downstream preparation due dates may contribute
-timing pressure to an actionable prerequisite, but blocked work never becomes
-eligible. Ready Decisions use the neutral existing baseline of medium priority,
-no due date, and not started.
+Eligibility precedes attention. The stored start date is interpreted as a
+Recommendation hold, while due dates create date-only attention bands and
+propagate through blocked dependency paths to actionable frontiers. Overdue and
+due-today pressure is protected from every non-urgent candidate. Bounded
+contributions then represent actual immediate unlocks, ready Decisions,
+In-progress momentum, unresolved-Decision preparation, and legacy priority.
+Priority is the weakest meaningful fallback; phase order and stable identity
+only stabilize presentation. Coefficients are documented in the canonical
+[reasoning-engine explanation](../reasoning-engine.md#implemented-deterministic-next-task-rule),
+but behavioral pairwise outcomes—not the numeric calibration—are the product
+contract.
+
+The frontend supplies a viewer-local date-only `evaluation_date`; omission uses
+the backend calendar date for compatible direct clients. No timezone or new
+date field is persisted.
 
 The API returns a primary item and bounded upcoming items using the same
 candidate contract. Task and Decision targeting reuse Plan's transient reveal,

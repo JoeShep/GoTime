@@ -37,6 +37,9 @@
   Milestone/Decision conversion.
 - [ ] Define and validate the working Do now, Coming soon, Later, and Waiting
   states as deterministic outputs rather than user-selected priorities.
+- [x] Calibrate the focused deterministic Recommendation ranking baseline:
+  viewer-local holds, due-pressure propagation, bounded attention signals, and
+  transitional priority as the weakest meaningful fallback.
 - [ ] Specify which existing plan facts contribute to each state without
   changing the stored priority field or existing data.
 - [ ] Test a no-AI baseline against representative tasks in the real family

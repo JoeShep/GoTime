@@ -618,8 +618,8 @@ describe('persistent relocation plan', () => {
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Edit' })[0])
     fireEvent.change(screen.getByLabelText('Description (optional)'), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText('Start date (optional)'), { target: { value: '' } })
-    fireEvent.change(screen.getByLabelText('Due date (optional)'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Do not recommend before (optional)'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Due by (optional)'), { target: { value: '' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))

@@ -48,7 +48,7 @@ function response(body: unknown): Response {
 
 function mockRequests(nextRecommendation: RelocationTaskRecommendation, nextPlan = plan) {
   return vi.fn((path: string) => Promise.resolve(response(
-    path === '/api/relocation-plan/recommendation' ? nextRecommendation : nextPlan,
+    path.startsWith('/api/relocation-plan/recommendation?') ? nextRecommendation : nextPlan,
   )))
 }
 

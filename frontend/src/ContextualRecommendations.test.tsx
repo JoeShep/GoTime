@@ -132,7 +132,7 @@ describe('contextual Recommendations', () => {
     const resolved: RelocationPlan = { ...ready, decisions: [{ ...ready.decisions[0], status: 'resolved', selected_option_id: 'a' }] }
     let stage = 0
     vi.stubGlobal('fetch', vi.fn((path: string, init?: RequestInit) => {
-      if (path === '/api/relocation-plan/recommendation') {
+      if (path.startsWith('/api/relocation-plan/recommendation?')) {
         return Promise.resolve(response(stage === 0 ? recommendation(taskItem()) : stage === 1 ? recommendation(decisionItem()) : recommendation(taskItem({ task_id: 'pack', task_title: 'Pack boxes', signals: [] }))))
       }
       if (path.endsWith('/status') && init?.method === 'PATCH') { stage = 1; return Promise.resolve(response(ready)) }
@@ -158,7 +158,7 @@ describe('contextual Recommendations', () => {
       milestones: [{ id: 'move', title: 'Move', description: null, target_earliest_date: null, target_latest_date: null, status: 'pending', achieved_at: null }],
       decisions: [{ id: 'choose-area', title: 'Choose an area', description: null, milestone_id: 'move', options: [{ id: 'a', title: 'A', description: null }, { id: 'b', title: 'B', description: null }], status: 'unresolved', selected_option_id: null, preparation_task_ids: [], preparation_readiness: 'ready_to_decide', completed_preparation_task_count: 0 }],
     }
-    vi.stubGlobal('fetch', vi.fn((path: string) => Promise.resolve(response(path === '/api/relocation-plan/recommendation' ? recommendation(decisionItem()) : plan))))
+    vi.stubGlobal('fetch', vi.fn((path: string) => Promise.resolve(response(path.startsWith('/api/relocation-plan/recommendation?') ? recommendation(decisionItem()) : plan))))
     Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
     const Location = () => <output data-testid="location">{useLocation().pathname}</output>
     render(<MemoryRouter initialEntries={['/now']}><App /><Location /></MemoryRouter>)
@@ -177,7 +177,7 @@ describe('contextual Recommendations', () => {
       milestones: [{ id: 'move', title: 'Move', description: null, target_earliest_date: null, target_latest_date: null, status: 'pending', achieved_at: null }],
       decisions: [{ id: 'choose-area', title: 'Choose an area', description: null, milestone_id: 'move', options: [{ id: 'a', title: 'A', description: null }, { id: 'b', title: 'B', description: null }], status: 'unresolved', selected_option_id: null, preparation_task_ids: ['research'], preparation_readiness: 'preparation_incomplete', completed_preparation_task_count: 0 }],
     }
-    vi.stubGlobal('fetch', vi.fn((path: string) => Promise.resolve(response(path === '/api/relocation-plan/recommendation' ? recommendation(taskItem()) : plan))))
+    vi.stubGlobal('fetch', vi.fn((path: string) => Promise.resolve(response(path.startsWith('/api/relocation-plan/recommendation?') ? recommendation(taskItem()) : plan))))
     Object.defineProperty(Element.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
     const Location = () => <output data-testid="location">{useLocation().pathname}</output>
     render(<MemoryRouter initialEntries={['/now']}><App /><Location /></MemoryRouter>)
