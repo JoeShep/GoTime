@@ -31,11 +31,12 @@ interface Props {
   onDecisionTargetConsumed?: () => void
 }
 
-type MilestoneDraft = Pick<Milestone, 'title' | 'description' | 'target_earliest_date' | 'target_latest_date'>
+type MilestoneDraft = Pick<Milestone, 'title' | 'description' | 'target_earliest_date' | 'target_latest_date' | 'timing_mode' | 'governed_phase_id'>
 type DecisionDraft = Pick<Decision, 'title' | 'description' | 'milestone_id' | 'options'> & { preparation_task_ids: string[] }
 
 const emptyMilestone = (): MilestoneDraft => ({
   title: '', description: '', target_earliest_date: null, target_latest_date: null,
+  timing_mode: 'target_window', governed_phase_id: null,
 })
 
 const itemId = (title: string, kind: string) => {
@@ -62,9 +63,12 @@ function displayDate(value: string, includeYear = true) {
   return `${monthNames[month - 1]} ${day}${includeYear ? `, ${year}` : ''}`
 }
 
-export function formatMilestoneTiming(milestone: Pick<Milestone, 'target_earliest_date' | 'target_latest_date'>) {
+export function formatMilestoneTiming(milestone: Pick<Milestone, 'target_earliest_date' | 'target_latest_date' | 'timing_mode'>) {
   const earliest = milestone.target_earliest_date
   const latest = milestone.target_latest_date
+  if (milestone.timing_mode === 'fixed_date') {
+    return earliest ? `Fixed date: ${displayDate(earliest)}` : 'Fixed date not set'
+  }
   if (!earliest) {
     return latest
       ? `Target: on or before ${displayDate(latest)}`
@@ -115,6 +119,10 @@ export function MilestoneDecisionFoundation({
     try { return new Set(JSON.parse(sessionStorage.getItem(`gotime:decision-preparation:${plan.id}:v1`) ?? '[]') as string[]) }
     catch { return new Set() }
   })
+  const [expandedTiming, setExpandedTiming] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(sessionStorage.getItem(`gotime:milestone-timing:${plan.id}:v1`) ?? '[]') as string[]) }
+    catch { return new Set() }
+  })
   const [selectionConfirmation, setSelectionConfirmation] = useState<{ decisionId: string; optionId: string; returnFocus: HTMLElement } | null>(null)
   const [readinessHelpDecisionId, setReadinessHelpDecisionId] = useState<string | null>(null)
   const [foundItem, setFoundItem] = useState<{ type: 'milestone' | 'decision'; id: string } | null>(null)
@@ -150,6 +158,10 @@ export function MilestoneDecisionFoundation({
   useEffect(() => {
     sessionStorage.setItem(`gotime:milestone-expansion:${plan.id}:v1`, JSON.stringify([...expandedMilestones]))
   }, [expandedMilestones, plan.id])
+
+  useEffect(() => {
+    sessionStorage.setItem(`gotime:milestone-timing:${plan.id}:v1`, JSON.stringify([...expandedTiming]))
+  }, [expandedTiming, plan.id])
 
   useEffect(() => {
     sessionStorage.setItem(`gotime:decision-expansion:${plan.id}:v1`, JSON.stringify([...expandedDecisions]))
@@ -340,8 +352,14 @@ export function MilestoneDecisionFoundation({
           <Row className="g-3">
             <Col xs={12}><Form.Group controlId="milestone-title"><Form.Label>Name</Form.Label><Form.Control aria-describedby="milestone-title-error" aria-invalid={Boolean(milestoneTitleError)} isInvalid={Boolean(milestoneTitleError)} ref={milestoneTitleRef} required maxLength={200} value={milestoneDraft.title} onChange={(event) => { const title = event.target.value; setMilestoneDraft({ ...milestoneDraft, title }); setMilestoneTitleError(hasDuplicatePlanItemTitle(plan.milestones, title, milestoneId) ? 'A milestone with this title already exists in this plan.' : null) }} /><Form.Control.Feedback id="milestone-title-error" type="invalid">{milestoneTitleError}</Form.Control.Feedback></Form.Group></Col>
             <Col xs={12}><Form.Group controlId="milestone-description"><Form.Label>Description <span className="text-muted">(optional)</span></Form.Label><Form.Control as="textarea" maxLength={2000} value={milestoneDraft.description ?? ''} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, description: event.target.value })} /></Form.Group></Col>
-            <Col sm={6}><Form.Group controlId="milestone-earliest"><Form.Label>Earliest target date <span className="text-muted">(optional)</span></Form.Label><Form.Control type="date" value={milestoneDraft.target_earliest_date ?? ''} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, target_earliest_date: event.target.value || null })} /><Form.Text>Planning guidance; not a task start date.</Form.Text></Form.Group></Col>
-            <Col sm={6}><Form.Group controlId="milestone-latest"><Form.Label>Latest target date <span className="text-muted">(optional)</span></Form.Label><Form.Control aria-describedby="milestone-latest-help" isInvalid={invalidTargetWindow} min={milestoneDraft.target_earliest_date ?? undefined} type="date" value={milestoneDraft.target_latest_date ?? ''} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, target_latest_date: event.target.value || null })} /><Form.Control.Feedback type="invalid">Latest target must be on or after the earliest target.</Form.Control.Feedback><Form.Text id="milestone-latest-help">Leave blank for an open-ended “on or after” target.</Form.Text></Form.Group></Col>
+            <Col xs={12}><fieldset><legend className="form-label">Timing</legend><Form.Check checked={(milestoneDraft.timing_mode ?? 'target_window') === 'target_window'} id="milestone-timing-window" inline label="Target window" name="milestone-timing-mode" type="radio" onChange={() => setMilestoneDraft({ ...milestoneDraft, timing_mode: 'target_window', governed_phase_id: null })} /><Form.Check checked={milestoneDraft.timing_mode === 'fixed_date'} id="milestone-timing-fixed" inline label="Fixed date" name="milestone-timing-mode" type="radio" onChange={() => { const fixed = milestoneDraft.target_earliest_date ?? milestoneDraft.target_latest_date; setMilestoneDraft({ ...milestoneDraft, timing_mode: 'fixed_date', target_earliest_date: fixed, target_latest_date: fixed }) }} /></fieldset></Col>
+            {milestoneDraft.timing_mode === 'fixed_date' ? <>
+              <Col sm={6}><Form.Group controlId="milestone-fixed-date"><Form.Label>Fixed date</Form.Label><Form.Control required type="date" value={milestoneDraft.target_earliest_date ?? ''} onChange={(event) => { const value = event.target.value || null; setMilestoneDraft({ ...milestoneDraft, target_earliest_date: value, target_latest_date: value }) }} /></Form.Group></Col>
+              <Col sm={6}><Form.Group controlId="milestone-governed-phase"><Form.Label>Work to finish before this date</Form.Label><Form.Select value={milestoneDraft.governed_phase_id ?? ''} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, governed_phase_id: event.target.value || null })}><option value="">No phase selected</option>{plan.phases.map((phase) => <option key={phase.id} value={phase.id}>{phase.title}</option>)}</Form.Select><Form.Text>All active work in this phase—including work added later—will be planned backward from the fixed date.</Form.Text></Form.Group></Col>
+            </> : <>
+              <Col sm={6}><Form.Group controlId="milestone-earliest"><Form.Label>Earliest target date <span className="text-muted">(optional)</span></Form.Label><Form.Control type="date" value={milestoneDraft.target_earliest_date ?? ''} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, target_earliest_date: event.target.value || null })} /><Form.Text>Planning guidance; not a task start date.</Form.Text></Form.Group></Col>
+              <Col sm={6}><Form.Group controlId="milestone-latest"><Form.Label>Latest target date <span className="text-muted">(optional)</span></Form.Label><Form.Control aria-describedby="milestone-latest-help" isInvalid={invalidTargetWindow} min={milestoneDraft.target_earliest_date ?? undefined} type="date" value={milestoneDraft.target_latest_date ?? ''} onChange={(event) => setMilestoneDraft({ ...milestoneDraft, target_latest_date: event.target.value || null })} /><Form.Control.Feedback type="invalid">Latest target must be on or after the earliest target.</Form.Control.Feedback><Form.Text id="milestone-latest-help">Leave blank for an open-ended “on or after” target.</Form.Text></Form.Group></Col>
+            </>}
           </Row>
           <Stack direction="horizontal" gap={2} className="mt-3"><Button type="submit" disabled={pendingActions.has('save-milestone') || invalidTargetWindow}>Save milestone</Button><Button variant="outline-secondary" disabled={pendingActions.has('save-milestone')} onClick={() => { const creating = !milestoneId; setMilestoneDraft(null); setMilestoneId(null); setMilestoneTitleError(null); if (creating) onCreationCanceled?.() }}>Cancel</Button></Stack>
         </Form>
@@ -393,6 +411,7 @@ export function MilestoneDecisionFoundation({
         const decisions = plan.decisions.filter((decision) => decision.milestone_id === milestone.id)
         const resolvedCount = decisions.filter((decision) => decision.status === 'resolved').length
         const milestoneExpanded = expandedMilestones.has(milestone.id)
+        const timingExpanded = expandedTiming.has(milestone.id)
         return <Col className="milestone-column" xs={12} key={milestone.id}><Card
         aria-labelledby={`milestone-title-${milestone.id}`}
         as="article"
@@ -408,10 +427,26 @@ export function MilestoneDecisionFoundation({
           <Badge className="align-self-start flex-shrink-0" bg={milestone.status === 'achieved' ? 'success' : 'secondary'}>{milestone.status === 'achieved' ? 'Achieved' : 'Pending'}</Badge>
         </div>
         <p className="plan-foundation-metadata text-muted mb-1">{formatMilestoneTiming(milestone)}</p>
+        {milestone.timing && <div className="milestone-timing-summary mt-2">
+          {milestone.timing.status !== 'no_work_linked' && <Badge bg={milestone.timing.status === 'likely_to_miss' ? 'danger' : milestone.timing.status === 'at_risk' ? 'warning' : milestone.timing.status === 'time_to_begin' ? 'primary' : 'secondary'} text={milestone.timing.status === 'at_risk' ? 'dark' : undefined}>{{ timing_incomplete: 'Timing incomplete', not_yet_time_sensitive: 'Not yet time-sensitive', time_to_begin: 'Time to begin', at_risk: 'At risk', likely_to_miss: 'Likely to miss' }[milestone.timing.status]}</Badge>}
+          {milestone.timing.status === 'no_work_linked' && <p className="text-muted mb-1"><strong>No work linked yet</strong></p>}
+          {milestone.timing.status !== 'no_work_linked' && <p className="small text-muted mt-1 mb-1">{milestone.timing.summary}</p>}
+          <Button aria-controls={`milestone-timing-${milestone.id}`} aria-expanded={timingExpanded} className="p-0" size="sm" variant="link" onClick={() => setExpandedTiming((current) => { const next = new Set(current); if (next.has(milestone.id)) next.delete(milestone.id); else next.add(milestone.id); return next })}>View timing</Button>
+          {timingExpanded && <div className="milestone-timing-details border rounded-3 p-3 mt-2" id={`milestone-timing-${milestone.id}`}>
+            {milestone.governed_phase_id && <p><strong>Governed phase:</strong> {phaseById.get(milestone.governed_phase_id)?.title}</p>}
+            {milestone.timing.duration_min_days != null && milestone.timing.duration_max_days != null && <p><strong>Critical path:</strong> {milestone.timing.duration_min_days}–{milestone.timing.duration_max_days} elapsed days</p>}
+            {milestone.timing.conservative_latest_start && <p><strong>Safe start:</strong> {displayDate(milestone.timing.conservative_latest_start)}</p>}
+            {milestone.timing.last_plausible_start && <p><strong>Last plausible start:</strong> {displayDate(milestone.timing.last_plausible_start)}</p>}
+            {milestone.timing.actionable_task_ids.length > 0 && <div><strong>Current actionable step</strong>{milestone.timing.actionable_task_ids.map((taskId) => taskById.get(taskId)).filter((task): task is RelocationTask => Boolean(task)).map((task) => <Button className="d-block p-0" key={task.id} variant="link" onClick={() => onTaskTargeted?.(task)}>{task.title}</Button>)}</div>}
+            {milestone.timing.critical_path_task_ids.length > 0 && <div className="mt-2"><strong>Critical-path Tasks</strong>{milestone.timing.critical_path_task_ids.map((taskId) => taskById.get(taskId)).filter((task): task is RelocationTask => Boolean(task)).map((task) => <Button className="d-block p-0" key={task.id} variant="link" onClick={() => onTaskTargeted?.(task)}>{task.title}</Button>)}</div>}
+            {milestone.timing.missing_duration_task_ids.length > 0 && <div className="mt-2"><strong>Missing estimates</strong>{milestone.timing.missing_duration_task_ids.map((taskId) => taskById.get(taskId)).filter((task): task is RelocationTask => Boolean(task)).map((task) => <div className="d-flex align-items-center justify-content-between gap-2" key={task.id}><span>{task.title}</span><Button size="sm" variant="outline-secondary" onClick={() => onTaskTargeted?.(task)}>Add estimate</Button></div>)}</div>}
+            {milestone.timing.conflicts.map((conflict) => <Alert className="mt-2 mb-0" key={conflict} variant="warning">{conflict}</Alert>)}
+          </div>}
+        </div>}
         <p className="milestone-decision-summary text-muted mb-0">{decisions.length} {decisions.length === 1 ? 'Decision' : 'Decisions'} · {resolvedCount} resolved</p>
         {milestoneExpanded && <div id={`milestone-body-${milestone.id}`}>
         {milestone.description && <p className="mt-2">{milestone.description}</p>}
-        <Stack direction="horizontal" gap={2} className="flex-wrap mt-2"><Button size="sm" variant="outline-secondary" onClick={() => { setDecisionDraft(null); setDecisionId(null); setMilestoneId(milestone.id); setMilestoneDraft({ title: milestone.title, description: milestone.description, target_earliest_date: milestone.target_earliest_date, target_latest_date: milestone.target_latest_date }) }}>Edit</Button><Button size="sm" variant={milestone.status === 'achieved' ? 'outline-secondary' : 'success'} disabled={pendingActions.has(`milestone-achievement-${milestone.id}`)} onClick={() => void perform(`milestone-achievement-${milestone.id}`, () => changeMilestoneAchievement(milestone.id, milestone.status !== 'achieved'))}>{milestone.status === 'achieved' ? 'Return to pending' : 'Mark achieved'}</Button></Stack>
+        <Stack direction="horizontal" gap={2} className="flex-wrap mt-2"><Button size="sm" variant="outline-secondary" onClick={() => { setDecisionDraft(null); setDecisionId(null); setMilestoneId(milestone.id); setMilestoneDraft({ title: milestone.title, description: milestone.description, target_earliest_date: milestone.target_earliest_date, target_latest_date: milestone.target_latest_date, timing_mode: milestone.timing_mode ?? 'target_window', governed_phase_id: milestone.governed_phase_id ?? null }) }}>Edit</Button><Button size="sm" variant={milestone.status === 'achieved' ? 'outline-secondary' : 'success'} disabled={pendingActions.has(`milestone-achievement-${milestone.id}`)} onClick={() => void perform(`milestone-achievement-${milestone.id}`, () => changeMilestoneAchievement(milestone.id, milestone.status !== 'achieved'))}>{milestone.status === 'achieved' ? 'Return to pending' : 'Mark achieved'}</Button></Stack>
         <Row className="decision-grid g-3 mt-0">{decisions.map((decision, decisionIndex) => {
           const decisionExpanded = expandedDecisions.has(decision.id)
           const preparationExpanded = expandedPreparation.has(decision.id)

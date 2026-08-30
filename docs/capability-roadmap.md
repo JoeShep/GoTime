@@ -1,3 +1,11 @@
+## Current candidate: lean family go-live timing
+
+The next deployable capability is deterministic fixed-date backward timing for
+one explicitly governed phase, using optional user-entered Task duration ranges.
+Target-window calculation and generalized scope remain later work. Post-MVP:
+calendar publishing, opt-in reminders, reviewed sourced moving guidance, then
+generalized Milestone scope and Decision-option timing.
+
 ## Capabilities
 ### Capability 1: Observe
 > The engine has to understand the current world.

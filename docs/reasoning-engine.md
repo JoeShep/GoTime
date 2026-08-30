@@ -68,6 +68,25 @@ separate future work.
 
 Hard eligibility comes first, user timing and urgency second, and Decision context third.
 
+### Lean fixed-Milestone timing
+
+Only an explicitly selected phase on an unachieved **Fixed date** Milestone
+creates Milestone timing. Phase membership alone never creates the relationship.
+GoTime expands active phase work through required subtasks and incomplete
+dependencies, then calculates the longest remaining dependency path from
+user-entered elapsed-calendar-day ranges.
+
+Safe start is the fixed date minus the maximum critical-path duration; last
+plausible start is the fixed date minus the minimum. Before, on, through, and
+after those boundaries produce **Not yet time-sensitive**, **Time to begin**,
+**At risk**, and **Likely to miss**. Unknown duration affecting remaining leaf
+work produces **Timing incomplete**. Target windows retain existing behavior.
+
+Milestone attention reaches only the actionable critical frontier and cannot
+displace protected overdue/due-today work. Achieved Milestones add no pressure.
+Task-date conflicts are advisory and never rewrite stored dates. See
+[ADR-0013](adr/ADR-0013-lean-fixed-milestone-timing.md).
+
 ```mermaid
 flowchart TD
     D["Decision"] --> S{"Current Decision state"}

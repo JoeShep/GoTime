@@ -1,3 +1,10 @@
+Post-family-MVP capability order
+
+1. One-way calendar publishing from GoTime.
+2. Deterministic opt-in notifications and reminders.
+3. Reviewed moving guidance attached to real family Tasks, with sources and freshness dates.
+4. Generalized Milestone scopes, exclusions, multiple anchors, and Decision-option timing.
+
 AI Contributor Experience (A feature of the repository, not of GoTime)
 Over time, I'd love to refine how AI collaborators interact with the project. Things like:
 

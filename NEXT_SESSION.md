@@ -1,5 +1,12 @@
 # NEXT_SESSION
 
+## Active candidate: lean fixed-Milestone timing
+
+Human-review one fixed date governing one explicit phase, optional Task
+elapsed-time ranges, deterministic critical-path states, and concise
+Recommendation pressure. No active family timing relationship is created;
+target-window Milestones retain existing behavior and both experiment flags stay false.
+
 ## Current objective: deterministic Recommendation calibration closed
 
 The focused candidate recalibrates normal Recommendations without schema or

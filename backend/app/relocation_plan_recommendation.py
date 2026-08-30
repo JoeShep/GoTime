@@ -27,6 +27,7 @@ class RecommendationSignalKind(StrEnum):
     DIRECT_DECISION_PREPARATION = "direct_decision_preparation"
     INHERITED_DECISION_PREPARATION = "inherited_decision_preparation"
     UNBLOCKS_DECISION_PREPARATION = "unblocks_decision_preparation"
+    MILESTONE_TIMING = "milestone_timing"
 
 
 class RecommendationSignal(BaseModel):
@@ -41,6 +42,9 @@ class RecommendationSignal(BaseModel):
     blocked_task_id: str | None = None
     blocked_task_title: str | None = None
     dependency_path_task_ids: tuple[str, ...] = ()
+    milestone_id: str | None = None
+    milestone_title: str | None = None
+    milestone_timing_status: str | None = None
 
 
 class TaskRecommendationMetadata(BaseModel):
@@ -295,7 +299,7 @@ def _deadline_reason(task: Task, effective_due: date | None, source_title: str |
     return None
 
 
-def _task_item(plan: RelocationPlan, task: Task, task_signals: list[_TaskSignal], deadline: tuple[date, str] | None, *, today: date) -> _RankedItem:
+def _task_item(plan: RelocationPlan, task: Task, task_signals: list[_TaskSignal], deadline: tuple[date, str] | None, milestone_signals: tuple[RecommendationSignal, ...], *, today: date) -> _RankedItem:
     phase = next(phase for phase in plan.phases if phase.id == task.phase_id)
     leverage, readied_decisions = _completion_effects(plan, task)
     signals = _deduplicate_signals(task_signals)
@@ -317,14 +321,32 @@ def _task_item(plan: RelocationPlan, task: Task, task_signals: list[_TaskSignal]
     if task.status is TaskStatus.IN_PROGRESS: meaningful.append((22, "Already in progress."))
     if signals:
         meaningful.append((10, f"Helps prepare {signals[0].decision_title}."))
+    milestone_score = 0
+    if milestone_signals:
+        state = milestone_signals[0].milestone_timing_status
+        milestone_score = {
+            "timing_incomplete": 8,
+            "time_to_begin": 24,
+            "at_risk": 42,
+            "likely_to_miss": 58,
+        }.get(state or "", 0)
+        if state == "at_risk":
+            text = "This is on the critical path for a Milestone that is at risk."
+        elif state == "likely_to_miss":
+            text = f"Starting this now helps keep {milestone_signals[0].milestone_title} on track."
+        elif state == "time_to_begin":
+            text = f"Starting this now helps keep {milestone_signals[0].milestone_title} on track."
+        else:
+            text = f"Related timing for {milestone_signals[0].milestone_title} is incomplete."
+        meaningful.append((milestone_score, text))
     reasons = tuple(value for _, value in sorted(meaningful, key=lambda item: (-item[0], item[1]))[:2])
     leverage_score = min(48, 24 * (len(leverage) + len(readied_decisions)))
-    score = DUE_CONTRIBUTION[band] + leverage_score + (22 if task.status is TaskStatus.IN_PROGRESS else 0) + (10 if signals else 0) + PRIORITY_CONTRIBUTION[task.priority]
+    score = DUE_CONTRIBUTION[band] + leverage_score + (22 if task.status is TaskStatus.IN_PROGRESS else 0) + (10 if signals else 0) + milestone_score + PRIORITY_CONTRIBUTION[task.priority]
     context_rank = 1 if signals else 2
     item = RecommendationItem(
         candidate_type=RecommendationCandidateType.TASK, task_id=task.id, task_title=task.title,
         phase_id=phase.id, phase_title=phase.title, why=reasons, why_now="",
-        directly_unblocks_task_ids=leverage, signals=signals,
+        directly_unblocks_task_ids=leverage, signals=(*signals, *milestone_signals),
         task_metadata=TaskRecommendationMetadata(status=task.status, assignees=task.assignees, categories=task.categories, start_date=task.start_date, due_date=task.due_date, priority=task.priority),
         ranking_factors=RankingFactors(due_state=due_state, due_date=task.due_date, effective_due_date=effective_due_date, priority=task.priority, task_status=task.status, directly_unblocks_count=len(leverage), phase_position=phase.position, decision_context_rank=context_rank),
     )
@@ -348,7 +370,23 @@ def recommend_relocation_task(plan: RelocationPlan, *, today: date | None = None
     task_by_id = {task.id: task for task in plan.tasks}
     signals_by_task, ready_decisions = _decision_signals(plan, current_date)
     deadlines = _deadline_pressure(plan, current_date)
-    ranked = [_task_item(plan, task, signals_by_task.get(task.id, []), deadlines.get(task.id), today=current_date) for task in plan.tasks if _is_actionable(task, current_date, task_by_id)]
+    milestone_signals_by_task: dict[str, list[RecommendationSignal]] = {}
+    for milestone in plan.milestones:
+        timing = milestone.timing
+        if milestone.status.value == "achieved" or timing is None or timing.status.value in {"no_work_linked", "not_yet_time_sensitive"}:
+            continue
+        for task_id in timing.actionable_task_ids:
+            milestone_signals_by_task.setdefault(task_id, []).append(
+                RecommendationSignal(
+                    kind=RecommendationSignalKind.MILESTONE_TIMING,
+                    decision_id="",
+                    decision_title="",
+                    milestone_id=milestone.id,
+                    milestone_title=milestone.title,
+                    milestone_timing_status=timing.status.value,
+                )
+            )
+    ranked = [_task_item(plan, task, signals_by_task.get(task.id, []), deadlines.get(task.id), tuple(milestone_signals_by_task.get(task.id, ())), today=current_date) for task in plan.tasks if _is_actionable(task, current_date, task_by_id)]
     ranked.extend(_decision_item(decision, current_date) for decision in ready_decisions)
     ranked.sort(key=lambda candidate: candidate.sort_key)
     if not ranked:

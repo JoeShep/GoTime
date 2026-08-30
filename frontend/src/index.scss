@@ -416,6 +416,32 @@ body {
   min-width: 15rem;
 }
 
+.elapsed-time-group,
+.recommendation-timing-group,
+.milestone-timing-details {
+  border: 1px solid rgb(23 61 48 / 18%);
+  background: rgb(247 250 247 / 80%);
+}
+
+.elapsed-time-fields .form-control {
+  width: 7rem;
+}
+
+.elapsed-time-fields .form-select {
+  width: 8rem;
+}
+
+@media (max-width: 575.98px) {
+  .elapsed-time-fields > * {
+    width: 100%;
+  }
+
+  .elapsed-time-fields .form-control,
+  .elapsed-time-fields .form-select {
+    width: 100%;
+  }
+}
+
 .task-editor-actions {
   z-index: 2;
   border-bottom: 1px solid rgb(42 61 52 / 15%);

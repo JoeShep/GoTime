@@ -36,6 +36,29 @@ export interface RelocationTask {
   is_parent?: boolean
   subtask_count?: number
   completed_subtask_count?: number
+  expected_elapsed_min_days?: number | null
+  expected_elapsed_max_days?: number | null
+  derived_expected_elapsed_min_days?: number | null
+  derived_expected_elapsed_max_days?: number | null
+}
+
+export type MilestoneTimingStatus =
+  | 'no_work_linked' | 'timing_incomplete' | 'not_yet_time_sensitive'
+  | 'time_to_begin' | 'at_risk' | 'likely_to_miss'
+
+export interface MilestoneTimingAnalysis {
+  status: MilestoneTimingStatus
+  summary: string
+  governed_task_ids: string[]
+  critical_path_task_ids: string[]
+  actionable_task_ids: string[]
+  missing_duration_task_ids: string[]
+  duration_min_days: number | null
+  duration_max_days: number | null
+  start_window_opening: string | null
+  conservative_latest_start: string | null
+  last_plausible_start: string | null
+  conflicts: string[]
 }
 
 export interface Milestone {
@@ -46,6 +69,9 @@ export interface Milestone {
   target_latest_date: string | null
   status: 'pending' | 'achieved'
   achieved_at: string | null
+  timing_mode?: 'target_window' | 'fixed_date'
+  governed_phase_id?: string | null
+  timing?: MilestoneTimingAnalysis | null
 }
 
 export interface DecisionOption {
@@ -76,7 +102,7 @@ export interface RelocationPlan {
   decisions: Decision[]
 }
 
-export type MilestoneWrite = Omit<Milestone, 'id' | 'status' | 'achieved_at'>
+export type MilestoneWrite = Omit<Milestone, 'id' | 'status' | 'achieved_at' | 'timing'>
 export type DecisionWrite = Pick<Decision, 'title' | 'description' | 'milestone_id' | 'options'> & { preparation_task_ids: string[] }
 
 export interface TaskWrite {
@@ -93,6 +119,8 @@ export interface TaskWrite {
   parent_task_id?: string | null
   subtask_position?: number | null
   confirm_parent_phase_move?: boolean
+  expected_elapsed_min_days?: number | null
+  expected_elapsed_max_days?: number | null
 }
 
 export interface RankingFactors {
@@ -107,7 +135,7 @@ export interface RankingFactors {
 }
 
 export interface RecommendationSignal {
-  kind: 'ready_to_decide' | 'direct_decision_preparation' | 'inherited_decision_preparation' | 'unblocks_decision_preparation'
+  kind: 'ready_to_decide' | 'direct_decision_preparation' | 'inherited_decision_preparation' | 'unblocks_decision_preparation' | 'milestone_timing'
   decision_id: string
   decision_title: string
   preparation_task_id: string | null
@@ -117,6 +145,9 @@ export interface RecommendationSignal {
   blocked_task_id: string | null
   blocked_task_title: string | null
   dependency_path_task_ids: string[]
+  milestone_id?: string | null
+  milestone_title?: string | null
+  milestone_timing_status?: MilestoneTimingStatus | null
 }
 
 export interface TaskRecommendationMetadata {

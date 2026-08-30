@@ -31,6 +31,8 @@ const plan: RelocationPlanData = {
       dependency_task_ids: [],
       parent_task_id: null,
       subtask_position: null,
+      expected_elapsed_min_days: null,
+      expected_elapsed_max_days: null,
       blocked: false,
     },
     {
@@ -608,6 +610,8 @@ describe('persistent relocation plan', () => {
       dependency_task_ids: [],
       parent_task_id: null,
       subtask_position: null,
+      expected_elapsed_min_days: null,
+      expected_elapsed_max_days: null,
     })
   })
 

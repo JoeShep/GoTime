@@ -131,8 +131,10 @@ async def health() -> dict[str, str]:
 
 
 @router.get("/api/relocation-plan", response_model=RelocationPlan)
-async def relocation_plan(request: Request) -> RelocationPlan:
-    return get_plan_repository(request).get_plan()
+async def relocation_plan(
+    request: Request, evaluation_date: date | None = None
+) -> RelocationPlan:
+    return get_plan_repository(request).get_plan(evaluation_date=evaluation_date)
 
 
 @router.get(
@@ -144,7 +146,7 @@ async def relocation_plan_recommendation(
     evaluation_date: date | None = None,
 ) -> RelocationTaskRecommendation:
     return recommend_relocation_task(
-        get_plan_repository(request).get_plan(), today=evaluation_date
+        get_plan_repository(request).get_plan(evaluation_date=evaluation_date), today=evaluation_date
     )
 
 

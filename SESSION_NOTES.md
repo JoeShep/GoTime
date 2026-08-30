@@ -1,5 +1,17 @@
 # Session Notes
 
+## 2026-08-29 — lean family go-live timing candidate
+
+- Reconciled a superseded generalized draft to one normalized fixed-Milestone-
+  to-phase relationship.
+- Preserved paired Task duration ranges, fixed-date representation,
+  evaluation-date plumbing, transactional fail-closed migration, and pure graph
+  calculation.
+- Removed candidate-only Decision phases, option work, generalized roots,
+  exclusions, date-setting prompts, and unresolved option scenarios.
+- Added fixed-date timing states and bounded actionable-frontier Recommendation
+  context without changing active family records.
+
 ## 2026-08-20 — Segmented Now/Plan navigation refinement
 
 - Replaced the visually plain Now/Plan links with one cohesive segmented
