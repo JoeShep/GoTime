@@ -41,8 +41,8 @@ describe('lean Milestone timing', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByRole('radio', { name: 'Fixed date' })).toBeChecked()
     expect(document.getElementById('milestone-fixed-date')).toHaveValue('2027-03-12')
-    expect(screen.getByLabelText('Work to finish before this date')).toHaveValue('prepare')
-    expect(screen.getByText(/including work added later/)).toBeVisible()
+    expect(screen.getByRole('combobox', { name: 'Apply this date to Tasks in' })).toHaveValue('prepare')
+    expect(screen.getByText('Every active Task in the selected phase—including Tasks added later—will be planned backward from this date.')).toBeVisible()
   })
 
   it('distinguishes Timing incomplete, expands details accessibly, and requests a time estimate', () => {
@@ -54,7 +54,7 @@ describe('lean Milestone timing', () => {
     expect(view).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(view)
     expect(view).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByText('Work to finish before this date:')).toBeVisible()
+    expect(screen.getByText('This date applies to Tasks in:')).toBeVisible()
     expect(screen.queryByText(/governed phase/i)).not.toBeInTheDocument()
     expect(screen.getByText('Missing time estimates')).toBeVisible()
     const estimate = screen.getByRole('button', { name: 'Add time estimate for Pack' })
