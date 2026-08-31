@@ -35,7 +35,7 @@ beforeEach(() => sessionStorage.clear())
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear() })
 
 describe('lean Milestone timing', () => {
-  it('edits a fixed date and one governed phase with the future-work explanation', () => {
+  it('edits a fixed date and one selected phase with the future-work explanation', () => {
     render(<MilestoneDecisionFoundation plan={fixedPlan} onPlanUpdated={vi.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: /Move out/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
@@ -54,10 +54,69 @@ describe('lean Milestone timing', () => {
     expect(view).toHaveAttribute('aria-expanded', 'false')
     fireEvent.click(view)
     expect(view).toHaveAttribute('aria-expanded', 'true')
-    expect(screen.getByText('Governed phase:')).toBeVisible()
+    expect(screen.getByText('Work to finish before this date:')).toBeVisible()
+    expect(screen.queryByText(/governed phase/i)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Add estimate' }))
     expect(target).toHaveBeenCalledWith(expect.objectContaining({ id: 'pack' }))
     expect(JSON.parse(sessionStorage.getItem('gotime:milestone-timing:family-relocation-plan:v1') ?? '[]')).toContain('move')
+  })
+
+  it('does not render timing disclosure for a target window or reserve its details region', () => {
+    const plan = structuredClone(fixedPlan)
+    plan.milestones[0] = {
+      ...plan.milestones[0], timing_mode: 'target_window', governed_phase_id: null,
+      target_earliest_date: '2027-03-10', timing: { ...plan.milestones[0].timing!, status: 'no_work_linked', summary: 'No work linked yet', governed_task_ids: [], actionable_task_ids: [], missing_duration_task_ids: [] },
+    }
+    render(<MilestoneDecisionFoundation plan={plan} onPlanUpdated={vi.fn()} />)
+    expect(screen.getByText('Target: Mar 10 – Mar 12, 2027')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'View timing' })).not.toBeInTheDocument()
+    expect(document.getElementById('milestone-timing-move')).not.toBeInTheDocument()
+  })
+
+  it('shows No work linked yet without a disclosure for a fixed date without a selected phase', () => {
+    const plan = structuredClone(fixedPlan)
+    plan.milestones[0] = {
+      ...plan.milestones[0], governed_phase_id: null,
+      timing: { ...plan.milestones[0].timing!, status: 'no_work_linked', summary: 'No work linked yet', governed_task_ids: [], actionable_task_ids: [], missing_duration_task_ids: [] },
+    }
+    render(<MilestoneDecisionFoundation plan={plan} onPlanUpdated={vi.fn()} />)
+    expect(screen.getByText('No work linked yet')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'View timing' })).not.toBeInTheDocument()
+    expect(document.getElementById('milestone-timing-move')).not.toBeInTheDocument()
+  })
+
+  it('renders calculated content for a complete fixed-date timing analysis', () => {
+    const plan = structuredClone(fixedPlan)
+    plan.milestones[0].timing = {
+      ...plan.milestones[0].timing!, status: 'at_risk', summary: 'This phase needs attention now.',
+      critical_path_task_ids: ['pack'], actionable_task_ids: ['pack'], missing_duration_task_ids: [],
+      duration_min_days: 2, duration_max_days: 4, conservative_latest_start: '2027-03-08', last_plausible_start: '2027-03-10',
+    }
+    render(<MilestoneDecisionFoundation plan={plan} onPlanUpdated={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'View timing' }))
+    expect(screen.getByText(/2–4 elapsed days/)).toBeVisible()
+    expect(screen.getByText('Safe start:')).toBeVisible()
+    expect(screen.getByText('Last plausible start:')).toBeVisible()
+    expect(screen.getByText('Current actionable step')).toBeVisible()
+  })
+
+  it('removes expanded timing and stale session state when phase or fixed-date eligibility is cleared', async () => {
+    const { rerender } = render(<MilestoneDecisionFoundation plan={fixedPlan} onPlanUpdated={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'View timing' }))
+    expect(document.getElementById('milestone-timing-move')).toBeVisible()
+
+    const noPhase = structuredClone(fixedPlan)
+    noPhase.milestones[0] = { ...noPhase.milestones[0], governed_phase_id: null, timing: { ...noPhase.milestones[0].timing!, status: 'no_work_linked', summary: 'No work linked yet' } }
+    rerender(<MilestoneDecisionFoundation plan={noPhase} onPlanUpdated={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'View timing' })).not.toBeInTheDocument()
+    expect(document.getElementById('milestone-timing-move')).not.toBeInTheDocument()
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem('gotime:milestone-timing:family-relocation-plan:v1') ?? '[]')).not.toContain('move'))
+
+    const targetWindow = structuredClone(fixedPlan)
+    targetWindow.milestones[0] = { ...targetWindow.milestones[0], timing_mode: 'target_window', governed_phase_id: null, timing: { ...targetWindow.milestones[0].timing!, status: 'no_work_linked', summary: 'No work linked yet' } }
+    rerender(<MilestoneDecisionFoundation plan={targetWindow} onPlanUpdated={vi.fn()} />)
+    expect(screen.queryByRole('button', { name: 'View timing' })).not.toBeInTheDocument()
+    expect(document.getElementById('milestone-timing-move')).not.toBeInTheDocument()
   })
 
   it('enters, normalizes, clears, and sets Same day elapsed ranges', async () => {

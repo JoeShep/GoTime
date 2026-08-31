@@ -164,6 +164,16 @@ export function MilestoneDecisionFoundation({
   }, [expandedTiming, plan.id])
 
   useEffect(() => {
+    const eligibleMilestoneIds = new Set(plan.milestones
+      .filter((milestone) => milestone.timing_mode === 'fixed_date' && Boolean(milestone.governed_phase_id) && Boolean(milestone.timing) && milestone.timing?.status !== 'no_work_linked')
+      .map((milestone) => milestone.id))
+    setExpandedTiming((current) => {
+      const next = new Set([...current].filter((id) => eligibleMilestoneIds.has(id)))
+      return next.size === current.size ? current : next
+    })
+  }, [plan.milestones])
+
+  useEffect(() => {
     sessionStorage.setItem(`gotime:decision-expansion:${plan.id}:v1`, JSON.stringify([...expandedDecisions]))
   }, [expandedDecisions, plan.id])
 
@@ -412,6 +422,7 @@ export function MilestoneDecisionFoundation({
         const resolvedCount = decisions.filter((decision) => decision.status === 'resolved').length
         const milestoneExpanded = expandedMilestones.has(milestone.id)
         const timingExpanded = expandedTiming.has(milestone.id)
+        const timingDisclosureEligible = milestone.timing_mode === 'fixed_date' && Boolean(milestone.governed_phase_id) && Boolean(milestone.timing) && milestone.timing?.status !== 'no_work_linked'
         return <Col className="milestone-column" xs={12} key={milestone.id}><Card
         aria-labelledby={`milestone-title-${milestone.id}`}
         as="article"
@@ -431,9 +442,10 @@ export function MilestoneDecisionFoundation({
           {milestone.timing.status !== 'no_work_linked' && <Badge bg={milestone.timing.status === 'likely_to_miss' ? 'danger' : milestone.timing.status === 'at_risk' ? 'warning' : milestone.timing.status === 'time_to_begin' ? 'primary' : 'secondary'} text={milestone.timing.status === 'at_risk' ? 'dark' : undefined}>{{ timing_incomplete: 'Timing incomplete', not_yet_time_sensitive: 'Not yet time-sensitive', time_to_begin: 'Time to begin', at_risk: 'At risk', likely_to_miss: 'Likely to miss' }[milestone.timing.status]}</Badge>}
           {milestone.timing.status === 'no_work_linked' && <p className="text-muted mb-1"><strong>No work linked yet</strong></p>}
           {milestone.timing.status !== 'no_work_linked' && <p className="small text-muted mt-1 mb-1">{milestone.timing.summary}</p>}
+          {timingDisclosureEligible && <>
           <Button aria-controls={`milestone-timing-${milestone.id}`} aria-expanded={timingExpanded} className="p-0" size="sm" variant="link" onClick={() => setExpandedTiming((current) => { const next = new Set(current); if (next.has(milestone.id)) next.delete(milestone.id); else next.add(milestone.id); return next })}>View timing</Button>
           {timingExpanded && <div className="milestone-timing-details border rounded-3 p-3 mt-2" id={`milestone-timing-${milestone.id}`}>
-            {milestone.governed_phase_id && <p><strong>Governed phase:</strong> {phaseById.get(milestone.governed_phase_id)?.title}</p>}
+            {milestone.governed_phase_id && <p><strong>Work to finish before this date:</strong> {phaseById.get(milestone.governed_phase_id)?.title}</p>}
             {milestone.timing.duration_min_days != null && milestone.timing.duration_max_days != null && <p><strong>Critical path:</strong> {milestone.timing.duration_min_days}–{milestone.timing.duration_max_days} elapsed days</p>}
             {milestone.timing.conservative_latest_start && <p><strong>Safe start:</strong> {displayDate(milestone.timing.conservative_latest_start)}</p>}
             {milestone.timing.last_plausible_start && <p><strong>Last plausible start:</strong> {displayDate(milestone.timing.last_plausible_start)}</p>}
@@ -441,7 +453,9 @@ export function MilestoneDecisionFoundation({
             {milestone.timing.critical_path_task_ids.length > 0 && <div className="mt-2"><strong>Critical-path Tasks</strong>{milestone.timing.critical_path_task_ids.map((taskId) => taskById.get(taskId)).filter((task): task is RelocationTask => Boolean(task)).map((task) => <Button className="d-block p-0" key={task.id} variant="link" onClick={() => onTaskTargeted?.(task)}>{task.title}</Button>)}</div>}
             {milestone.timing.missing_duration_task_ids.length > 0 && <div className="mt-2"><strong>Missing estimates</strong>{milestone.timing.missing_duration_task_ids.map((taskId) => taskById.get(taskId)).filter((task): task is RelocationTask => Boolean(task)).map((task) => <div className="d-flex align-items-center justify-content-between gap-2" key={task.id}><span>{task.title}</span><Button size="sm" variant="outline-secondary" onClick={() => onTaskTargeted?.(task)}>Add estimate</Button></div>)}</div>}
             {milestone.timing.conflicts.map((conflict) => <Alert className="mt-2 mb-0" key={conflict} variant="warning">{conflict}</Alert>)}
+            {milestone.timing.duration_min_days == null && milestone.timing.missing_duration_task_ids.length === 0 && milestone.timing.actionable_task_ids.length === 0 && milestone.timing.critical_path_task_ids.length === 0 && milestone.timing.conflicts.length === 0 && <p className="text-muted mb-0">Timing details are not available yet.</p>}
           </div>}
+          </>}
         </div>}
         <p className="milestone-decision-summary text-muted mb-0">{decisions.length} {decisions.length === 1 ? 'Decision' : 'Decisions'} · {resolvedCount} resolved</p>
         {milestoneExpanded && <div id={`milestone-body-${milestone.id}`}>
