@@ -344,9 +344,12 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const [addMenuOpen, setAddMenuOpen] = useState(false)
   const [creationType, setCreationType] = useState<'task' | 'milestone' | 'decision' | null>(null)
   const [foundationEditorOpen, setFoundationEditorOpen] = useState(false)
+  const [pendingEstimateReturn, setPendingEstimateReturn] = useState<{ milestoneId: string; taskId: string; outcome: 'save' | 'cancel' } | null>(null)
   const addToggleRef = useRef<HTMLButtonElement>(null)
   const editorRef = useRef<HTMLDivElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const elapsedTimeRef = useRef<HTMLFieldSetElement>(null)
+  const elapsedMinimumRef = useRef<HTMLInputElement>(null)
   const taskRefs = useRef(new Map<string, HTMLElement>())
   const hiddenSavedTaskActionRef = useRef<HTMLButtonElement>(null)
   const moveButtonRefs = useRef(new Map<string, HTMLButtonElement>())
@@ -357,6 +360,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
   const lastPlanScrollYRef = useRef(0)
   const preCreationScrollYRef = useRef(0)
   const editOriginRef = useRef<{ taskId: string; scrollY: number } | null>(null)
+  const estimateOriginRef = useRef<{ milestoneId: string; taskId: string } | null>(null)
 
   const editorActive = Boolean(draft) || foundationEditorOpen || creationType !== null
   const elapsedMinimum = draft?.elapsedMin === '' ? null : Number(draft?.elapsedMin)
@@ -541,9 +545,36 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
 
   useEffect(() => {
     if (!draft) return
-    editorRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
-    titleInputRef.current?.focus()
+    const estimateOrigin = estimateOriginRef.current
+    if (estimateOrigin?.taskId === editingId) {
+      window.requestAnimationFrame(() => {
+        const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+        elapsedTimeRef.current?.scrollIntoView?.({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' })
+        elapsedMinimumRef.current?.focus({ preventScroll: true })
+      })
+    } else {
+      editorRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+      titleInputRef.current?.focus()
+    }
   }, [draft !== null, editingId])
+
+  useEffect(() => {
+    if (!pendingEstimateReturn || draft) return
+    const frame = window.requestAnimationFrame(() => {
+      const actions = [...document.querySelectorAll<HTMLElement>('.milestone-estimate-action')]
+        .filter((element) => element.dataset.estimateMilestoneId === pendingEstimateReturn.milestoneId)
+      const target = pendingEstimateReturn.outcome === 'cancel'
+        ? actions.find((element) => element.dataset.estimateTaskId === pendingEstimateReturn.taskId)
+        : actions[0]
+      const focusTarget = target ?? [...document.querySelectorAll<HTMLElement>('[data-milestone-timing-summary]')]
+        .find((element) => element.dataset.milestoneTimingSummary === pendingEstimateReturn.milestoneId)
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
+      focusTarget?.scrollIntoView?.({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' })
+      focusTarget?.focus({ preventScroll: true })
+      setPendingEstimateReturn(null)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [draft, pendingEstimateReturn, plan])
 
   useEffect(() => {
     if (!pendingNavigation) return
@@ -746,8 +777,17 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setParentQuery('')
   }
 
+  function beginEstimateEdit(task: RelocationTask, milestoneId: string) {
+    estimateOriginRef.current = { milestoneId, taskId: task.id }
+    setExpandedPhaseIds((expanded) => new Set(expanded).add(task.phase_id))
+    if (task.parent_task_id) setExpandedParentIds((expanded) => new Set(expanded).add(task.parent_task_id!))
+    if (task.status === 'completed') setExpandedCompletedPhaseIds((expanded) => new Set(expanded).add(task.phase_id))
+    beginEdit(task)
+  }
+
   function cancelEdit() {
     const origin = editOriginRef.current
+    const estimateOrigin = estimateOriginRef.current
     setDraft(null)
     setEditingId(null)
     setDependencyQuery('')
@@ -756,6 +796,11 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
     setParentPickerOpen(false)
     setParentError(null)
     editOriginRef.current = null
+    estimateOriginRef.current = null
+    if (estimateOrigin) {
+      setPendingEstimateReturn({ ...estimateOrigin, outcome: 'cancel' })
+      return
+    }
     window.requestAnimationFrame(() => {
       if (!origin) return
       window.scrollTo({ top: origin.scrollY, left: 0, behavior: 'auto' })
@@ -799,7 +844,12 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         const savedTask = updated.tasks.find((task) => task.id === createdId)
         const origin = editOriginRef.current
         editOriginRef.current = null
-        if (savedTask && !taskMatchesCategoryFilters(savedTask, categoryFilters)) {
+        const estimateOrigin = estimateOriginRef.current
+        estimateOriginRef.current = null
+        if (estimateOrigin) {
+          setHiddenSavedTaskId(null)
+          setPendingEstimateReturn({ ...estimateOrigin, outcome: 'save' })
+        } else if (savedTask && !taskMatchesCategoryFilters(savedTask, categoryFilters)) {
           setFoundTaskId(null)
           setFoundTaskFading(false)
           setHiddenSavedTaskId(savedTask.id)
@@ -1083,6 +1133,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
         onRecommendationChanged={onPlanChanged}
         onDecisionTargetConsumed={consumeTarget}
         onTaskTargeted={selectFinderResult}
+        onTaskEstimateRequested={beginEstimateEdit}
         onPlanUpdated={acceptPlan}
         plan={plan}
         targetDecisionId={target?.decisionId}
@@ -1216,7 +1267,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                   </fieldset>
                 </Col>
                 <Col xs={12}>
-                  <fieldset className="elapsed-time-group rounded-3 p-3">
+                  <fieldset className="elapsed-time-group rounded-3 p-3" ref={elapsedTimeRef}>
                     <legend className="form-label float-none w-auto mb-2">Expected elapsed time <span className="text-muted">(optional)</span></legend>
                     {editingId && plan.tasks.find((task) => task.id === editingId)?.is_parent
                       ? <p className="mb-0"><strong>Expected elapsed time:</strong> {(() => {
@@ -1227,7 +1278,7 @@ export function RelocationPlan({ onPlanChanged }: { onPlanChanged?: () => void }
                       })()}</p>
                       : <>
                         <div className="elapsed-time-fields d-flex flex-wrap align-items-end gap-2">
-                          <Form.Group controlId="task-elapsed-min"><Form.Label>From</Form.Label><Form.Control isInvalid={invalidElapsed} min={0} max={3650} step={1} type="number" value={draft.elapsedMin} onChange={(event) => setDraft({ ...draft, elapsedMin: event.target.value })} /></Form.Group>
+                          <Form.Group controlId="task-elapsed-min"><Form.Label>From</Form.Label><Form.Control isInvalid={invalidElapsed} min={0} max={3650} ref={elapsedMinimumRef} step={1} type="number" value={draft.elapsedMin} onChange={(event) => setDraft({ ...draft, elapsedMin: event.target.value })} /></Form.Group>
                           <Form.Group controlId="task-elapsed-max"><Form.Label>to</Form.Label><Form.Control isInvalid={invalidElapsed} min={0} max={3650} step={1} type="number" value={draft.elapsedMax} onChange={(event) => setDraft({ ...draft, elapsedMax: event.target.value })} /></Form.Group>
                           <Form.Group controlId="task-elapsed-unit"><Form.Label>Unit</Form.Label><Form.Select value={draft.elapsedUnit} onChange={(event) => setDraft({ ...draft, elapsedUnit: event.target.value as 'days' | 'weeks' })}><option value="days">days</option><option value="weeks">weeks</option></Form.Select></Form.Group>
                           <Button variant="outline-secondary" type="button" onClick={() => setDraft({ ...draft, elapsedMin: '0', elapsedMax: '0', elapsedUnit: 'days' })}>Same day</Button>

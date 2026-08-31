@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MilestoneDecisionFoundation } from './MilestoneDecisionFoundation'
 import { RelocationPlan } from './RelocationPlan'
-import type { RelocationPlan as Plan } from './api/relocationPlan'
+import type { RelocationPlan as Plan, RelocationTask } from './api/relocationPlan'
 
 
 const fixedPlan: Plan = {
@@ -45,9 +45,9 @@ describe('lean Milestone timing', () => {
     expect(screen.getByText(/including work added later/)).toBeVisible()
   })
 
-  it('distinguishes Timing incomplete, expands details accessibly, and targets Add estimate', () => {
+  it('distinguishes Timing incomplete, expands details accessibly, and requests a time estimate', () => {
     const target = vi.fn()
-    render(<MilestoneDecisionFoundation plan={fixedPlan} onPlanUpdated={vi.fn()} onTaskTargeted={target} />)
+    render(<MilestoneDecisionFoundation plan={fixedPlan} onPlanUpdated={vi.fn()} onTaskEstimateRequested={target} />)
     expect(screen.getByText('Fixed date: Mar 12, 2027')).toBeVisible()
     expect(screen.getByText('Timing incomplete', { selector: '.badge' })).toBeVisible()
     const view = screen.getByRole('button', { name: 'View timing' })
@@ -56,8 +56,11 @@ describe('lean Milestone timing', () => {
     expect(view).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByText('Work to finish before this date:')).toBeVisible()
     expect(screen.queryByText(/governed phase/i)).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Add estimate' }))
-    expect(target).toHaveBeenCalledWith(expect.objectContaining({ id: 'pack' }))
+    expect(screen.getByText('Missing time estimates')).toBeVisible()
+    const estimate = screen.getByRole('button', { name: 'Add time estimate for Pack' })
+    expect(estimate).toHaveTextContent('Estimate time')
+    fireEvent.click(estimate)
+    expect(target).toHaveBeenCalledWith(expect.objectContaining({ id: 'pack' }), 'move')
     expect(JSON.parse(sessionStorage.getItem('gotime:milestone-timing:family-relocation-plan:v1') ?? '[]')).toContain('move')
   })
 
@@ -97,7 +100,7 @@ describe('lean Milestone timing', () => {
     expect(screen.getByText(/2–4 elapsed days/)).toBeVisible()
     expect(screen.getByText('Safe start:')).toBeVisible()
     expect(screen.getByText('Last plausible start:')).toBeVisible()
-    expect(screen.getByText('Current actionable step')).toBeVisible()
+    expect(screen.getByText('Current actionable work')).toBeVisible()
   })
 
   it('removes expanded timing and stale session state when phase or fixed-date eligibility is cleared', async () => {
@@ -117,6 +120,128 @@ describe('lean Milestone timing', () => {
     rerender(<MilestoneDecisionFoundation plan={targetWindow} onPlanUpdated={vi.fn()} />)
     expect(screen.queryByRole('button', { name: 'View timing' })).not.toBeInTheDocument()
     expect(document.getElementById('milestone-timing-move')).not.toBeInTheDocument()
+  })
+
+  it('keeps multiple actionable Tasks plural and pairs long titles with independent responsive estimate actions', () => {
+    const plan = structuredClone(fixedPlan)
+    const longTitle = 'Stop Tennessee utilities: gas, electric, water, internet, garbage/recycling/compost, etc'
+    plan.tasks.push({ ...plan.tasks[0], id: 'utilities', title: longTitle })
+    plan.milestones[0].timing = {
+      ...plan.milestones[0].timing!, actionable_task_ids: ['pack', 'utilities'],
+      governed_task_ids: ['pack', 'utilities'], missing_duration_task_ids: ['pack', 'utilities'],
+    }
+    render(<MilestoneDecisionFoundation plan={plan} onPlanUpdated={vi.fn()} onTaskEstimateRequested={vi.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'View timing' }))
+    expect(screen.getByText('Current actionable work')).toBeVisible()
+    const list = screen.getByRole('list')
+    const items = within(list).getAllByRole('listitem')
+    expect(items).toHaveLength(2)
+    expect(items[1]).toHaveTextContent(longTitle)
+    expect(within(items[1]).getByRole('button', { name: `Add time estimate for ${longTitle}` })).toHaveTextContent('Estimate time')
+    expect(items[0]).toHaveClass('milestone-missing-estimate-item')
+    expect(within(items[0]).getByRole('button')).toHaveClass('milestone-estimate-action')
+  })
+
+  it('opens elapsed-time editing directly and returns Cancel to the same estimate action without changing filters', async () => {
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(fixedPlan))
+      return Promise.resolve(response(fixedPlan))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    sessionStorage.setItem('gotime:plan:family-relocation-plan:expansion', JSON.stringify({ version: 1, expandedPhaseIds: [], expandedCompletedPhaseIds: [] }))
+    sessionStorage.setItem('gotime:plan:family-relocation-plan:filters', JSON.stringify({ version: 1, categories: ['housing'] }))
+    render(<RelocationPlan />)
+    fireEvent.click(await screen.findByRole('button', { name: 'View timing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add time estimate for Pack' }))
+    expect(await screen.findByRole('heading', { name: 'Edit task' })).toBeVisible()
+    await waitFor(() => expect(screen.getByLabelText('From')).toHaveFocus())
+    expect(screen.getByLabelText('Do not recommend before')).not.toHaveFocus()
+    expect(screen.getByLabelText('Due by')).not.toHaveFocus()
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '4' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    const returned = await screen.findByRole('button', { name: 'Add time estimate for Pack' })
+    await waitFor(() => expect(returned).toHaveFocus())
+    expect(screen.getByRole('button', { name: 'Filter by categories' })).toHaveTextContent('Categories (1)')
+  })
+
+  it('prepares hidden completed subtask, parent, and phase reveal state without clearing the category filter', async () => {
+    const plan = structuredClone(fixedPlan)
+    const parent: RelocationTask = { ...plan.tasks[0], id: 'parent', title: 'Parent', categories: ['housing'], is_parent: true, subtask_count: 1, completed_subtask_count: 1 }
+    const child: RelocationTask = { ...plan.tasks[0], id: 'child', title: 'Hidden completed child', categories: ['housing'], status: 'completed', parent_task_id: 'parent', subtask_position: 0 }
+    plan.tasks = [parent, child]
+    plan.milestones[0].timing = { ...plan.milestones[0].timing!, governed_task_ids: ['parent', 'child'], actionable_task_ids: [], missing_duration_task_ids: ['child'] }
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(response(plan))))
+    sessionStorage.setItem('gotime:plan:family-relocation-plan:expansion', JSON.stringify({ version: 1, expandedPhaseIds: [], expandedCompletedPhaseIds: [] }))
+    sessionStorage.setItem('gotime:plan:family-relocation-plan:filters', JSON.stringify({ version: 1, categories: ['financial'] }))
+    render(<RelocationPlan />)
+    fireEvent.click(await screen.findByRole('button', { name: 'View timing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add time estimate for Hidden completed child' }))
+    await waitFor(() => expect(screen.getByLabelText('From')).toHaveFocus())
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Add time estimate for Hidden completed child' })).toHaveFocus())
+    expect(JSON.parse(sessionStorage.getItem('gotime:plan:family-relocation-plan:expansion') ?? '{}')).toEqual(expect.objectContaining({ expandedCompletedPhaseIds: ['prepare'] }))
+    expect(JSON.parse(sessionStorage.getItem('gotime:plan:family-relocation-plan:subtasks') ?? '[]')).toContain('parent')
+    expect(screen.getByRole('button', { name: 'Filter by categories' })).toHaveTextContent('Categories (1)')
+  })
+
+  it('returns a successful estimate save to the next missing Task and keeps failures in the editor', async () => {
+    const nextPlan = structuredClone(fixedPlan)
+    nextPlan.tasks.push({ ...nextPlan.tasks[0], id: 'utilities', title: 'Stop Tennessee utilities' })
+    nextPlan.milestones[0].timing = {
+      ...nextPlan.milestones[0].timing!, governed_task_ids: ['pack', 'utilities'], actionable_task_ids: ['pack', 'utilities'], missing_duration_task_ids: ['pack', 'utilities'],
+    }
+    const savedPlan = structuredClone(nextPlan)
+    savedPlan.tasks[0].expected_elapsed_min_days = 2
+    savedPlan.tasks[0].expected_elapsed_max_days = 3
+    savedPlan.milestones[0].timing = { ...savedPlan.milestones[0].timing!, missing_duration_task_ids: ['utilities'] }
+    let fail = false
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => {
+      if (path === '/api/relocation-plan' && !init?.method) return Promise.resolve(response(nextPlan))
+      if (fail) return Promise.resolve({ ok: false, status: 500, json: async () => ({ detail: 'Save failed.' }) } as Response)
+      return Promise.resolve(response(savedPlan))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    sessionStorage.setItem('gotime:plan:family-relocation-plan:expansion', JSON.stringify({ version: 1, expandedPhaseIds: ['prepare'], expandedCompletedPhaseIds: [] }))
+    render(<RelocationPlan />)
+    fireEvent.click(await screen.findByRole('button', { name: 'View timing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add time estimate for Pack' }))
+    fireEvent.change(await screen.findByLabelText('From'), { target: { value: '2' } })
+    fireEvent.change(screen.getByLabelText('to'), { target: { value: '3' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    const next = await screen.findByRole('button', { name: 'Add time estimate for Stop Tennessee utilities' })
+    await waitFor(() => expect(next).toHaveFocus())
+    expect(screen.queryByRole('button', { name: 'Add time estimate for Pack' })).not.toBeInTheDocument()
+
+    fireEvent.click(next)
+    fail = true
+    fireEvent.change(await screen.findByLabelText('From'), { target: { value: '5' } })
+    fireEvent.change(screen.getByLabelText('to'), { target: { value: '6' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    expect(await screen.findByText('Save failed.')).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Edit task' })).toBeVisible()
+    expect(screen.getByLabelText('From')).toHaveValue(5)
+  })
+
+  it('returns a final successful estimate to the expanded timing summary', async () => {
+    const savedPlan = structuredClone(fixedPlan)
+    savedPlan.tasks[0].expected_elapsed_min_days = 1
+    savedPlan.tasks[0].expected_elapsed_max_days = 1
+    savedPlan.milestones[0].timing = {
+      ...savedPlan.milestones[0].timing!, status: 'time_to_begin', summary: 'Starting now keeps this Milestone on track.',
+      missing_duration_task_ids: [], duration_min_days: 1, duration_max_days: 1,
+      conservative_latest_start: '2027-03-11', last_plausible_start: '2027-03-11', critical_path_task_ids: ['pack'],
+    }
+    const fetchMock = vi.fn((path: string, init?: RequestInit) => Promise.resolve(response(path === '/api/relocation-plan' && !init?.method ? fixedPlan : savedPlan)))
+    vi.stubGlobal('fetch', fetchMock)
+    sessionStorage.setItem('gotime:plan:family-relocation-plan:expansion', JSON.stringify({ version: 1, expandedPhaseIds: ['prepare'], expandedCompletedPhaseIds: [] }))
+    render(<RelocationPlan />)
+    fireEvent.click(await screen.findByRole('button', { name: 'View timing' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add time estimate for Pack' }))
+    fireEvent.change(await screen.findByLabelText('From'), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText('to'), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }))
+    await waitFor(() => expect(document.querySelector('[data-milestone-timing-summary="move"]')).toHaveFocus())
+    expect(screen.getByRole('button', { name: 'View timing' })).toHaveAttribute('aria-expanded', 'true')
   })
 
   it('enters, normalizes, clears, and sets Same day elapsed ranges', async () => {
