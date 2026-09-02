@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import sqlite3
-import os
 from collections.abc import Iterable
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 from app.relocation_plan_models import (
@@ -211,7 +210,6 @@ class SQLiteRelocationPlanRepository:
             self._migrate_milestone_decision_foundation(connection)
             self._migrate_required_subtasks(connection)
             self._migrate_decision_preparation(connection)
-            self._migrate_milestone_timing(connection)
             connection.execute(
                 "INSERT OR IGNORE INTO relocation_plans (id, title) VALUES (?, ?)",
                 (RELOCATION_PLAN_ID, RELOCATION_PLAN_TITLE),
@@ -233,81 +231,6 @@ class SQLiteRelocationPlanRepository:
                     for phase in DEFAULT_PHASES
                 ),
             )
-
-    @staticmethod
-    def _migrate_milestone_timing(connection: sqlite3.Connection) -> None:
-        table_name = "milestone_governed_phases"
-        table = connection.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table_name,)
-        ).fetchone()
-        if table:
-            actual = {row["name"] for row in connection.execute(f"PRAGMA table_info({table_name})")}
-            if actual != {"milestone_id", "phase_id"}:
-                raise RelocationPlanError("Unexpected Milestone governed-phase schema.")
-            triggers = {row["name"] for row in connection.execute(
-                "SELECT name FROM sqlite_master WHERE type='trigger'"
-            )}
-            if "validate_milestone_governed_phase_insert" not in triggers:
-                raise RelocationPlanError("Milestone governed-phase validation trigger is missing.")
-        task_columns = {row["name"] for row in connection.execute("PRAGMA table_info(tasks)")}
-        duration_columns = {"expected_elapsed_min_days", "expected_elapsed_max_days"}
-        if task_columns & duration_columns and not duration_columns <= task_columns:
-            raise RelocationPlanError("Incomplete Task elapsed-time schema.")
-        milestone_columns = {row["name"] for row in connection.execute("PRAGMA table_info(milestones)")}
-        complete = (
-            duration_columns <= task_columns
-            and "timing_mode" in milestone_columns
-            and table is not None
-        )
-        if complete:
-            return
-        if (
-            duration_columns <= task_columns
-            or "timing_mode" in milestone_columns
-            or table is not None
-        ):
-            raise RelocationPlanError("Incomplete Milestone timing schema; migration failed closed.")
-        connection.execute("BEGIN IMMEDIATE")
-        try:
-            if not duration_columns <= task_columns:
-                connection.execute("ALTER TABLE tasks ADD COLUMN expected_elapsed_min_days INTEGER CHECK (expected_elapsed_min_days BETWEEN 0 AND 3650)")
-                connection.execute("ALTER TABLE tasks ADD COLUMN expected_elapsed_max_days INTEGER CHECK (expected_elapsed_max_days BETWEEN 0 AND 3650)")
-            if "timing_mode" not in milestone_columns:
-                connection.execute("ALTER TABLE milestones ADD COLUMN timing_mode TEXT NOT NULL DEFAULT 'target_window' CHECK (timing_mode IN ('target_window', 'fixed_date'))")
-            if table is None:
-                if os.getenv("GOTIME_INJECT_MILESTONE_TIMING_MIGRATION_FAILURE") == "1":
-                    raise RelocationPlanError("Injected Milestone timing migration failure.")
-                connection.execute(
-                    """CREATE TABLE milestone_governed_phases (
-                        milestone_id TEXT PRIMARY KEY REFERENCES milestones(id) ON DELETE CASCADE,
-                        phase_id TEXT NOT NULL REFERENCES phases(id) ON DELETE RESTRICT
-                    )"""
-                )
-                for operation in ("INSERT", "UPDATE"):
-                    connection.execute(
-                        f"""CREATE TRIGGER validate_milestone_governed_phase_{operation.lower()}
-                        BEFORE {operation} ON milestone_governed_phases
-                        BEGIN
-                            SELECT CASE WHEN NOT EXISTS (
-                                SELECT 1 FROM milestones
-                                WHERE id = NEW.milestone_id
-                                  AND timing_mode = 'fixed_date'
-                                  AND achieved_at IS NULL
-                            ) THEN RAISE(ABORT, 'Only an unachieved fixed-date Milestone may govern a phase') END;
-                            SELECT CASE WHEN EXISTS (
-                                SELECT 1 FROM milestone_governed_phases existing
-                                JOIN milestones other ON other.id = existing.milestone_id
-                                WHERE existing.phase_id = NEW.phase_id
-                                  AND existing.milestone_id <> NEW.milestone_id
-                                  AND other.timing_mode = 'fixed_date'
-                                  AND other.achieved_at IS NULL
-                            ) THEN RAISE(ABORT, 'An unachieved fixed-date Milestone already governs this phase') END;
-                        END"""
-                    )
-            connection.commit()
-        except Exception:
-            connection.rollback()
-            raise
 
     @staticmethod
     def _migrate_decision_preparation(connection: sqlite3.Connection) -> None:
@@ -411,17 +334,12 @@ class SQLiteRelocationPlanRepository:
                     "id", "decision_id", "title", "description", "position",
                 },
             }
-            optional_columns = {
-                "milestones": {"timing_mode"},
-                "decisions": set(),
-                "decision_options": set(),
-            }
             for table, columns in expected_columns.items():
                 actual = {
                     row["name"]
                     for row in connection.execute(f"PRAGMA table_info({table})")
                 }
-                if actual not in (columns, columns | optional_columns[table]):
+                if actual != columns:
                     raise RelocationPlanError(
                         f"Unexpected columns in Increment-1 table '{table}'."
                     )
@@ -586,7 +504,7 @@ class SQLiteRelocationPlanRepository:
             """
         )
 
-    def get_plan(self, evaluation_date: date | None = None) -> RelocationPlan:
+    def get_plan(self) -> RelocationPlan:
         with self._connect() as connection:
             plan_row = connection.execute(
                 "SELECT id, title FROM relocation_plans WHERE id = ?",
@@ -648,7 +566,7 @@ class SQLiteRelocationPlanRepository:
             milestone_rows = connection.execute(
                 """
                 SELECT id, title, description, target_earliest_date,
-                    target_latest_date, achieved_at, timing_mode
+                    target_latest_date, achieved_at
                 FROM milestones WHERE plan_id = ? ORDER BY id
                 """,
                 (RELOCATION_PLAN_ID,),
@@ -668,9 +586,6 @@ class SQLiteRelocationPlanRepository:
             ).fetchall()
             preparation_rows = connection.execute(
                 "SELECT decision_id, task_id FROM decision_preparation_tasks ORDER BY decision_id, task_id"
-            ).fetchall()
-            governed_phase_rows = connection.execute(
-                "SELECT milestone_id, phase_id FROM milestone_governed_phases ORDER BY milestone_id"
             ).fetchall()
 
         if plan_row is None:
@@ -694,21 +609,6 @@ class SQLiteRelocationPlanRepository:
         effective_status_by_id = dict(stored_status_by_id)
         for parent_id, automatic in automatic_by_parent.items():
             effective_status_by_id[parent_id] = overrides.get(parent_id, automatic)
-        derived_duration_by_parent: dict[str, tuple[int | None, int | None]] = {}
-        for parent_id, child_ids in children_by_parent.items():
-            if any(
-                row["expected_elapsed_min_days"] is None
-                for row in task_rows if row["id"] in child_ids and effective_status_by_id[row["id"]] is not TaskStatus.COMPLETED
-            ):
-                derived_duration_by_parent[parent_id] = (None, None)
-            else:
-                child_rows = [row for row in task_rows if row["id"] in child_ids]
-                # Required subtasks can overlap unless dependencies make them sequential;
-                # the full graph analysis refines this value for Milestone timing.
-                derived_duration_by_parent[parent_id] = (
-                    max((row["expected_elapsed_min_days"] or 0 for row in child_rows), default=0),
-                    max((row["expected_elapsed_max_days"] or 0 for row in child_rows), default=0),
-                )
         tasks = tuple(
             Task(
                 id=row["id"],
@@ -743,50 +643,9 @@ class SQLiteRelocationPlanRepository:
                     stored_status_by_id[child_id] is TaskStatus.COMPLETED
                     for child_id in children_by_parent.get(row["id"], ())
                 ),
-                expected_elapsed_min_days=row["expected_elapsed_min_days"],
-                expected_elapsed_max_days=row["expected_elapsed_max_days"],
-                derived_expected_elapsed_min_days=derived_duration_by_parent.get(row["id"], (None, None))[0],
-                derived_expected_elapsed_max_days=derived_duration_by_parent.get(row["id"], (None, None))[1],
             )
             for row in task_rows
         )
-        from app.milestone_timing import critical_path_range
-
-        task_by_id_for_duration = {task.id: task for task in tasks}
-        derived_ranges: dict[str, tuple[int | None, int | None]] = {}
-        for parent_id in children_by_parent:
-            leaf_ids: set[str] = set()
-            pending = list(children_by_parent[parent_id])
-            while pending:
-                child_id = pending.pop()
-                if child_id in children_by_parent:
-                    pending.extend(children_by_parent[child_id])
-                else:
-                    leaf_ids.add(child_id)
-            incomplete = {
-                task_id for task_id in leaf_ids
-                if task_by_id_for_duration[task_id].status is not TaskStatus.COMPLETED
-            }
-            if any(
-                task_by_id_for_duration[task_id].expected_elapsed_min_days is None
-                for task_id in incomplete
-            ):
-                derived_ranges[parent_id] = (None, None)
-            else:
-                minimum, maximum, _ = critical_path_range(
-                    incomplete, task_by_id=task_by_id_for_duration
-                )
-                derived_ranges[parent_id] = (minimum, maximum)
-        tasks = tuple(
-            task.model_copy(update={
-                "derived_expected_elapsed_min_days": derived_ranges.get(task.id, (None, None))[0],
-                "derived_expected_elapsed_max_days": derived_ranges.get(task.id, (None, None))[1],
-            })
-            for task in tasks
-        )
-        governed_phase_by_milestone = {
-            row["milestone_id"]: row["phase_id"] for row in governed_phase_rows
-        }
         milestones = tuple(
             Milestone(
                 id=row["id"],
@@ -794,8 +653,6 @@ class SQLiteRelocationPlanRepository:
                 description=row["description"],
                 target_earliest_date=row["target_earliest_date"],
                 target_latest_date=row["target_latest_date"],
-                timing_mode=row["timing_mode"],
-                governed_phase_id=governed_phase_by_milestone.get(row["id"]),
                 status=(
                     MilestoneStatus.ACHIEVED
                     if row["achieved_at"] is not None
@@ -845,14 +702,6 @@ class SQLiteRelocationPlanRepository:
             )
             for row in decision_rows
         )
-        from app.milestone_timing import analyze_milestones
-
-        milestones = analyze_milestones(
-            milestones=milestones,
-            decisions=decisions,
-            tasks=tasks,
-            evaluation_date=evaluation_date or date.today(),
-        )
         return RelocationPlan(
             id=plan_row["id"],
             title=plan_row["title"],
@@ -881,17 +730,8 @@ class SQLiteRelocationPlanRepository:
                 connection, task.id, task.phase_id, task.dependency_task_ids
             )
             self._validate_hierarchy(connection, task.id, task.phase_id, task.parent_task_id)
-            if task.parent_task_id is not None and (
-                task.expected_elapsed_min_days is not None
-                or task.expected_elapsed_max_days is not None
-            ):
-                # Leaf subtasks may carry estimates; the parent is validated below
-                # when it becomes a required-subtask summary.
-                pass
             self._insert_task(connection, task.id, task)
             self._set_hierarchy(connection, task.id, task.parent_task_id, task.subtask_position)
-            if task.parent_task_id is not None:
-                self._reject_parent_manual_duration(connection, task.parent_task_id)
             self._reject_cycles(connection)
         return self.get_plan()
 
@@ -929,13 +769,6 @@ class SQLiteRelocationPlanRepository:
             children = [row["child_task_id"] for row in connection.execute(
                 "SELECT child_task_id FROM task_hierarchy WHERE parent_task_id = ?", (task_id,)
             )]
-            if children and (
-                task.expected_elapsed_min_days is not None
-                or task.expected_elapsed_max_days is not None
-            ):
-                raise InvalidHierarchyError(
-                    "A parent Task derives expected elapsed time from its required subtasks."
-                )
             if children and task.phase_id != existing["phase_id"] and not task.confirm_parent_phase_move:
                 raise ParentChangeConfirmationRequired(
                     "Moving this parent also moves all of its subtasks. Confirm the phase change to continue.",
@@ -949,8 +782,7 @@ class SQLiteRelocationPlanRepository:
             connection.execute(
                 """
                 UPDATE tasks SET phase_id = ?, title = ?, description = ?,
-                    status = ?, start_date = ?, due_date = ?, priority = ?,
-                    expected_elapsed_min_days = ?, expected_elapsed_max_days = ?
+                    status = ?, start_date = ?, due_date = ?, priority = ?
                 WHERE id = ?
                 """,
                 (
@@ -961,8 +793,6 @@ class SQLiteRelocationPlanRepository:
                     task.start_date.isoformat() if task.start_date else None,
                     task.due_date.isoformat() if task.due_date else None,
                     task.priority.value,
-                    task.expected_elapsed_min_days,
-                    task.expected_elapsed_max_days,
                     task_id,
                 ),
             )
@@ -979,8 +809,6 @@ class SQLiteRelocationPlanRepository:
                     ((task.phase_id, child_id) for child_id in children),
                 )
             self._set_hierarchy(connection, task_id, task.parent_task_id, task.subtask_position)
-            if task.parent_task_id is not None:
-                self._reject_parent_manual_duration(connection, task.parent_task_id)
             if previous_parent_id and previous_parent_id != task.parent_task_id:
                 self._preserve_final_detached_parent_status(connection, previous_parent_id, previous_parent_effective)
             self._reject_cycles(connection)
@@ -1077,8 +905,8 @@ class SQLiteRelocationPlanRepository:
                 """
                 INSERT INTO milestones (
                     id, plan_id, title, description,
-                    target_earliest_date, target_latest_date, achieved_at, timing_mode
-                ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)
+                    target_earliest_date, target_latest_date, achieved_at
+                ) VALUES (?, ?, ?, ?, ?, ?, NULL)
                 """,
                 (
                     milestone.id,
@@ -1089,10 +917,8 @@ class SQLiteRelocationPlanRepository:
                     if milestone.target_earliest_date else None,
                     milestone.target_latest_date.isoformat()
                     if milestone.target_latest_date else None,
-                    milestone.timing_mode.value,
                 ),
             )
-            self._set_milestone_timing_scope(connection, milestone.id, milestone)
         return self.get_plan()
 
     def update_milestone(
@@ -1118,7 +944,7 @@ class SQLiteRelocationPlanRepository:
             connection.execute(
                 """
                 UPDATE milestones SET title = ?, description = ?,
-                    target_earliest_date = ?, target_latest_date = ?, timing_mode = ?
+                    target_earliest_date = ?, target_latest_date = ?
                 WHERE id = ?
                 """,
                 (
@@ -1128,11 +954,9 @@ class SQLiteRelocationPlanRepository:
                     if milestone.target_earliest_date else None,
                     milestone.target_latest_date.isoformat()
                     if milestone.target_latest_date else None,
-                    milestone.timing_mode.value,
                     milestone_id,
                 ),
             )
-            self._set_milestone_timing_scope(connection, milestone_id, milestone)
         return self.get_plan()
 
     def set_milestone_achievement(
@@ -1143,21 +967,6 @@ class SQLiteRelocationPlanRepository:
                 raise MilestoneNotFoundError(
                     f"Milestone '{milestone_id}' does not exist."
                 )
-            if not achieved:
-                governed = connection.execute(
-                    "SELECT phase_id FROM milestone_governed_phases WHERE milestone_id = ?",
-                    (milestone_id,),
-                ).fetchone()
-                if governed and connection.execute(
-                    """SELECT 1 FROM milestone_governed_phases relation
-                    JOIN milestones other ON other.id = relation.milestone_id
-                    WHERE relation.phase_id = ? AND relation.milestone_id <> ?
-                      AND other.timing_mode = 'fixed_date' AND other.achieved_at IS NULL""",
-                    (governed["phase_id"], milestone_id),
-                ).fetchone():
-                    raise RelocationPlanError(
-                        "This phase is already governed by another unachieved fixed-date Milestone."
-                    )
             achieved_at = (
                 datetime.now(timezone.utc).isoformat() if achieved else None
             )
@@ -1394,59 +1203,6 @@ class SQLiteRelocationPlanRepository:
         )
 
     @staticmethod
-    def _reject_parent_manual_duration(
-        connection: sqlite3.Connection, parent_task_id: str
-    ) -> None:
-        row = connection.execute(
-            "SELECT expected_elapsed_min_days, expected_elapsed_max_days FROM tasks WHERE id = ?",
-            (parent_task_id,),
-        ).fetchone()
-        if row and (
-            row["expected_elapsed_min_days"] is not None
-            or row["expected_elapsed_max_days"] is not None
-        ):
-            raise InvalidHierarchyError(
-                "Clear the parent Task's manual expected elapsed time before adding required subtasks."
-            )
-
-    def _set_milestone_timing_scope(
-        self,
-        connection: sqlite3.Connection,
-        milestone_id: str,
-        milestone: MilestoneCreate | MilestoneUpdate,
-    ) -> None:
-        phase_id = milestone.governed_phase_id
-        if phase_id is not None and connection.execute(
-            "SELECT 1 FROM phases WHERE id = ? AND plan_id = ?",
-            (phase_id, RELOCATION_PLAN_ID),
-        ).fetchone() is None:
-            raise InvalidPhaseError(
-                f"Phase '{phase_id}' does not exist in the relocation plan."
-            )
-        connection.execute(
-            "DELETE FROM milestone_governed_phases WHERE milestone_id = ?",
-            (milestone_id,),
-        )
-        if phase_id is None:
-            return
-        conflict = connection.execute(
-            """SELECT existing.milestone_id
-            FROM milestone_governed_phases existing
-            JOIN milestones other ON other.id = existing.milestone_id
-            WHERE existing.phase_id = ? AND existing.milestone_id <> ?
-              AND other.timing_mode = 'fixed_date' AND other.achieved_at IS NULL""",
-            (phase_id, milestone_id),
-        ).fetchone()
-        if conflict:
-            raise RelocationPlanError(
-                "This phase is already governed by another unachieved fixed-date Milestone."
-            )
-        connection.execute(
-            "INSERT INTO milestone_governed_phases(milestone_id, phase_id) VALUES (?, ?)",
-            (milestone_id, phase_id),
-        )
-
-    @staticmethod
     def _task_exists(connection: sqlite3.Connection, task_id: str) -> bool:
         return connection.execute(
             "SELECT 1 FROM tasks WHERE id = ?", (task_id,)
@@ -1641,9 +1397,8 @@ class SQLiteRelocationPlanRepository:
             """
             INSERT INTO tasks (
                 id, plan_id, phase_id, title, description, status,
-                start_date, due_date, priority,
-                expected_elapsed_min_days, expected_elapsed_max_days
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                start_date, due_date, priority
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 task_id,
@@ -1655,8 +1410,6 @@ class SQLiteRelocationPlanRepository:
                 task.start_date.isoformat() if task.start_date else None,
                 task.due_date.isoformat() if task.due_date else None,
                 task.priority.value,
-                task.expected_elapsed_min_days,
-                task.expected_elapsed_max_days,
             ),
         )
         self._replace_relations(

@@ -2,18 +2,6 @@
 
 ## Status and boundary
 
-### Lean family go-live timing boundary (2026-08-29)
-
-The first Milestone-aware timing increment is limited to one optional governed
-phase on a fixed-date Milestone and paired elapsed-day ranges on leaf Tasks.
-The relationship is explicit and migration assigns none. Backward scheduling
-traverses required subtasks and incomplete dependencies; target windows retain
-their existing guidance behavior. Generalized roots, exclusions, multiple
-anchors, Decision-option timing, date-setting prompts, capacity, and AI are
-deferred. See the canonical
-[reasoning policy](../reasoning-engine.md#lean-fixed-milestone-timing) and
-[ADR-0013](../adr/ADR-0013-lean-fixed-milestone-timing.md).
-
 This document records the approved technical design for the
 smallest end-to-end slice demonstrated by the
 [home-sale strategy reference scenario](../reference-scenarios/home-sale-strategy.md).

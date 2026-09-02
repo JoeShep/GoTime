@@ -40,20 +40,6 @@ class MilestoneStatus(StrEnum):
     ACHIEVED = "achieved"
 
 
-class MilestoneTimingMode(StrEnum):
-    TARGET_WINDOW = "target_window"
-    FIXED_DATE = "fixed_date"
-
-
-class MilestoneTimingStatus(StrEnum):
-    NO_WORK_LINKED = "no_work_linked"
-    TIMING_INCOMPLETE = "timing_incomplete"
-    NOT_YET_TIME_SENSITIVE = "not_yet_time_sensitive"
-    TIME_TO_BEGIN = "time_to_begin"
-    AT_RISK = "at_risk"
-    LIKELY_TO_MISS = "likely_to_miss"
-
-
 class DecisionStatus(StrEnum):
     UNRESOLVED = "unresolved"
     RESOLVED = "resolved"
@@ -102,8 +88,6 @@ class TaskFields(PlanModel):
     dependency_task_ids: tuple[str, ...] = Field(default=(), max_length=50)
     parent_task_id: str | None = Field(default=None, min_length=1, max_length=64)
     subtask_position: int | None = Field(default=None, ge=0)
-    expected_elapsed_min_days: int | None = Field(default=None, ge=0, le=3_650)
-    expected_elapsed_max_days: int | None = Field(default=None, ge=0, le=3_650)
 
     @field_validator("title")
     @classmethod
@@ -151,14 +135,6 @@ class TaskFields(PlanModel):
             and self.due_date < self.start_date
         ):
             raise ValueError("Task due date cannot be before its start date.")
-        if (self.expected_elapsed_min_days is None) != (self.expected_elapsed_max_days is None):
-            raise ValueError("Expected elapsed-time minimum and maximum must both be present or both be empty.")
-        if (
-            self.expected_elapsed_min_days is not None
-            and self.expected_elapsed_max_days is not None
-            and self.expected_elapsed_min_days > self.expected_elapsed_max_days
-        ):
-            raise ValueError("Expected elapsed-time minimum cannot exceed the maximum.")
         return self
 
 
@@ -186,8 +162,6 @@ class TaskUpdate(PlanModel):
     parent_task_id: str | None = Field(default=None, min_length=1, max_length=64)
     subtask_position: int | None = Field(default=None, ge=0)
     confirm_parent_phase_move: bool = False
-    expected_elapsed_min_days: int | None = Field(default=None, ge=0, le=3_650)
-    expected_elapsed_max_days: int | None = Field(default=None, ge=0, le=3_650)
 
     _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
     _validate_description = field_validator("description")(
@@ -211,14 +185,6 @@ class TaskUpdate(PlanModel):
             and self.due_date < self.start_date
         ):
             raise ValueError("Task due date cannot be before its start date.")
-        if (self.expected_elapsed_min_days is None) != (self.expected_elapsed_max_days is None):
-            raise ValueError("Expected elapsed-time minimum and maximum must both be present or both be empty.")
-        if (
-            self.expected_elapsed_min_days is not None
-            and self.expected_elapsed_max_days is not None
-            and self.expected_elapsed_min_days > self.expected_elapsed_max_days
-        ):
-            raise ValueError("Expected elapsed-time minimum cannot exceed the maximum.")
         return self
 
 
@@ -248,8 +214,6 @@ class Task(TaskFields):
     is_parent: bool = False
     subtask_count: int = 0
     completed_subtask_count: int = 0
-    derived_expected_elapsed_min_days: int | None = None
-    derived_expected_elapsed_max_days: int | None = None
 
 
 class MilestoneFields(PlanModel):
@@ -257,8 +221,6 @@ class MilestoneFields(PlanModel):
     description: str | None = Field(default=None, max_length=2_000)
     target_earliest_date: date | None = None
     target_latest_date: date | None = None
-    timing_mode: MilestoneTimingMode = MilestoneTimingMode.TARGET_WINDOW
-    governed_phase_id: str | None = Field(default=None, min_length=1, max_length=64)
 
     _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
     _validate_description = field_validator("description")(
@@ -270,11 +232,6 @@ class MilestoneFields(PlanModel):
         _validate_milestone_target_window(
             self.target_earliest_date, self.target_latest_date
         )
-        if self.timing_mode is MilestoneTimingMode.FIXED_DATE:
-            if self.target_earliest_date is None or self.target_latest_date != self.target_earliest_date:
-                raise ValueError("A fixed-date Milestone requires one date stored as equal target bounds.")
-        if self.timing_mode is MilestoneTimingMode.TARGET_WINDOW and self.governed_phase_id:
-            raise ValueError("Only a fixed-date Milestone can govern a phase.")
         return self
 
 
@@ -287,8 +244,6 @@ class MilestoneUpdate(PlanModel):
     description: str | None = Field(max_length=2_000)
     target_earliest_date: date | None
     target_latest_date: date | None
-    timing_mode: MilestoneTimingMode = MilestoneTimingMode.TARGET_WINDOW
-    governed_phase_id: str | None = Field(default=None, min_length=1, max_length=64)
 
     _validate_title = field_validator("title")(TaskFields.validate_title.__func__)
     _validate_description = field_validator("description")(
@@ -300,13 +255,6 @@ class MilestoneUpdate(PlanModel):
         _validate_milestone_target_window(
             self.target_earliest_date, self.target_latest_date
         )
-        MilestoneFields(
-            title=self.title, description=self.description,
-            target_earliest_date=self.target_earliest_date,
-            target_latest_date=self.target_latest_date,
-            timing_mode=self.timing_mode,
-            governed_phase_id=self.governed_phase_id,
-        )
         return self
 
 
@@ -314,26 +262,10 @@ class MilestoneAchievementUpdate(PlanModel):
     achieved: bool
 
 
-class MilestoneTimingAnalysis(PlanModel):
-    status: MilestoneTimingStatus
-    summary: str
-    governed_task_ids: tuple[str, ...] = ()
-    critical_path_task_ids: tuple[str, ...] = ()
-    actionable_task_ids: tuple[str, ...] = ()
-    missing_duration_task_ids: tuple[str, ...] = ()
-    duration_min_days: int | None = None
-    duration_max_days: int | None = None
-    start_window_opening: date | None = None
-    conservative_latest_start: date | None = None
-    last_plausible_start: date | None = None
-    conflicts: tuple[str, ...] = ()
-
-
 class Milestone(MilestoneFields):
     id: str
     status: MilestoneStatus
     achieved_at: datetime | None
-    timing: MilestoneTimingAnalysis | None = None
 
 
 class DecisionOptionFields(PlanModel):
@@ -345,7 +277,6 @@ class DecisionOptionFields(PlanModel):
     _validate_description = field_validator("description")(
         TaskFields.validate_description.__func__
     )
-
 
 
 class DecisionFields(PlanModel):

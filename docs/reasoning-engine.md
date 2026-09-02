@@ -1,5 +1,22 @@
 # The GoTime Reasoning Engine
 
+## Family MVP timing boundary
+
+Phases organize related work. Phase order is not a hard dependency and does not
+mean every earlier-phase Task must finish before later-phase work begins. Task
+dependencies express required sequencing and may cross Phases. Explicit **Due
+by** dates provide real calendar pressure, which may propagate backward through
+actual dependency paths under the ranking rules below.
+
+**Do not recommend before**, effective status, actual unblocking, Decision
+readiness and preparation, and the accepted deterministic attention policy
+remain authoritative. Phase order is only stable ordering/tie context. Task
+duration estimates and phase-wide Milestone deadlines are not part of the
+family MVP, and no runtime AI is required.
+
+The rejected timing prototype and future design constraints are recorded in
+[ADR-0013](adr/ADR-0013-reject-phase-wide-milestone-timing.md).
+
 If `AGENTS.md` defines how we build GoTime, then `reasoning-engine.md` should define how GoTime thinks.
 
 Whenever we debate a feature, we should be able to point to this document and ask:
@@ -67,25 +84,6 @@ separate future work.
 ## Recommendation hierarchy
 
 Hard eligibility comes first, user timing and urgency second, and Decision context third.
-
-### Lean fixed-Milestone timing
-
-Only an explicitly selected phase on an unachieved **Fixed date** Milestone
-creates Milestone timing. Phase membership alone never creates the relationship.
-GoTime expands active phase work through required subtasks and incomplete
-dependencies, then calculates the longest remaining dependency path from
-user-entered elapsed-calendar-day ranges.
-
-Safe start is the fixed date minus the maximum critical-path duration; last
-plausible start is the fixed date minus the minimum. Before, on, through, and
-after those boundaries produce **Not yet time-sensitive**, **Time to begin**,
-**At risk**, and **Likely to miss**. Unknown duration affecting remaining leaf
-work produces **Timing incomplete**. Target windows retain existing behavior.
-
-Milestone attention reaches only the actionable critical frontier and cannot
-displace protected overdue/due-today work. Achieved Milestones add no pressure.
-Task-date conflicts are advisory and never rewrite stored dates. See
-[ADR-0013](adr/ADR-0013-lean-fixed-milestone-timing.md).
 
 ```mermaid
 flowchart TD

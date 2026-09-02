@@ -1,11 +1,6 @@
 # GoTime
 GoTime helps people make better decisions while pursuing complex goals by combining strategic reasoning with operational sequencing.
 
-For family go-live, timing is deterministic and user-authored. GoTime may work
-backward from an explicit fixed Milestone date and explicit phase relationship,
-but it does not invent dates, durations, relationships, or advice. Runtime AI,
-background research, and API keys are not part of the family MVP.
-
 It began with a simple question:
 
 > **What should we do next?**

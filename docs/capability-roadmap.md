@@ -1,11 +1,3 @@
-## Current candidate: lean family go-live timing
-
-The next deployable capability is deterministic fixed-date backward timing for
-one explicitly governed phase, using optional user-entered Task duration ranges.
-Target-window calculation and generalized scope remain later work. Post-MVP:
-calendar publishing, opt-in reminders, reviewed sourced moving guidance, then
-generalized Milestone scope and Decision-option timing.
-
 ## Capabilities
 ### Capability 1: Observe
 > The engine has to understand the current world.
@@ -95,6 +87,23 @@ introduces progressive disclosure for the four Task phases, and removes
 suspended experiments from the ordinary family interface without deleting
 their code or evidence. Accepted planning behavior is available normally while
 the shared experiment flags remain false.
+
+### Family go-live order
+
+The phase-wide fixed-Milestone timing prototype was rejected after human
+acceptance and was not deployed. Family-MVP scheduling continues to use
+explicit Task **Due by** dates and actual dependencies; optional Task duration
+estimates are not part of the MVP.
+
+Post-go-live work proceeds in this order:
+
+1. Private family access and operational reliability.
+2. Automated backups and verified restore.
+3. One-way calendar publishing.
+4. Deterministic opt-in notifications and reminders.
+5. Reviewed moving guidance with sources and freshness dates.
+6. Reconsidered explicit-work Milestone timing, only if real use demonstrates
+   a need.
 
 ### Capability 5: Explain
 This is the part I don't want to compromise on. Every recommendation should be accompanied by an explanation.

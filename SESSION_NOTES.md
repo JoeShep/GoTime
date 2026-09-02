@@ -1,16 +1,20 @@
 # Session Notes
 
-## 2026-08-29 — lean family go-live timing candidate
+## 2026-09-02 — Phase-wide Milestone timing rejected
 
-- Reconciled a superseded generalized draft to one normalized fixed-Milestone-
-  to-phase relationship.
-- Preserved paired Task duration ranges, fixed-date representation,
-  evaluation-date plumbing, transactional fail-closed migration, and pure graph
-  calculation.
-- Removed candidate-only Decision phases, option work, generalized roots,
-  exclusions, date-setting prompts, and unresolved option scenarios.
-- Added fixed-date timing states and bounded actionable-frontier Recommendation
-  context without changing active family records.
+- Formally rejected and reverted the undeployed fixed-Milestone timing
+  prototype after human acceptance showed that phase-wide deadlines and
+  checklist-like missing-duration UI made Phases and Milestones feel redundant
+  and optional estimates feel mandatory.
+- Restored runtime, schema, API, migration, tests, and frontend behavior to the
+  accepted `c0d80c15` production baseline. The rejected commits remain visible
+  in history and were never pushed or deployed.
+- Recorded that family-MVP timing continues to come from explicit Task due
+  dates and real dependencies; Task duration estimates are not part of the MVP.
+- Set the post-go-live order to private access/reliability, automated backups
+  and restore, calendar publishing, deterministic notifications, reviewed
+  moving guidance, then reconsidered explicit-work timing only if real use
+  demonstrates a need.
 
 ## 2026-08-20 — Segmented Now/Plan navigation refinement
 

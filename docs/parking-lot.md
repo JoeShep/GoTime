@@ -1,10 +1,3 @@
-Post-family-MVP capability order
-
-1. One-way calendar publishing from GoTime.
-2. Deterministic opt-in notifications and reminders.
-3. Reviewed moving guidance attached to real family Tasks, with sources and freshness dates.
-4. Generalized Milestone scopes, exclusions, multiple anchors, and Decision-option timing.
-
 AI Contributor Experience (A feature of the repository, not of GoTime)
 Over time, I'd love to refine how AI collaborators interact with the project. Things like:
 
@@ -116,3 +109,18 @@ assumptions. This is deferred product/UX direction, not the next increment.
 
 * Eliminate SQLite byte-level writes from no-op backend repository
   initialization while preserving idempotent schema validation and startup.
+
+### Reconsidered Milestone timing
+
+The rejected phase-wide prototype must not be revived as-is. If real family use
+later demonstrates a forecasting need, relate a Milestone only to explicitly
+selected outcome-critical work. Dependencies may include required
+prerequisites across Phases. Estimates remain optional, and missing estimates
+should reduce forecast confidence rather than appear as incomplete user work.
+Summarize conclusions instead of reproducing Plan, and keep timing-derived
+Recommendation pressure advisory and secondary to real deadlines and actual
+dependency structure.
+
+Revisit only after private family access, operational reliability, automated
+backups and restore, calendar publishing, deterministic notifications, and
+reviewed moving guidance.

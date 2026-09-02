@@ -1,11 +1,15 @@
 # NEXT_SESSION
 
-## Active candidate: lean fixed-Milestone timing
+## Next decision: secure family access and reliable backups
 
-Human-review one fixed date governing one explicit phase, optional Task
-elapsed-time ranges, deterministic critical-path states, and concise
-Recommendation pressure. No active family timing relationship is created;
-target-window Milestones retain existing behavior and both experiment flags stay false.
+The undeployed lean fixed-Milestone timing prototype was formally rejected
+after human acceptance and reverted without changing production. ADR-0013
+records the product lessons. Do not begin another timing implementation from
+the rejected phase-wide design.
+
+The next work is a separate decision and implementation plan for private family
+access and operational reliability, followed by automated backups and verified
+restore. No implementation is authorized by this handoff.
 
 ## Current objective: deterministic Recommendation calibration closed
 

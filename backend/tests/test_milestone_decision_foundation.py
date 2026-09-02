@@ -2,7 +2,6 @@ import asyncio
 import sqlite3
 from pathlib import Path
 
-import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import create_app
@@ -18,7 +17,6 @@ from app.relocation_plan_models import (
 )
 from app.relocation_plan_repository import (
     InvalidDecisionError,
-    RelocationPlanError,
     SQLiteRelocationPlanRepository,
 )
 
@@ -71,7 +69,7 @@ def test_empty_and_repeated_startup_create_idempotent_foundation(tmp_path) -> No
     } <= indexes
 
 
-def test_partially_removed_foundation_fails_closed_after_timing_migration(tmp_path) -> None:
+def test_current_normalized_schema_is_preserved_during_migration(tmp_path) -> None:
     path = tmp_path / "gotime.db"
     SQLiteRelocationPlanRepository(path)
     with sqlite3.connect(path) as connection:
@@ -80,10 +78,7 @@ def test_partially_removed_foundation_fails_closed_after_timing_migration(tmp_pa
         connection.execute("DROP TABLE decisions")
         connection.execute("DROP TABLE milestones")
         connection.execute(
-            """INSERT INTO tasks (
-                id, plan_id, phase_id, title, description, status,
-                start_date, due_date, priority
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            "INSERT INTO tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             ("preserved", "family-relocation-plan", "prepare", "Preserved", None,
              "not_started", None, None, "medium"),
         )
@@ -91,8 +86,11 @@ def test_partially_removed_foundation_fails_closed_after_timing_migration(tmp_pa
             "INSERT INTO task_categories VALUES (?, ?)", ("preserved", "housing")
         )
 
-    with pytest.raises(RelocationPlanError, match="failed closed"):
-        SQLiteRelocationPlanRepository(path)
+    plan = SQLiteRelocationPlanRepository(path).get_plan()
+    assert [task.id for task in plan.tasks] == ["preserved"]
+    assert plan.tasks[0].categories == ("housing",)
+    assert plan.milestones == ()
+    assert plan.decisions == ()
 
 
 def test_milestone_crud_target_validation_and_explicit_achievement(tmp_path) -> None:

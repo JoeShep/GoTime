@@ -416,60 +416,6 @@ body {
   min-width: 15rem;
 }
 
-.elapsed-time-group,
-.recommendation-timing-group,
-.milestone-timing-details {
-  border: 1px solid rgb(23 61 48 / 18%);
-  background: rgb(247 250 247 / 80%);
-}
-
-.elapsed-time-fields .form-control {
-  width: 7rem;
-}
-
-.elapsed-time-fields .form-select {
-  width: 8rem;
-}
-
-.milestone-missing-estimate-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content;
-  align-items: start;
-  gap: 0.5rem 1rem;
-  padding-block: 0.625rem;
-  border-top: 1px solid rgb(23 61 48 / 14%);
-}
-
-.milestone-missing-estimate-title {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.milestone-estimate-action {
-  min-height: 44px;
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-@media (max-width: 575.98px) {
-  .elapsed-time-fields > * {
-    width: 100%;
-  }
-
-  .elapsed-time-fields .form-control,
-  .elapsed-time-fields .form-select {
-    width: 100%;
-  }
-
-  .milestone-missing-estimate-item {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .milestone-estimate-action {
-    justify-self: start;
-  }
-}
-
 .task-editor-actions {
   z-index: 2;
   border-bottom: 1px solid rgb(42 61 52 / 15%);
